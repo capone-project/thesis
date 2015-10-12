@@ -1,0 +1,30 @@
+\section{Introduction}
+
+In recent years it has become obvious that the power of global adversaries which are able to attack the information technologies infrastructure in significant ways is much greater than many have thought.
+The most important sources indicating the vast capabilities of foreign intelligence services like the NSA or GCHQ are documents leaked by Edward Snowden, starting in 2013 (SOURCE).
+Those documents draw a picture of a global surveillance network built primarily by the National Security Agency which is able to intercept, collect and analyze a significant portion of the global communications network.
+
+But besides acting on the layer of informations flowing through cables, these agencies quite regularly act on the physical layer, as well.
+The agencies have the ability to intercept hardware ordered by certain individuals and modify it such that it is possible to monitor these devices withouth the target knowing.
+This may include tampering with device firmware such that certain programs may collect and dispatch ongoing events in the hardware system or attaching additional devices like microchips to the device.
+Nowadays it is next to impossible to detect those modifications when the individual is not aware that he might be spied upon.
+
+The latter scenario makes clear an important design flaw in modern personal computing systems.
+That is, many devices enjoy unrestrained access to the complete architecture, including main memory and other system busses, making it trivial for hardware to monitor what is going on in a system.
+As such, we do have to trust every connected hardware device like e.g. graphics cards to not include hostile components and thus compromise our system.
+
+Despite the security aspect there is also the aspect of malfunctioning devices.
+When device firmware is being buggy it is possible that the malfunctioning device may corrupt the system's state and thus lead to the system malbehaving or crashing.
+\\\\
+In this thesis we will develop a countermeasure to the ability of hardware devices having access to the full system.
+Instead of directly connecting untrusted hardware devices to the busses, we will develop a protocol such that we are able to connect devices via a networking interface with the system.
+As such the only interface that is used to connect to systems is the networking interface card.
+
+As such we are now able to build a minimal system with only the most important devices like the CPU, main memory and the networking interface card.
+Every other extension to the system will then communicate via a device-type specific protocols that may be verified on the host system.
+
+In order to get a working system we require a service that has to handle events when new devices are connected or disconnected to the system.
+This matchmaking service will have to determine if the connected device is supported and associate the respective drivers to the device.
+Furthermore there might be several security concerns which will need to be handled by the matchmaker.
+
+% vim: ft=tex tw=0
