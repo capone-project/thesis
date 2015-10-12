@@ -1,12 +1,33 @@
-- definition of adversary
+- definition of threat model
+    - adversary
+    - https://en.wikipedia.org/wiki/DMA_attack
+    - Examples of connections that may allow DMA in some exploitable form include FireWire, ExpressCard, Thunderbolt, PCI and PCI Express.
+    - An IOMMU is a technology that applies the concept of virtual memory to such system busses, and may be used to close this security vulnerability (as well as increase system stability). Intel brands its IOMMU as VT-d. AMD brands its IOMMU as AMD-Vi. Linux supports these IOMMUs and can use them to block I/O transactions that have not been allowed. However, IOMMUs mostly are used instead to give guest virtual machines passthrough access to host hardware.
+    - example based on common hardware
+        - USB sticks
+        - hard disk drives/solid state drives
+        - https://en.wikipedia.org/wiki/IEEE_1394#Security_issues
+    - https://en.wikipedia.org/wiki/Computer_security_compromised_by_hardware_failure
 - discussion of software
     - microkernel
     - capabilities
     - drivers
         - device specific protocols
+            - mouse
+            - keyboard
+            - graphics
+            - networking
+            - persistent storage
     - matchmaking
     - encryption?
 - discussion of hardware
     - host -> Raspberry?
     - slaves controlling devices
     - LAN hub
+
+- verification of protocols
+    - cryptographically possible?
+    - tampering of slave's firmwareo
+
+- benchmarks
+    - DMA/without DMA
