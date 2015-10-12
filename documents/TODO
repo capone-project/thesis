@@ -1,0 +1,12 @@
+- definition of adversary
+- discussion of software
+    - microkernel
+    - capabilities
+    - drivers
+        - device specific protocols
+    - matchmaking
+    - encryption?
+- discussion of hardware
+    - host -> Raspberry?
+    - slaves controlling devices
+    - LAN hub
