@@ -1,0 +1,91 @@
+\documentclass[12pt,a4paper,english]{article}
+
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[english]{babel}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{fancyhdr}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{tikz}
+\usepackage{listings}
+
+\usetikzlibrary{arrows,calc,shapes,positioning}
+
+% Header and Footer Style
+\fancyhead{}
+\fancyhead[R]{\slshape Patrick Steinhardt}
+\fancyhead[L]{\slshape\nouppercase{\rightmark}}
+\fancyfoot{}
+\fancyfoot[C]{\thepage}
+\renewcommand{\headrulewidth}{0pt}
+\renewcommand{\sectionmark}[1]{\markright{\thesection\ #1}}
+
+% No identation
+\setlength\headheight{15pt}
+\setlength\parindent{0pt}
+
+% Break after each section
+\let\stdsection\section
+\newcommand{\bigparskip}{\vspace{12pt}}
+
+\bibliographystyle{alpha}
+
+\widowpenalty=1000
+\clubpenalty=1000
+
+\lstset{language=C}
+\lstset{captionpos=b}
+
+% Titel and author
+\title{TITLE}
+\author{Patrick Steinhardt}
+\date{Berlin, \today}
+
+\begin{document}
+
+    \begin{titlepage}
+        \makeatletter
+        \begin{center}
+            \includegraphics[width=0.6\textwidth]{../resources/fu-logo.pdf}\\
+            {\normalsize Master's Thesis at the Department for Computer Science\\Free University of Berlin\\Research Group Secure Identities}\\[8ex]
+            {\Large \@title}\\[6ex]
+            {\large \@author}\\
+            {\normalsize Student Number: 4467529}\\
+            {\normalsize mail@pks.im}\\[4ex]
+            {\normalsize Supervisors:\\Prof. Dr.-Ing. Volker Roth}\\[4ex]
+            {\normalsize \@date}
+        \end{center}
+        \makeatother
+
+        \vfill{}
+        \begin{abstract}
+
+            Abstract
+
+        \end{abstract}
+        \vfill{}
+    \end{titlepage}
+
+    \pagenumbering{roman}
+    \input{00-affirmation}
+    \clearpage
+
+    \tableofcontents
+    \clearpage
+    \listoffigures
+    \clearpage
+    \lstlistoflistings
+    \clearpage
+
+    \pagestyle{fancy}
+    \pagenumbering{arabic}
+    \setcounter{page}{1}
+
+    \clearpage
+    \nocite{*}
+    \bibliography{../literature/bibliography}
+\end{document}
+
+% vim: ft=tex tw=0
