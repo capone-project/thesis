@@ -29,8 +29,10 @@
 
     \begin{tikzpicture}
         \node[host] (host) {HOST};
-        \node[switch,above=2cm of host] (switch) {SWITCH};
-        \node[draw,cloud,below=1cm of host] (inet) {INET};
+        \node[switch,above=of host] (switch) {SWITCH};
+
+        \node[hwslave,above=4cm of switch] (network) {NETWORK};
+        \node[draw,cloud,above=1cm of network] (inet) {INET};
 
         \node[hwslave,left=2cm of switch,yshift=+1.0cm] (mouse)    {MOUSE};
         \node[hwslave,left=2cm of switch,yshift=+2.0cm] (keyboard) {KEYBOARD};
@@ -43,17 +45,19 @@
         \node[appslave,right=2cm of switch,yshift=+4.0cm] (appn) {APP$n$};
 
         \path[netlink] (host) to (switch.south);
-        \path[netlink] (host) to (inet);
 
-        \path[netlink] ([xshift=0.0cm]switch.north west) |- (mouse.east);
-        \path[netlink] ([xshift=0.30cm]switch.north west) |- (keyboard.east);
-        \path[netlink] ([xshift=0.60cm]switch.north west) |- (storage.east);
-        \path[netlink] ([xshift=0.90cm]switch.north west) |- (gpu.east);
+        \path[netlink] (switch) to (network);
+        \path[netlink] (network) to (inet);
 
-        \path[netlink]        ([xshift=-0.0cm]switch.north east) |- (app1.west);
-        \path[netlink]        ([xshift=-0.3cm]switch.north east) |- (app2.west);
-        \path[netlink,dashed] ([xshift=-0.6cm]switch.north east) |- (appi.west);
-        \path[netlink]        ([xshift=-0.9cm]switch.north east) |- (appn.west);
+        \path[netlink] ([xshift=0.00cm]switch.north west) |- (mouse.east);
+        \path[netlink] ([xshift=0.25cm]switch.north west) |- (keyboard.east);
+        \path[netlink] ([xshift=0.50cm]switch.north west) |- (storage.east);
+        \path[netlink] ([xshift=0.75cm]switch.north west) |- (gpu.east);
+
+        \path[netlink]        ([xshift=-0.00cm]switch.north east) |- (app1.west);
+        \path[netlink]        ([xshift=-0.25cm]switch.north east) |- (app2.west);
+        \path[netlink,dashed] ([xshift=-0.50cm]switch.north east) |- (appi.west);
+        \path[netlink]        ([xshift=-0.75cm]switch.north east) |- (appn.west);
     \end{tikzpicture}
 
     \caption{Architecture}
