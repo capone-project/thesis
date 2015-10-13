@@ -18,7 +18,7 @@
         },
         appslave/.style={
             draw,
-            rectangle
+            ellipse
         },
         netlink/.style={
             draw,
@@ -113,17 +113,17 @@
         \path[line] (negotiate) -- (run);
     \end{tikzpicture}
 
-    \caption{Flow chart}
-
-    \begin{itemize}
-        \item host has graphic server
-        \item only knows about window extents, not contents due to encryption
-        \item initially gets all keyboard/mouse inputs
-        \item upon mouse enter inside a window, notifies mouse server of window extents
-        \item mouse server keeps track of relative mouse position, notifies server upon exit of extents
-        \item window server registers shortcuts that are required for window changing
-        \item shortcuts may NEVER be rebound by client applications
-    \end{itemize}
+    \caption{Connecting an app}
 \end{figure}
+
+\begin{itemize}
+    \item host has graphic server
+    \item only knows about window extents, not contents due to encryption
+    \item initially gets all keyboard/mouse inputs
+    \item upon mouse enter inside a window, notifies mouse server of window extents
+    \item mouse server keeps track of relative mouse position, notifies server upon exit of extents
+    \item window server registers shortcuts that are required for window changing
+    \item shortcuts may NEVER be rebound by client applications
+\end{itemize}
 
 % vim: ft=tex tw=0
