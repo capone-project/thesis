@@ -1,0 +1,24 @@
+- how to guarantee host security?
+
+- computing nodes?
+    - applications cannot interfere with each other
+    - many-to-many relation between nodes/slaves
+    - capabilities request features
+    - secure windowing system required
+        - input focus important
+    - IPC?
+        - requires notion of who is accepted to interact with
+          oneself
+
+- encryption between slave nodes
+    - host is ONLY there for matchmaking
+    - host CANNOT possibly know about contents between nodes
+
+- graphics
+    - graphics representation on host system
+    - input system on host system
+    - slave only display host
+    - HDCP
+
+- benefits:
+    - hardware cannot ever possibly communicate over internet
