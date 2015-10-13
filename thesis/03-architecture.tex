@@ -1,3 +1,113 @@
 \section{Architecture}
 
+\begin{figure}[h!]
+    \centering
+
+    \tikzset{
+        host/.style={
+            draw,
+            rectangle
+        },
+        switch/.style={
+            draw,
+            rectangle
+        },
+        hwslave/.style={
+            draw,
+            rectangle
+        },
+        appslave/.style={
+            draw,
+            rectangle
+        },
+        netlink/.style={
+            draw,
+            line width=0.4mm,
+            triangle 45-triangle 45
+        }
+    }
+
+    \begin{tikzpicture}
+        \node[host] (host) {HOST};
+        \node[switch,above=2cm of host] (switch) {SWITCH};
+
+        \node[hwslave,left=2cm of switch,yshift=+1.0cm] (mouse)    {MOUSE};
+        \node[hwslave,left=2cm of switch,yshift=+2.0cm] (keyboard) {KEYBOARD};
+        \node[hwslave,left=2cm of switch,yshift=+3.0cm] (storage)  {STORAGE};
+        \node[hwslave,left=2cm of switch,yshift=+4.0cm] (gpu)      {GPU};
+
+        \node[appslave,right=2cm of switch,yshift=+1.0cm] (app1) {APP1};
+        \node[appslave,right=2cm of switch,yshift=+2.0cm] (app2) {APP2};
+        \node[right=2cm of switch,yshift=+3.0cm]          (appi) {$\ldots$};
+        \node[appslave,right=2cm of switch,yshift=+4.0cm] (appn) {APP$n$};
+
+        \path[netlink] (host) to (switch.south);
+
+        \path[netlink] ([xshift=0.0cm]switch.north west) |- (mouse.east);
+        \path[netlink] ([xshift=0.30cm]switch.north west) |- (keyboard.east);
+        \path[netlink] ([xshift=0.60cm]switch.north west) |- (storage.east);
+        \path[netlink] ([xshift=0.90cm]switch.north west) |- (gpu.east);
+
+        \path[netlink]        ([xshift=-0.0cm]switch.north east) |- (app1.west);
+        \path[netlink]        ([xshift=-0.3cm]switch.north east) |- (app2.west);
+        \path[netlink,dashed] ([xshift=-0.6cm]switch.north east) |- (appi.west);
+        \path[netlink]        ([xshift=-0.9cm]switch.north east) |- (appn.west);
+    \end{tikzpicture}
+
+    \caption{Architecture}
+\end{figure}
+
+\begin{figure}[h!]
+    \centering
+
+    \begin{tikzpicture}
+        [
+            line/.style = {
+                draw,
+                -latex'
+            },
+            block/.style = {
+                rectangle,
+                draw,
+                fill=blue!20,
+                text width=5em,
+                text centered,
+                rounded corners,
+                minimum height=4em
+            },
+            decision/.style = {
+                diamond,
+                draw,
+                fill=blue!20,
+                text width=4.5em,
+                text badly centered,
+                inner sep=0pt
+            }
+        ]
+
+        \node[block] (attach) {App attaches};
+        \node[block,below=of attach] (announce) {App announces};
+        \node[decision,below=of announce] (satisfiable) {Reqs satisfiable?};
+        \node[block,right=of satisfiable] (unsatisfied) {Fail due to unsatisfiability};
+        \node[block,below=of satisfiable] (askpeers) {Notify peer devices};
+        \node[decision,below=of askpeers] (ack) {All devs acknowledge?};
+        \node[block,right=of ack] (nack) {Fail due to nack};
+        \node[block,below=of ack] (start) {Notify app of start};
+        \node[block,below=of start] (negotiate) {Negotiate secure connections with peers};
+        \node[block,below=of negotiate] (run) {Run};
+
+        \path[line] (attach) -- (announce);
+        \path[line] (announce) -- (satisfiable);
+        \path[line] (satisfiable) -- node[near start,below] {no?} (unsatisfied);
+        \path[line] (satisfiable) -- node[near start,right] {yes?} (askpeers);
+        \path[line] (askpeers) -- (ack);
+        \path[line] (ack) -- node[near start,below] {no?} (nack);
+        \path[line] (ack) -- node[near start,right] {yes?} (start);
+        \path[line] (start) -- (negotiate);
+        \path[line] (negotiate) -- (run);
+    \end{tikzpicture}
+
+    \caption{Flow chart}
+\end{figure}
+
 % vim: ft=tex tw=0
