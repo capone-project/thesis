@@ -41,6 +41,9 @@
               malfunctions
     - app clients
         - Xvfb?
+            - print into shared memory or framebuffer directory
+            - xwd protocol
+            - forward access to or stream buffers
         - persistent state?
         - configugration file specifying what to run and what
           devices are requested
@@ -62,3 +65,4 @@
         - directory services
     - porting existing applications
         - override symbols with LD_PRELOAD
+    - Multiple windows per application
