@@ -31,3 +31,8 @@
 
 - benchmarks
     - DMA/without DMA
+
+== Information retrieval ==
+
+    - Xvfb
+    - Donnelly, "Managing Domains in a Network Operating System"
