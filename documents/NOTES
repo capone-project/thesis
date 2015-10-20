@@ -56,6 +56,19 @@
             - separate protocol for display<->arbitrer
               communication
 
+    - authentication
+        - applications stops whenever a device is connected
+          to it
+        - dialog with device's keyprint is displayed
+        - user must press special hardware button to
+          acceppt connection
+        - on initial connection only, key will be stored
+          afterwards and be regarded as trusted
+        - similar to Android permissions screen
+        - list requested capabilities and associated
+          devices with possibility to choose
+        - user device has to handle this procedure
+
 == Questions ==
 
     - representation of origin of devices/apps
