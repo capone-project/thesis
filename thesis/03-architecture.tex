@@ -1,31 +1,31 @@
 \section{Architecture}
 
+\tikzset{
+    host/.style={
+        draw,
+        rectangle
+    },
+    switch/.style={
+        draw,
+        rectangle
+    },
+    hwslave/.style={
+        draw,
+        rectangle
+    },
+    appslave/.style={
+        draw,
+        ellipse
+    },
+    netlink/.style={
+        draw,
+        line width=0.4mm,
+        triangle 45-triangle 45
+    }
+}
+
 \begin{figure}[H]
     \centering
-
-    \tikzset{
-        host/.style={
-            draw,
-            rectangle
-        },
-        switch/.style={
-            draw,
-            rectangle
-        },
-        hwslave/.style={
-            draw,
-            rectangle
-        },
-        appslave/.style={
-            draw,
-            ellipse
-        },
-        netlink/.style={
-            draw,
-            line width=0.4mm,
-            triangle 45-triangle 45
-        }
-    }
 
     \begin{tikzpicture}
         \node[host] (host) {HOST};
@@ -224,6 +224,12 @@
         \mess{c}{Connect}{s}
         \draw (Connect from) -- (Connect to) node[midway,below]
             {$pk_s(\text{sessionid}, \text{capability})$};
+
+        \postlevel
+        \postlevel
+        \postlevel
+
+        \mess{s}{Connect OK}{c}
     \end{sequencediagram}
     \caption{Direct Connect}
 \end{figure}
@@ -253,6 +259,8 @@
         \postlevel
 
         \mess{o}{Connect}{s}
+        \postlevel
+        \mess{s}{Connect OK}{o}
     \end{sequencediagram}
     \caption{Relayed Connect}
 \end{figure}
