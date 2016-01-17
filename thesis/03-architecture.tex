@@ -1,6 +1,6 @@
 \section{Architecture}
 
-\begin{figure}[h!]
+\begin{figure}[H]
     \centering
 
     \tikzset{
@@ -63,7 +63,9 @@
     \caption{Architecture}
 \end{figure}
 
-\begin{figure}[h!]
+\subsection{Connection flowchart}
+
+\begin{figure}[H]
     \centering
 
     \begin{tikzpicture}
@@ -115,6 +117,147 @@
 
     \caption{Connecting an app}
 \end{figure}
+
+\subsection{Message Diagrams}
+
+\subsubsection{Discovery}
+
+\begin{figure}[H]
+    \centering
+
+    \begin{sequencediagram}
+        \newinst{c}{Client}
+        \newinst[8]{s}{Server}
+
+        \mess{c}{Discover}{s}
+        \draw (Discover from) -- (Discover to) node[midway,below]
+            {$sk_c(\text{version}, \text{listening port}) \| pk_c$};
+
+        \postlevel
+        \postlevel
+        \postlevel
+
+        \mess{s}{Announce}{c}
+        \draw (Announce from) -- (Announce to) node[midway,below]
+            {$pk_c(sk_s(\text{version}, \text{listening port}, \text{name}) \| pk_s$)};
+
+        \postlevel
+    \end{sequencediagram}
+    \caption{Undirected Service Discovery Messaging Chart}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+
+    \begin{sequencediagram}
+        \newinst{c}{Client}
+        \newinst[8]{s}{Server}
+
+        \mess{c}{Discover}{s}
+        \draw (Discover from) -- (Discover to) node[midway,below]
+            {$pk_s(sk_c(\text{version}, \text{listening port}) \| pk_c$)};
+
+        \postlevel
+        \postlevel
+        \postlevel
+
+        \mess{s}{Announce}{c}
+        \draw (Announce from) -- (Announce to) node[midway,below]
+            {$pk_c(sk_s(\text{version}, \text{listening port}, \text{name}) \| pk_s$)};
+
+        \postlevel
+    \end{sequencediagram}
+    \caption{Directed Service Discovery Messaging Chart}
+\end{figure}
+
+\subsubsection{Handshake}
+
+\begin{figure}[H]
+    \centering
+
+    \begin{sequencediagram}
+        \newinst{c}{Client}
+        \newinst[8]{s}{Server}
+
+        \mess{c}{Probe}{s}
+        \draw (Probe from) -- (Probe to) node[midway,below]
+            {$pk_s(\text{Probe})$};
+
+        \postlevel
+        \postlevel
+        \postlevel
+
+        \mess{s}{Service Description}{c}
+        \draw (Service Description from) -- (Service Description to) node[midway,below]
+            {$pk_c(\text{name}, \text{addresses}, \text{location}, \text{type}, \text{parameters}, \text{status})$};
+
+        \postlevel
+    \end{sequencediagram}
+    \caption{Probe Messaging Chart}
+\end{figure}
+
+\subsubsection{Connection}
+
+\begin{figure}[H]
+    \centering
+
+    \begin{sequencediagram}
+        \newinst{c}{Client}
+        \newinst[8]{s}{Server}
+
+        \mess{c}{Connection Request}{s}
+        \draw (Connection Request from) -- (Connection Request to) node[midway,below]
+            {$pk_s(\text{parameters}, \text{secret})$};
+
+        \postlevel
+        \postlevel
+        \postlevel
+
+        \mess{s}{Connection Capability}{c}
+        \draw (Connection Capability from) -- (Connection Capability to) node[midway,below]
+            {$pk_c(\text{sessionid}, \text{capability})$};
+
+        \postlevel
+        \postlevel
+        \postlevel
+
+        \mess{c}{Connect}{s}
+        \draw (Connect from) -- (Connect to) node[midway,below]
+            {$pk_s(\text{sessionid}, \text{capability})$};
+    \end{sequencediagram}
+    \caption{Direct Connect}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+
+    \begin{sequencediagram}
+        \newinst{o}{Other Server}
+        \newinst[4]{c}{Client}
+        \newinst[4]{s}{Server}
+
+        \mess{c}{Connection Request}{s}
+        \postlevel
+        \mess{s}{Connection Capability}{c}
+
+        \postlevel
+        \postlevel
+
+        \mess{c}{Connection Request}{o}
+        \postlevel
+        \mess{o}{Connection Capability}{c}
+        \postlevel
+        \mess{c}{Connect}{o}
+
+        \postlevel
+        \postlevel
+
+        \mess{o}{Connect}{s}
+    \end{sequencediagram}
+    \caption{Relayed Connect}
+\end{figure}
+
+\subsection{Notes}
 
 \begin{itemize}
     \item host has graphic server
