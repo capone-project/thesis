@@ -122,6 +122,35 @@
 
 \subsubsection{Discovery}
 
+Device discovery is the process of discovering previously unknown services in a certain subnet.
+To achieve the discovery, a client has to query all possible addresses in this subnet and subsequently await responses from servers.
+This can easily be achieved with UDP multicast, that is we send a message to the multicast address of the subnet.
+As UDP is port based it is mandatory that we choose a well-known port in advance to the protocol as otherwise it would be impossible to bootstrap the initial communication.
+
+There are two major distinctions on how service discovery can be achieved: a client- and a service-driven approach.
+The service-driven is based on the service periodically sending an announce message to the multicast address, thereby notifying possibly listening clients of the availability of a certain service.
+
+The client-driven approach on the other side lets the client query the subnet for existing services by announcing that it wants to know about available services.
+Every service that is listening and that receives this request will then answer the client and announce its presence.
+
+Both methods have their own merit.
+Periodic announcements of the service conceal the intent of clients to discover local services as they are not directly involved in the process of finding services.
+They have the disadvantage of additional overhead, though, as we regularly have to announce our service.
+While this might not be problematic when only few services are available in a certain subnet it may become unwieldy when hundreds of services are present.
+
+This disadvantage is mitigated by the probing approach by clients that want to discover nearby services.
+Just how important this is gets particularly clear when we consider the process how users want to start interacting with a certain service.
+Assume that a user starts up his mobile phone with our app with the intent to start using a certain service.
+With the periodic probing approach the user will in the worst case have to wait for the whole time span between two announcements of the service he wants to connect to.
+Depending on how this timeout was chosen this may be an uncomfortably long time.
+As users are generally uncomfortable with doing nothing for a rather long time (CITATION NEEDED) they might simply stop waiting and just scrap their plan.
+
+When we directly probe the subnet for available services instead the response times will in the mean case be much less than in the other case.
+That is the delay of services popping up is only based on latency and processing time of both service and client.
+As a consequence we have chosen the probing approach.\\
+
+The chart in figure \ref{fig:undirected-service-discovery} provides an overview of the protocol that is used for this type of service discovery:
+
 \begin{figure}[H]
     \centering
 
@@ -139,11 +168,13 @@
 
         \mess{s}{Announce}{c}
         \draw (Announce from) -- (Announce to) node[midway,below]
-            {$pk_c(sk_s(\text{version}, \text{listening port}, \text{name}) \| pk_s$)};
+            {$pk_c(sk_s(\text{version}, \text{listening ports}, \text{name}) \| pk_s$)};
 
         \postlevel
     \end{sequencediagram}
+
     \caption{Undirected Service Discovery Messaging Chart}
+    \label{fig:undirected-service-discovery}
 \end{figure}
 
 \begin{figure}[H]
