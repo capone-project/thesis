@@ -149,14 +149,25 @@ When we directly probe the subnet for available services instead the response ti
 That is the delay of services popping up is only based on latency and processing time of both service and client.
 As a consequence we have chosen the probing approach.\\
 
-The chart in figure \ref{fig:undirected-service-discovery} provides an overview of the protocol that is used for this type of service discovery:
+The initial exchange between a client and service which have never seen each other before is somewhat problematic, as in general we cannot establish the authenticity of either one.
+To accomodate for this we distinguish between undirected (see figure \ref{fig:undirected-service-discovery}) and directed service discovery(see figure \ref{fig:directed-service-discovery}).
+While the undirected discovery protocol is unauthenticated we are able to improve the situation for directed service discovery in certain cases.
+
+Through a sidechannel we are able to retrieve additional data about a service we want to connect to.
+As described by McCune et al. \cite{mccune2005seeing} we can establish additional trust amongst other things by scanning a QR code that is either printed on the case of the service or, further improving the trust level, by dynamically displaying a QR code on the screen.
+This is particularly interesting in the case where we want to connect to a display service.
+Upon notifying the service in a certain out-of-band way (e.g. by pressing a certain button on the display) it will generate a QR code and display it on the screen.
+The client can subsequently scan the code and in such a way retrieve information like the public key and address of the display.
+As soon as we have obtained data through this side channel we are able to verify authenticity of the service we are communicating with, assuming the side channel has not been compromised.
+
+Let us now consider the actual discovery protocol.
 
 \begin{figure}[H]
     \centering
 
     \begin{sequencediagram}
         \newinst{c}{Client}
-        \newinst[8]{s}{Server}
+        \newinst[8]{s}{Service}
 
         \mess{c}{Discover}{s}
         \draw (Discover from) -- (Discover to) node[midway,below]
@@ -168,7 +179,7 @@ The chart in figure \ref{fig:undirected-service-discovery} provides an overview 
 
         \mess{s}{Announce}{c}
         \draw (Announce from) -- (Announce to) node[midway,below]
-            {$pk_c(sk_s(\text{version}, \text{listening ports}, \text{name}) \| pk_s$)};
+            {$pk_c(sk_s(\text{version}, \text{name}, \text{services} \| pk_s$)};
 
         \postlevel
     \end{sequencediagram}
@@ -182,11 +193,11 @@ The chart in figure \ref{fig:undirected-service-discovery} provides an overview 
 
     \begin{sequencediagram}
         \newinst{c}{Client}
-        \newinst[8]{s}{Server}
+        \newinst[8]{s}{Service}
 
         \mess{c}{Discover}{s}
         \draw (Discover from) -- (Discover to) node[midway,below]
-            {$pk_s(sk_c(\text{version}, \text{listening port}) \| pk_c$)};
+            {$pk_c(sk_s(\text{version}, \text{name}, \text{services} \| pk_s$)};
 
         \postlevel
         \postlevel
@@ -198,7 +209,9 @@ The chart in figure \ref{fig:undirected-service-discovery} provides an overview 
 
         \postlevel
     \end{sequencediagram}
+
     \caption{Directed Service Discovery Messaging Chart}
+    \label{fig:directed-service-discovery}
 \end{figure}
 
 \subsubsection{Handshake}
