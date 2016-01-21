@@ -171,22 +171,66 @@ Let us now consider the actual discovery protocol.
 
         \mess{c}{Discover}{s}
         \draw (Discover from) -- (Discover to) node[midway,below]
-            {$sk_c(\text{version}, \text{listening port}) \| pk_c$};
+            {$
+                \begin{aligned}
+                    m \leftarrow &\{\text{version}, \text{port}, pk_c\}\\
+                    t \leftarrow &S_{sk_c}(m)\\
+                                 &\text{send}(m \| t)
+                \end{aligned}
+            $};
 
+        \postlevel
         \postlevel
         \postlevel
         \postlevel
 
         \mess{s}{Announce}{c}
         \draw (Announce from) -- (Announce to) node[midway,below]
-            {$pk_c(sk_s(\text{version}, \text{name}, \text{services} \| pk_s$)};
+            {$
+                \begin{aligned}
+                    \text{services} \coloneqq &[ (port, type) ]\\
+                    m \leftarrow &\{\text{version}, \text{name}, \text{services}, pk_s\}\\
+                    t \leftarrow &S_{sk_p}(m)\\
+                                 &\text{send}(\text{Enc}_{pk_c}(m \| t))
+                \end{aligned}
+            $};
 
+        \postlevel
+        \postlevel
+        \postlevel
         \postlevel
     \end{sequencediagram}
 
     \caption{Undirected Service Discovery Messaging Chart}
     \label{fig:undirected-service-discovery}
 \end{figure}
+
+We assume both client and service own a long term key pair $(pk_c, sk_c)$ and $(pk_s, sk_s)$, respectively, that is used for establishing their own identity.
+The initial \emph{Discover} message contains a protocol version, port and the public key of the client.
+
+The version is required as future iterations on the protocol may lead to incompatibilities between different versions of the software stack that is in use on both client and service.
+It is of utmost importance to check those versions for both parties to avoid running into incompatibilities that may cause the protocol to seemingly work while in fact it is broken in a subtle way.
+
+When the service receives a UDP message the originating address is recorded in this message.
+When we want to respond to that message, though, we are not able to do so without also knowing which port to send that response to, as UDP is a connection-less protocol.
+As such we include a listing port inside the initial message that will be used by the service to send the response message.
+
+Last we also include the client's long term public key to establish the client's identity and which will be used in future exchanges to encrypt further messages.
+The whole message is then signed by the client and sent to the service.\\
+
+On the receiving side we first unpack the message to retrieve version, port and public key.
+With the public key and the message's tag we are now able to verify the integrity of the received package.
+Obviously, though, we are not able to say anything about the authenticity about it as it could have been intercepted by a malicious third party, exchanging the message tag and public key.
+
+After establishing message integrity the service will now compare the client's version to its own version and only proceed if he is able to correctly service that version.
+He will then assemble a response package containing its own version, name, available local services and its public key.
+
+It is possible for a single server to announce multiple services.
+Those services may be distinguished by the port they are listenging at.
+Instead of announcing multiple service types at a single port, which would then require multiplexing requests to their respective service and thus introduce additional complexity, each service has its own port which will later be used to connect to that service.
+
+% TODO: encrypt message with public key?
+The server will now again generate a message tag and send both message and tag encrypted with the public key of the client to the client's listening port that has been previously announced.
 
 \begin{figure}[H]
     \centering
@@ -197,22 +241,46 @@ Let us now consider the actual discovery protocol.
 
         \mess{c}{Discover}{s}
         \draw (Discover from) -- (Discover to) node[midway,below]
-            {$pk_c(sk_s(\text{version}, \text{name}, \text{services} \| pk_s$)};
+            {$
+                \begin{aligned}
+                    m \leftarrow &\{\text{version}, \text{port}, pk_c\}\\
+                    t \leftarrow &S_{sk_c}(m)\\
+                                 &\text{send}(\text{Enc}_{pk_s}(m \| t))
+                \end{aligned}
+            $};
 
+        \postlevel
         \postlevel
         \postlevel
         \postlevel
 
         \mess{s}{Announce}{c}
         \draw (Announce from) -- (Announce to) node[midway,below]
-            {$pk_c(sk_s(\text{version}, \text{listening port}, \text{name}) \| pk_s$)};
+            {$
+                \begin{aligned}
+                    \text{services} \coloneqq &[ (port, type) ]\\
+                    m \leftarrow &\{\text{version}, \text{name}, \text{services}, pk_s\}\\
+                    t \leftarrow &S_{sk_p}(m)\\
+                                 &\text{send}(\text{Enc}_{pk_c}(m \| t))
+                \end{aligned}
+            $};
 
+        \postlevel
+        \postlevel
+        \postlevel
         \postlevel
     \end{sequencediagram}
 
     \caption{Directed Service Discovery Messaging Chart}
     \label{fig:directed-service-discovery}
 \end{figure}
+
+In contrast to the indirected service discovery, there is only one significant difference in the directed service discovery.
+As we have previously obtained public key data of the server we want to talk to we are already able to use its key to encrypt the first message.
+That is instead of sending $m \| t$ in the fisrt step, we send $\text{Enc}_{pk_s}(m \| t)$.
+Like this it is impossible to tamper with the first message in such a way that the receiver retrieves a valid message with invalid key data.
+
+All subsequent steps remain unchanged.
 
 \subsubsection{Handshake}
 
