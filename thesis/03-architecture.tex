@@ -293,7 +293,7 @@ All subsequent steps remain unchanged.
 
         \mess{c}{Probe}{s}
         \draw (Probe from) -- (Probe to) node[midway,below]
-            {$pk_s(\text{Probe})$};
+            {$pk_s(pk_c)$};
 
         \postlevel
         \postlevel
@@ -321,9 +321,16 @@ All subsequent steps remain unchanged.
         \newinst{c}{Client}
         \newinst[8]{s}{Server}
 
+        \mess{c}{Ephemeral Key Generation}{s}
+        \mess{s}{}{c}
+
+        \postlevel
+        \postlevel
+        \postlevel
+
         \mess{c}{Connection Request}{s}
         \draw (Connection Request from) -- (Connection Request to) node[midway,below]
-            {$pk_s(\text{parameters}, \text{secret})$};
+            {$pk_s(pk_c, \text{parameters})$};
 
         \postlevel
         \postlevel
@@ -331,7 +338,7 @@ All subsequent steps remain unchanged.
 
         \mess{s}{Connection Capability}{c}
         \draw (Connection Capability from) -- (Connection Capability to) node[midway,below]
-            {$pk_c(\text{sessionid}, \text{capability})$};
+            {$pk_c(\text{sessionid})$};
 
         \postlevel
         \postlevel
@@ -339,7 +346,7 @@ All subsequent steps remain unchanged.
 
         \mess{c}{Connect}{s}
         \draw (Connect from) -- (Connect to) node[midway,below]
-            {$pk_s(\text{sessionid}, \text{capability})$};
+            {$pk_s(\text{sessionid})$};
 
         \postlevel
         \postlevel
@@ -354,7 +361,7 @@ All subsequent steps remain unchanged.
     \centering
 
     \begin{sequencediagram}
-        \newinst{o}{Other Server}
+        \newinst{o}{CPU Server}
         \newinst[4]{c}{Client}
         \newinst[4]{s}{Server}
 
@@ -377,6 +384,8 @@ All subsequent steps remain unchanged.
         \mess{o}{Connect}{s}
         \postlevel
         \mess{s}{Connect OK}{o}
+        \postlevel
+        \mess{o}{Connect OK}{c}
     \end{sequencediagram}
     \caption{Relayed Connect}
 \end{figure}
