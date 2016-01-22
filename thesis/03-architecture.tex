@@ -390,6 +390,30 @@ All subsequent steps remain unchanged.
     \caption{Relayed Connect}
 \end{figure}
 
+\begin{figure}[H]
+    \centering
+
+    \begin{sequencediagram}
+        \newinst{c}{Client}
+        \newinst[4]{s}{Server}
+        \newinst[4]{o}{Other Client}
+
+        \mess{s}{Connect OK}{c}
+
+        \postlevel
+        \postlevel
+
+        \mess{o}{Connection Request}{s}
+        \mess{s}{Capability Request}{c}
+        \mess{c}{Capability Grant}{s}
+        \mess{s}{Connection Capability}{o}
+        \mess{o}{Connect}{s}
+        \mess{s}{Connect OK}{o}
+
+    \end{sequencediagram}
+    \caption{Capability Request}
+\end{figure}
+
 \subsection{Notes}
 
 \begin{itemize}
