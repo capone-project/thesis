@@ -52,7 +52,7 @@
     \begin{titlepage}
         \makeatletter
         \begin{center}
-            \includegraphics[width=0.6\textwidth]{../resources/fu-logo.pdf}\\
+            \includegraphics[width=0.6\textwidth]{resources/fu-logo.pdf}\\
             {\normalsize Master's Thesis at the Department for Computer Science\\Free University of Berlin\\Research Group Secure Identities}\\[8ex]
             {\Large \@title}\\[6ex]
             {\large \@author}\\
@@ -72,10 +72,12 @@
         \vfill{}
     \end{titlepage}
 
-    \pagenumbering{roman}
+    \pagenumbering{gobble}
+    \input{00-license}
     \input{00-affirmation}
     \clearpage
 
+    \pagenumbering{Roman}
     \tableofcontents
     \clearpage
     \listoffigures
