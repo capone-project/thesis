@@ -543,26 +543,38 @@ All subsequent steps remain unchanged.
     \caption{Relayed Connect}
 \end{figure}
 
+\subsection{Capability Service}
+
 \begin{figure}[H]
     \centering
 
     \begin{sequencediagram}
-        \newinst{c}{Client}
-        \newinst[4]{s}{Server}
-        \newinst[4]{o}{Other Client}
+        \newthread{r}{Requester r}
+        \newinst[2]{e}{Entity e}
+        \newinst[2]{s}{Service s}
+        \newinst[2]{c}{Capability Server}
 
-        \mess{s}{Connect OK}{c}
+        \mess{e}{Register}{c}
+        \postlevel
+
+        \begin{call}{r}{Request(e, s, params)}{c}{Service Session}
+            \postlevel
+            \begin{call}{c}{Ask(r, s, params)}{e}{Service Session}
+                \postlevel
+                \begin{call}{e}{Initiate(params)}{s}{Service Session}
+                \end{call}
+                \postlevel
+            \end{call}
+            \postlevel
+        \end{call}
 
         \postlevel
-        \postlevel
 
-        \mess{o}{Connection Request}{s}
-        \mess{s}{Capability Request}{c}
-        \mess{c}{Capability Grant}{s}
-        \mess{s}{Connection Capability}{o}
-        \mess{o}{Connect}{s}
-        \mess{s}{Connect OK}{o}
+        \begin{messcall}{r}{Start}{s}
+            \postlevel
+        \end{messcall}
 
+        \prelevel
     \end{sequencediagram}
     \caption{Capability Request}
 \end{figure}
