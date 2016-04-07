@@ -461,10 +461,11 @@ All subsequent steps remain unchanged.
 
 \begin{figure}[H]
     \centering
+
     \begin{sequencediagram}
         \newthread{c}{Client}
-        \newinst[3]{s}{Service}
-        \newinst[3]{i}{Invoker}
+        \newinst[4]{s}{Service}
+        \newinst[4]{i}{Invoker}
 
         \begin{call}{c}{Initiate(Parameters)}{s}{Service Session}
             \begin{call}{s}{CreateSession()}{s}{Session}
@@ -489,6 +490,50 @@ All subsequent steps remain unchanged.
     \end{sequencediagram}
 
     \caption{Invoke Service}
+\end{figure}
+
+\subsection{xpra Service}
+
+\begin{figure}[H]
+    \centering
+
+    \begin{sequencediagram}
+        \newinst{x}{Xpra server}
+        \newthread[4]{c}{Client}
+        \newinst[4]{s}{Display service}
+
+        \begin{call}{c}{Start(port)}{x}{instance}
+        \end{call}
+
+        \postlevel
+
+        \begin{messcall}{c}{InitiateConnection()}{s}
+            \postlevel
+            \begin{call}{c}{Request(xpra-port)}{s}{session}
+            \end{call}
+        \end{messcall}
+
+        \postlevel
+
+        \begin{messcall}{c}{InitiateConnection()}{s}
+            \postlevel
+            \begin{messcall}{c}{Connect(session)}{s}
+            \end{messcall}
+
+            \postlevel
+
+            \begin{messcall}{s}{Tunneled data exchange}{x}
+                \postlevel
+            \end{messcall}
+            \prelevel
+            \prelevel
+            \prelevel
+            \begin{messcall}{x}{}{s}
+            \end{messcall}
+        \end{messcall}
+    \end{sequencediagram}
+
+    \caption{Xpra Service}
 \end{figure}
 
 \subsection{Notes}
