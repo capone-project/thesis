@@ -271,7 +271,7 @@ Finally, we concatenate all content together to obtain the complete package.
     \label{fig:connection-establishment}
 \end{figure}
 
-\subsection{Message Diagrams}
+\subsection{Protocol}
 
 \subsubsection{Discovery}
 
@@ -303,7 +303,7 @@ That is the delay of services popping up is only based on latency and processing
 As a consequence we have chosen the probing approach.\\
 
 The initial exchange between a client and service which have never seen each other before is somewhat problematic, as in general we cannot establish the authenticity of either one.
-To accomodate for this we distinguish between undirected (see figure \ref{fig:undirected-service-discovery}) and directed service discovery(see figure \ref{fig:directed-service-discovery}).
+To accomodate for this we distinguish between undirected (see figure \ref{fig:service-discovery}) and directed service discovery(see figure \ref{fig:directed-service-discovery}).
 While the undirected discovery protocol is unauthenticated we are able to improve the situation for directed service discovery in certain cases.
 
 Through a sidechannel we are able to retrieve additional data about a service we want to connect to.
@@ -319,42 +319,21 @@ Let us now consider the actual discovery protocol.
     \centering
 
     \begin{sequencediagram}
-        \newinst{c}{Client}
-        \newinst[8]{s}{Service}
+        \newinst{s1}{Service 1}
+        \newthread[4]{c}{Client}
+        \newinst[4]{s2}{Service 2}
 
-        \mess{c}{Discover}{s}
-        \draw (Discover from) -- (Discover to) node[midway,below]
-            {$
-                \begin{aligned}
-                    m \leftarrow &\{\text{version}, \text{port}, pk_c\}\\
-                    t \leftarrow &S_{sk_c}(m)\\
-                                 &\text{send}(m \| t)
-                \end{aligned}
-            $};
+        \mess{c}{Discover}{s1}
+        \prelevel
+        \mess{c}{Discover}{s2}
 
         \postlevel
-        \postlevel
-        \postlevel
-        \postlevel
 
-        \mess{s}{Announce}{c}
-        \draw (Announce from) -- (Announce to) node[midway,below]
-            {$
-                \begin{aligned}
-                    \text{services} \coloneqq &[ (port, type) ]\\
-                    m \leftarrow &\{\text{version}, \text{name}, \text{services}, pk_s\}\\
-                    t \leftarrow &S_{sk_p}(m)\\
-                                 &\text{send}(\text{Enc}_{pk_c}(m \| t))
-                \end{aligned}
-            $};
-
-        \postlevel
-        \postlevel
-        \postlevel
-        \postlevel
+        \mess{s1}{Announce}{c}
+        \mess{s2}{Announce}{c}
     \end{sequencediagram}
 
-    \caption{Undirected Service Discovery Messaging Chart}
+    \caption{Service Discovery}
     \label{fig:undirected-service-discovery}
 \end{figure}
 
@@ -385,49 +364,6 @@ Instead of announcing multiple service types at a single port, which would then 
 % TODO: encrypt message with public key?
 The server will now again generate a message tag and send both message and tag encrypted with the public key of the client to the client's listening port that has been previously announced.
 
-\begin{figure}[H]
-    \centering
-
-    \begin{sequencediagram}
-        \newinst{c}{Client}
-        \newinst[8]{s}{Service}
-
-        \mess{c}{Discover}{s}
-        \draw (Discover from) -- (Discover to) node[midway,below]
-            {$
-                \begin{aligned}
-                    m \leftarrow &\{\text{version}, \text{port}, pk_c\}\\
-                    t \leftarrow &S_{sk_c}(m)\\
-                                 &\text{send}(\text{Enc}_{pk_s}(m \| t))
-                \end{aligned}
-            $};
-
-        \postlevel
-        \postlevel
-        \postlevel
-        \postlevel
-
-        \mess{s}{Announce}{c}
-        \draw (Announce from) -- (Announce to) node[midway,below]
-            {$
-                \begin{aligned}
-                    \text{services} \coloneqq &[ (port, type) ]\\
-                    m \leftarrow &\{\text{version}, \text{name}, \text{services}, pk_s\}\\
-                    t \leftarrow &S_{sk_p}(m)\\
-                                 &\text{send}(\text{Enc}_{pk_c}(m \| t))
-                \end{aligned}
-            $};
-
-        \postlevel
-        \postlevel
-        \postlevel
-        \postlevel
-    \end{sequencediagram}
-
-    \caption{Directed Service Discovery Messaging Chart}
-    \label{fig:directed-service-discovery}
-\end{figure}
-
 In contrast to the indirected service discovery, there is only one significant difference in the directed service discovery.
 As we have previously obtained public key data of the server we want to talk to we are already able to use its key to encrypt the first message.
 That is instead of sending $m \| t$ in the fisrt step, we send $\text{Enc}_{pk_s}(m \| t)$.
@@ -435,33 +371,26 @@ Like this it is impossible to tamper with the first message in such a way that t
 
 All subsequent steps remain unchanged.
 
-\subsubsection{Handshake}
+\subsubsection{Query}
 
 \begin{figure}[H]
     \centering
 
     \begin{sequencediagram}
-        \newinst{c}{Client}
+        \newthread{c}{Client}
         \newinst[8]{s}{Server}
 
-        \mess{c}{Probe}{s}
-        \draw (Probe from) -- (Probe to) node[midway,below]
-            {$pk_s(pk_c)$};
+        \begin{messcall}{c}{InitiateConnection()}{s}
+            \postlevel
+            \begin{call}{c}{Query()}{s}{Service description}
+            \end{call}
+        \end{messcall}
 
-        \postlevel
-        \postlevel
-        \postlevel
-
-        \mess{s}{Service Description}{c}
-        \draw (Service Description from) -- (Service Description to) node[midway,below]
-            {$pk_c(\text{name}, \text{addresses}, \text{location}, \text{type}, \text{parameters}, \text{status})$};
-
-        \postlevel
     \end{sequencediagram}
-    \caption{Probe Messaging Chart}
+    \caption{Query Diagram}
 \end{figure}
 
-\subsubsection{Connection}
+\subsubsection{Session Initiation}
 
 \begin{align*}
     \text{capability} \coloneqq pk_s(\text{sessionid}, \text{parameters})
@@ -471,79 +400,28 @@ All subsequent steps remain unchanged.
     \centering
 
     \begin{sequencediagram}
-        \newinst{c}{Client}
+        \newthread{c}{Client}
         \newinst[8]{s}{Server}
 
-        \mess{c}{Ephemeral Key Generation}{s}
-        \mess{s}{}{c}
+        \begin{messcall}{c}{InitiateConnection()}{s}
+            \postlevel
 
-        \postlevel
-        \postlevel
-        \postlevel
+            \begin{call}{c}{InitiateSession(parameters)}{s}{Session Capability}
+            \end{call}
 
-        \mess{c}{Connection Request}{s}
-        \draw (Connection Request from) -- (Connection Request to) node[midway,below]
-            {$pk_s(pk_c, \text{parameters})$};
+            \postlevel
 
-        \postlevel
-        \postlevel
-        \postlevel
-
-        \mess{s}{Connection Capability}{c}
-        \draw (Connection Capability from) -- (Connection Capability to) node[midway,below]
-            {$pk_c(\text{sessionid})$};
-
-        \postlevel
-        \postlevel
-        \postlevel
-
-        \mess{c}{Connect}{s}
-        \draw (Connect from) -- (Connect to) node[midway,below]
-            {$pk_s(\text{sessionid})$};
-
-        \postlevel
-        \postlevel
-        \postlevel
-
-        \mess{s}{Connect OK}{c}
+            \begin{messcall}{c}{Connect(session capability)}{s}
+            \end{messcall}
+        \end{messcall}
+        \prelevel
     \end{sequencediagram}
     \caption{Direct Connect}
 \end{figure}
 
-\begin{figure}[H]
-    \centering
+\subsection{Services}
 
-    \begin{sequencediagram}
-        \newinst{o}{CPU Server}
-        \newinst[4]{c}{Client}
-        \newinst[4]{s}{Server}
-
-        \mess{c}{Connection Request}{s}
-        \postlevel
-        \mess{s}{Connection Capability}{c}
-
-        \postlevel
-        \postlevel
-
-        \mess{c}{Connection Request}{o}
-        \postlevel
-        \mess{o}{Connection Capability}{c}
-        \postlevel
-        \mess{c}{Connect}{o}
-
-        \postlevel
-        \postlevel
-
-        \mess{o}{Connect}{s}
-        \postlevel
-        \mess{s}{Connect OK}{o}
-        \postlevel
-        \mess{o}{Connect OK}{c}
-    \end{sequencediagram}
-    \caption{Relayed Connect}
-\end{figure}
-
-\subsection{Capability Service}
+\subsubsection{Capability Service}
 
 \begin{figure}[H]
     \centering
@@ -579,7 +457,7 @@ All subsequent steps remain unchanged.
     \caption{Capability Request}
 \end{figure}
 
-\subsection{Invoke Service}
+\subsubsection{Invoke Service}
 
 \begin{figure}[H]
     \centering
