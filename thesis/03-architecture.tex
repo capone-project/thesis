@@ -267,7 +267,6 @@ Finally, we concatenate all content together to obtain the complete package.
         \end{messcall}
     \end{sequencediagram}
 
-
     \caption{Connection establishment}
     \label{fig:connection-establishment}
 \end{figure}
@@ -566,6 +565,40 @@ All subsequent steps remain unchanged.
 
     \end{sequencediagram}
     \caption{Capability Request}
+\end{figure}
+
+\subsection{Invoke Service}
+
+\begin{figure}[H]
+    \centering
+    \begin{sequencediagram}
+        \newthread{c}{Client}
+        \newinst[3]{s}{Service}
+        \newinst[3]{i}{Invoker}
+
+        \begin{call}{c}{Initiate(Parameters)}{s}{Service Session}
+            \begin{call}{s}{CreateSession()}{s}{Session}
+            \end{call}
+        \end{call}
+
+        \postlevel
+
+        \begin{call}{c}{Initiate(ServiceSession)}{i}{Invoker Session}
+            \begin{call}{i}{CreateSession()}{i}{Session}
+            \end{call}
+        \end{call}
+        \postlevel
+
+        \begin{messcall}{c}{Start}{i}
+            \begin{messcall}{i}{Start}{s}
+                \postlevel
+            \end{messcall}
+            \prelevel
+        \end{messcall}
+        \prelevel
+    \end{sequencediagram}
+
+    \caption{Invoke Service}
 \end{figure}
 
 \subsection{Notes}
