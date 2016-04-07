@@ -118,6 +118,105 @@
     \caption{Connecting an app}
 \end{figure}
 
+\subsection{Low-level protocol}
+
+The low-level protocol determines how the actual packets sent between client and server are constructed.
+It specifies a common format independent of the actual transport layer that is used to guarantee a common understanding of how to handle incoming bytes.
+The protocol is currently designed to be used over either TCP or UDP but should be generic enough to be used for other transport layers.
+We will concentrate on describing design choices based on TCP and UDP transport layours only, though.
+
+The major difference between TCP and UDP is that TCP is stream based and UDP is packet based.
+This means that UDP packages have their size attached to the package itself, so it is guaranteed that when receiving a single package over UDP we know package boundaries and thus can split incoming packages by these boundaries.
+On TCP this is not true, though, so we need to design a package format which is able to specify package boundaries so the client is able to determine a unit.
+
+The initial design simply prefixed every single package with an unencrypted package length fixed to four bytes in network byte order.
+This allowed the client to initially receive four bytes, convert these to host byte order and subsequently receive the amount of bytes specified.
+While easy to implement this has several disadvantages.
+
+The most obvious disadvantage is that the package length was always transmitted unencrypted.
+It would have been possible to always encrypt the length with an attached message authentication code so that it is impossible to tamper with the length, but this would require us to always add the additional overhead of the attached MAC.
+But even if the length was encrypted the attacker could be able to guess contents of sent packages based on their package lengths only.
+Especially the package length packages will always be of fixed size universally known to all clients such that they are able to fetch the exact amount of bytes required to obtain the length of the follow package data.
+Due to this shortcoming it becomes much easier for the adversary to do traffic analysis based on package sizes.
+
+Another minor disadvantage is based on performance.
+Assumed a single big package is sent over the wire.
+With the simple case of an encrypted connection between client and server the client would be required to fetch the whole package before he is able to actually decrypt its content.
+As the network layer is slow compared to doing computations on locally available data it would be of advantage to decrypt arriving data while waiting for subsequent bytes to arrive.
+This would decrease the overall time required to receive and decrypt a big package.
+
+To fix these problems the implementation resorts to packages of a fixed length.
+The initial fixed-length package is prefixed with the overall length of the assembled package.
+If the overall length exceeds the length of the remaining bytes of the first fixed length package, then the complete package is assembled by concatenating the first package all subsequent packages until the desired length is received.
+The package length is only encoded in the first split package and all split packages are encrypted on their own.
+The last package is right-padded with zeroes until it is as big as the other packages.
+
+The following example demonstrates the package format for unencrypted packages.
+We assume a fixed length package size of 64 bytes.
+If a party now wishes to transfer a complete package of 80 bytes the complete package will get split into two partial packets.
+The first package would be prefixed with four bytes of the complete package length and filled with the initial $64 - 4 = 60$ bytes.
+The second package is filled with the remaining $80 - 60 = 20$ bytes and right-padded with $64 - 20 = 44$ zeroes.
+Figure \ref{fig:unencrypted-package-format} visualizes both package contents.
+
+\begin{figure}
+    \center
+
+    \begin{tikzpicture}[
+            every node/.style={ minimum width=6mm, minimum height=8mm },
+            start chain=1 going right,
+            start chain=2 going right,
+            node distance=-0.15mm
+        ]
+
+        \node[draw, on chain=1, minimum width=6mm] {l};
+        \node[draw, on chain=1, minimum width=90mm] {60 bytes of data};
+        \node[left=1cm of 1-1] {Package 1};
+
+        \node[draw, on chain=2, minimum width=48mm, below=1cm of 1-1.west, anchor = west] {20 bytes of data};
+        \node[draw, on chain=2, minimum width=48mm] {padding};
+        \node[left=1cm of 2-1] {Package 2};
+    \end{tikzpicture}
+
+    \caption{Unencrypted package format}
+    \label{fig:unencrypted-package-format}
+\end{figure}
+
+The second example (see figure \ref{fig:encrypted-package-format}) demonstrates how encrypted packages work.
+In contrast to unencrypted packages there is an additional message authentication code attached to each split package which is now assumed to be 16 bytes long.
+
+\begin{figure}
+    \center
+
+    \begin{tikzpicture}[
+            every node/.style={ minimum width=6mm, minimum height=8mm },
+            start chain=1 going right,
+            start chain=2 going right,
+            node distance=-0.15mm
+        ]
+
+        \node[draw, on chain=1, minimum width=24mm] {MAC};
+        \node[draw, on chain=1, minimum width=6mm ] {l};
+        \node[draw, on chain=1, minimum width=66mm] {44 bytes data};
+        \node[left=1cm of 1-1] {Package 1};
+
+        \node[draw, on chain=2, minimum width=24mm, below=1cm of 1-1.west, anchor = west] {MAC};
+        \node[draw, on chain=2, minimum width=54mm] {36 bytes data};
+        \node[draw, on chain=2, minimum width=18mm] {padding};
+        \node[left=1cm of 2-1] {Package 2};
+
+        \draw [decorate,decoration={brace,amplitude=10pt}] (1-2.north west) -- (1-3.north east) node[midway,yshift=7mm] {encrypted};
+        \draw [decorate,decoration={brace,amplitude=10pt,mirror}] (2-2.south west) -- (2-3.south east) node[midway,yshift=-7mm] {encrypted};
+    \end{tikzpicture}
+
+    \caption{Encrypted package format}
+    \label{fig:encrypted-package-format}
+\end{figure}
+
+On the client side to process the split packages we will fetch the initial fixed-size package.
+If the connection is encrypted, we will check the decrypt the message and verify the message authentication code.
+Now we inspect the first four bytes to gain knowledge about the total package length -- if it exceeds the amount of bytes sent in the initial message, we will receive, verify and decrypt all following packages until all bytes are received.
+Finally, we concatenate all content together to obtain the complete package.
+
 \subsection{Message Diagrams}
 
 \subsubsection{Discovery}
