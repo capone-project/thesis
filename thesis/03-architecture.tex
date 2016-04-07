@@ -217,6 +217,61 @@ If the connection is encrypted, we will check the decrypt the message and verify
 Now we inspect the first four bytes to gain knowledge about the total package length -- if it exceeds the amount of bytes sent in the initial message, we will receive, verify and decrypt all following packages until all bytes are received.
 Finally, we concatenate all content together to obtain the complete package.
 
+\subsection{Connection establishment}
+
+\begin{figure}
+    \centering
+
+    \begin{sequencediagram}
+        \newthread{c}{Client (Verify$_c$, Sign$_c$)}
+        \newinst[4]{s}{Server (VerifyS, SignS)}
+
+        \begin{messcall}{c}{ConnectionType}{s}
+            \postlevel
+
+            \begin{call}{c}{GenerateKeypair()}{c}{(Enc$_c$, Dec$_c$)}
+                \postlevel
+            \end{call}
+
+            \prelevel
+            \prelevel
+            \prelevel
+
+            \begin{call}{s}{GenerateKeypair()}{s}{(Enc$_s$, Dec$_s$)}
+                \postlevel
+            \end{call}
+
+            \postlevel
+
+            \mess{c}{VerifyC, EncC, Signature}{s}
+            \mess{s}{VerifyS, EncS, Signature}{c}
+
+            \postlevel
+
+            \begin{call}{c}{EphemeralKey(EncC, DecC, EncS)}{c}{Key}
+                \postlevel
+            \end{call}
+
+            \prelevel
+            \prelevel
+            \prelevel
+
+            \begin{call}{s}{EphemeralKey(EncS, DecS, EncC)}{s}{Key}
+                \postlevel
+            \end{call}
+
+            \postlevel
+
+            \mess{c}{Signature of Key}{s}
+            \mess{s}{Signature of Key}{c}
+        \end{messcall}
+    \end{sequencediagram}
+
+
+    \caption{Connection establishment}
+    \label{fig:connection-establishment}
+\end{figure}
+
 \subsection{Message Diagrams}
 
 \subsubsection{Discovery}
