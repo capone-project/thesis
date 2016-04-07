@@ -84,13 +84,13 @@ Sequence Diagrams.]
 
 % new an instance thread
 % Example:
-% \newinst[color]{var}{name}{class}
-\newcommand{\newthread}[3][gray!30]{
-  \newinst{#2}{#3}
+% \newinst[edge distance]{var}{name}{class}
+\newcommand{\newthread}[3][0.2]{
+  \newinst[#1]{#2}{#3}
   \stepcounter{threadnum}
   \node[below of=inst\theinstnum,node distance=0.8cm] (thread\thethreadnum) {};
-  \tikzstyle{threadcolor\thethreadnum}=[fill=#1]
-  \tikzstyle{instcolor#2}=[fill=#1]
+  \tikzstyle{threadcolor\thethreadnum}=[fill=gray!30]
+  \tikzstyle{instcolor#2}=[fill=gray!30]
 }
 
 % draw running (thick) line, should not call directly
