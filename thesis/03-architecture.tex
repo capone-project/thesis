@@ -405,15 +405,18 @@ All subsequent steps remain unchanged.
 
         \begin{messcall}{c}{InitiateConnection()}{s}
             \postlevel
-
             \begin{call}{c}{InitiateSession(parameters)}{s}{Session Capability}
             \end{call}
+        \end{messcall}
 
+        \postlevel
+
+        \begin{messcall}{c}{InitiateConnection()}{s}
             \postlevel
-
             \begin{messcall}{c}{Connect(session capability)}{s}
             \end{messcall}
         \end{messcall}
+
         \prelevel
     \end{sequencediagram}
     \caption{Direct Connect}
