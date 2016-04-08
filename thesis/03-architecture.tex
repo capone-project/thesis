@@ -224,52 +224,59 @@ Finally, we concatenate all content together to obtain the complete package.
 
     \begin{sequencediagram}
         \newthread{c}{Client (Verify$_c$, Sign$_c$)}
-        \newinst[4]{s}{Server (VerifyS, SignS)}
+        \newthread[4]{s}{Server (VerifyS, SignS)}
+
+        \begin{call}{c}{GenerateKeypair()}{c}{(EmphPriv$_c$, EmphPub$_c$)}
+            \postlevel
+        \end{call}
+
+        \postlevel
+
+        \begin{messcall}{c}{SignC(VerifyC || EmphPubC), VerifyC, EmphPubC}{s}
+        \end{messcall}
+
+        \begin{call}{s}{VerifyC(Signature)}{s}{}
+            \postlevel
+        \end{call}
+
+        \begin{call}{s}{GenerateKeypair()}{s}{(EmphPriv$_s$, EmphPub$_s$)}
+            \postlevel
+        \end{call}
+
+        \begin{messcall}{s}{SignS(EmphPubS || EmphPubC), EmphPubS, EmphPubC}{c}
+        \end{messcall}
+
+        \begin{call}{c}{VerifyS(Signature)}{c}{}
+            \postlevel
+        \end{call}
+
+        \begin{messcall}{c}{SignC(EmphPubS || EmphPubC), EmphPubS, EmphPubC}{s}
+        \end{messcall}
+
+        \begin{call}{s}{VerifyC(Signature)}{s}{}
+            \postlevel
+        \end{call}
+
+        \begin{call}{c}{GenSessionKey(EmphPubS, EmphPrivC)}{c}{Key}
+            \postlevel
+        \end{call}
+
+        \begin{call}{s}{GenSessionKey(EmphPubC, EmphPrivS}{s}{Key}
+            \postlevel
+        \end{call}
+
+        \postlevel
 
         \begin{messcall}{c}{ConnectionType}{s}
             \postlevel
-
-            \begin{call}{c}{GenerateKeypair()}{c}{(Enc$_c$, Dec$_c$)}
-                \postlevel
-            \end{call}
-
-            \prelevel
-            \prelevel
-            \prelevel
-
-            \begin{call}{s}{GenerateKeypair()}{s}{(Enc$_s$, Dec$_s$)}
-                \postlevel
-            \end{call}
-
-            \postlevel
-
-            \mess{c}{VerifyC, EncC, Signature}{s}
-            \mess{s}{VerifyS, EncS, Signature}{c}
-
-            \postlevel
-
-            \begin{call}{c}{EphemeralKey(EncC, DecC, EncS)}{c}{Key}
-                \postlevel
-            \end{call}
-
-            \prelevel
-            \prelevel
-            \prelevel
-
-            \begin{call}{s}{EphemeralKey(EncS, DecS, EncC)}{s}{Key}
-                \postlevel
-            \end{call}
-
-            \postlevel
-
-            \mess{c}{Signature of Key}{s}
-            \mess{s}{Signature of Key}{c}
         \end{messcall}
     \end{sequencediagram}
 
     \caption{Connection establishment}
     \label{fig:connection-establishment}
 \end{figure}
+
+% TODO: define functions
 
 \subsection{Protocol}
 
