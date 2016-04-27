@@ -257,53 +257,94 @@ Everything discussed in here will use the low-level protocol discussed in sectio
 \subsubsection{Connection establishment}
 \label{sec:connection-establishment}
 
+When a client connects to a service we want to encrypt encrypt their communication.
+Obviously we need to have a way to negotiate the encryption between both parties, as the server has to know who is about to connect and the client wants to authenticate that he is really talking to the server he wants to talk to.
+We will now consider the key exchange protocol used to negotiate ephemeral encryption key used for the connection.
+
+The key exchange assumes that the public identities, that is the public signature keys of both parties, are known to each other.
+They are used to verify the actual identity of the opposite party.
+
+The sequence diagram in figure \ref{fig:connection-establishment} provides an overview of the key negotiation between two parties, the client $C$ and the service $S$, where $C$ has the intent to connect to $S$.
+Let us first define all functions used in the diagram.
+
+\begin{description}
+    \item[Sign$_s(m)$]\hfill\\
+        The signing algorithm generates upon input of a private signature key $s$ and message $m$ a signature $\sigma \leftarrow \text{Sign}_{s}(m)$.
+    \item[Verify$_v(m, \sigma)$]\hfill\\
+        The verification algorithm takes as input a public verification key $v$, a message $m$ and a signature $\sigma$.
+        Verify returns success iff the signature $\sigma$ is valid for the verification key $v$ and message $m$.
+    \item[GenerateKeypair()]\hfill\\
+        The key generation algorithm outputs a pair of keys $(enc, dec)$, where $enc$ is the public encryption key and $dec$ is the private decryption key.
+        Keys are generated with a cryptographically secure random number generator.
+    \item[CalculateKey($enc, dec$)]
+        The key calculation algorithm generates upon input of a local private encryption key and a remote public decryption key a new symmetric key via Diffie-Hellman key generation.
+\end{description}
+
+First the client $C$ generates a new ephemeral key pair $(enc_C, dec_C) = \text{GenerateKeypair}()$.
+He then proceeds to send an initial message containing his public verification key $vrfy_C$, the newly generated public ephemeral key $enc_C$ and a signature of $vrfy_C$ and $enc_C$ concatenated.
+
+Upon receiving the initial message, the service verifies that the concatenated keys have indeed been signed by the announced client's public verification key.
+This step verifies that the received message has at one point been in fact generated and signed by an entity which possesses the key $vrfy_C$.
+If the verification is successfull, we continue and generate our own ephemeral keypair $(enc_S, dec_S) = \text{GenerateKeypair}()$.
+
+The service now sends a signature of the generated ephemeral keys of both client and service as well as both keys in plain text.
+Back on the client side we can now verify that we are indeed talking to the correct identity, as the signature now contains not only the remote's newly generated ephemeral public key, but also our own randomly generated public key.
+Due to this it is safe to assume that the service indeed posseses the private signature key belonging to the public signature key we know.
+
+At this point of time we have verified that we are actually talking to an entity possessing $vrfy_S$, but the server does not yet know that he is indeet talking to a client possessing $vrfy_C$, as the initial message could have been recorded and replayed by an adversary.
+To fix the situation we now perform the same step of signing both public ephemeral keys and sending them to the server again, who may now verify whom he is talking to.
+
+When both parties are verified to each other we can now calculate the symmetric key which is used for subsequent communication.
+For each party, the key is calculated by performing a scalar multiplication between the party's private ephemeral key and the remote's public ephemeral key.
+The output is then concatenated with both parties' public keys' and hashed, resulting in a new secret which is shared between both client and server.
+
 \begin{figure}
     \centering
 
     \begin{sequencediagram}
-        \newthread{c}{Client (Verify$_C$, Sign$_C$)}
-        \newthread[4]{s}{Service (Verify$_S$, Sign$_S$)}
+        \newthread{c}{Client ($vrfy_C$, $sign_C$)}
+        \newthread[4]{s}{Service ($vrfy_S$, $sign_S$)}
 
-        \begin{call}{c}{GenerateKeypair()}{c}{(EmphPriv$_C$, EmphPub$_C$)}
+        \begin{call}{c}{GenerateKeypair()}{c}{($enc_C$, $dec_C$)}
             \postlevel
         \end{call}
 
         \postlevel
 
-        \begin{messcall}{c}{Sign$_C$(Verify$_C$ || EmphPub$_C$), Verify$_C$, EmphPub$_C$}{s}
+        \begin{messcall}{c}{$\sigma = \text{Sign}_{sign_C}(vrfy_C \| enc_C), vrfy_C, enc_C$}{s}
         \end{messcall}
 
-        \begin{call}{s}{Verify$_C$(Signature)}{s}{}
+        \begin{call}{s}{Verify$_{vrfy_C}(\sigma, vrfy_C \| enc_C)$}{s}{}
             \postlevel
         \end{call}
 
         \postlevel
 
-        \begin{call}{s}{GenerateKeypair()}{s}{(EmphPriv$_S$, EmphPub$_S$)}
+        \begin{call}{s}{GenerateKeypair()}{s}{($enc_S$, $dec_S$)}
             \postlevel
         \end{call}
 
         \postlevel
 
-        \begin{messcall}{s}{Sign$_S$(EmphPub$_S$ || EmphPub$_C$), EmphPub$_S$, EmphPub$_C$}{c}
+        \begin{messcall}{s}{$\sigma = \text{Sign}_{sign_S}(enc_S \| enc_C), enc_S, enc_C$}{c}
         \end{messcall}
 
-        \begin{call}{c}{Verify$_S$(Signature)}{c}{}
+        \begin{call}{c}{$\text{Verify}_{vrfy_S}(\sigma, enc_S \| enc_C)$}{c}{}
             \postlevel
         \end{call}
 
         \postlevel
 
-        \begin{messcall}{c}{Sign$_C$(EmphPub$_S$ || EmphPub$_C$), EmphPub$_S$, EmphPub$_C$}{s}
+        \begin{messcall}{c}{$\sigma = \text{Sign}_{sign_C}(enc_S || enc_C), enc_S, enc_C$}{s}
         \end{messcall}
 
-        \begin{call}{s}{Verify$_C$(Signature)}{s}{}
+        \begin{call}{s}{$\text{Verify}_{vrfy_C}(\sigma, enc_S \| enc_C)$}{s}{}
             \postlevel
         \end{call}
 
         \postlevel
 
-        \begin{call}{c}{GenSessionKey(EmphPub$_S$, EmphPriv$_C$)}{c}{Key}
+        \begin{call}{c}{CalculateKey($enc_S$, $dec_C$)}{c}{Key}
             \postlevel
         \end{call}
 
@@ -311,7 +352,7 @@ Everything discussed in here will use the low-level protocol discussed in sectio
         \prelevel
         \prelevel
 
-        \begin{call}{s}{}{s}{Key}
+        \begin{call}{s}{CalculateKey($enc_C$, $dec_S$)}{s}{Key}
             \postlevel
         \end{call}
     \end{sequencediagram}
@@ -319,8 +360,6 @@ Everything discussed in here will use the low-level protocol discussed in sectio
     \caption{Connection establishment}
     \label{fig:connection-establishment}
 \end{figure}
-
-% TODO: define functions
 
 \subsubsection{Discovery}
 
