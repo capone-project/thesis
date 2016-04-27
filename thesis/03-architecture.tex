@@ -125,6 +125,8 @@ It specifies a common format independent of the actual transport layer that is u
 The protocol is currently designed to be used over either TCP or UDP but should be generic enough to be used for other transport layers.
 We will concentrate on describing design choices based on TCP and UDP transport layours only, though.
 
+\subsubsection{Package boundaries}
+
 The major difference between TCP and UDP is that TCP is stream based and UDP is packet based.
 This means that UDP packages have their size attached to the package itself, so it is guaranteed that when receiving a single package over UDP we know package boundaries and thus can split incoming packages by these boundaries.
 On TCP this is not true, though, so we need to design a package format which is able to specify package boundaries so the client is able to determine a unit.
@@ -133,30 +135,36 @@ The initial design simply prefixed every single package with an unencrypted pack
 This allowed the client to initially receive four bytes, convert these to host byte order and subsequently receive the amount of bytes specified.
 While easy to implement this has several disadvantages.
 
-The most obvious disadvantage is that the package length was always transmitted unencrypted.
-It would have been possible to always encrypt the length with an attached message authentication code so that it is impossible to tamper with the length, but this would require us to always add the additional overhead of the attached MAC.
-But even if the length was encrypted the attacker could be able to guess contents of sent packages based on their package lengths only.
-Especially the package length packages will always be of fixed size universally known to all clients such that they are able to fetch the exact amount of bytes required to obtain the length of the follow package data.
-Due to this shortcoming it becomes much easier for the adversary to do traffic analysis based on package sizes.
+The most obvious disadvantage is that the package length was always transmitted unencrypted and without any message authentication code.
+This allows potential adversaries to do easily traffic analysis based on package lengths or drive an attack by simply tampering with the length.
+As the receiver of the package cannot verify the package's length in any way he has to trust it and thus may receive invalid packages.
 
-Another minor disadvantage is based on performance.
-Assumed a single big package is sent over the wire.
-With the simple case of an encrypted connection between client and server the client would be required to fetch the whole package before he is able to actually decrypt its content.
-As the network layer is slow compared to doing computations on locally available data it would be of advantage to decrypt arriving data while waiting for subsequent bytes to arrive.
-This would decrease the overall time required to receive and decrypt a big package.
+In order to solve the problem the most obvious solution would be to simply encrypt the length and attach a message authentication code.
+By doing so we would prevent the adversary of knowing the following data's length and prevent that he is able to tamper with it.
+Like this, we obviously gain a boost in security compared to sending package length's in plain text.
 
-To fix these problems the implementation resorts to packages of a fixed length.
-The initial fixed-length package is prefixed with the overall length of the assembled package.
-If the overall length exceeds the length of the remaining bytes of the first fixed length package, then the complete package is assembled by concatenating the first package all subsequent packages until the desired length is received.
-The package length is only encoded in the first split package and all split packages are encrypted on their own.
-The last package is right-padded with zeroes until it is as big as the other packages.
+On the other hand, the adversary is still able to observe actual package lengths.
+In the case of UDP being used as a transport layer this is trivial:
+An adversary can simply inspect package headers and thus extract the actual package length, as data is in the general case sent in a single package.
+In the case of TCP where no actual package length is encoded in the TCP header this is a little bit more involved but in many cases still feasible as client and server are likely to exchange single messages by turn.
+So by substracting the prefixed package length and its message authentication code from the total bytes sent in one turn we are able to gain knowledge of the actual message's length with a high probability.
+
+Due to this we are effectively giving the adversary an decryption oracle as he is able to correlate package lengths and their encrypted representations.
+Furthermore it becomes much easier for an adversary to analyze traffic by inspecting actual package lengths.
+\\\\
+
+To fix the problem we instead send blocks of a fixed length instead of prefixing every package with an encrypted length.
+The initial fixed-length block is prefixed with the overall length of the assembled package.
+If the overall length exceeds the length of the remaining bytes of the first fixed length block, then the complete block is assembled by concatenating the first block excluding its length prefix and all subsequent blocks until the announced length is received.
+The last block is right-padded with zeroes until its length matches the block length.
+The package length is only encoded in the first block.
 
 The following example demonstrates the package format for unencrypted packages.
-We assume a fixed length package size of 64 bytes.
-If a party now wishes to transfer a complete package of 80 bytes the complete package will get split into two partial packets.
-The first package would be prefixed with four bytes of the complete package length and filled with the initial $64 - 4 = 60$ bytes.
+We assume a fixed length block size of 64 bytes.
+If a party now wishes to transfer a package of 80 bytes the package will get split into two blocks.
+The first block is prefixed with four bytes containing the actual package length and filled with the initial $64 - 4 = 60$ bytes.
 The second package is filled with the remaining $80 - 60 = 20$ bytes and right-padded with $64 - 20 = 44$ zeroes.
-Figure \ref{fig:unencrypted-package-format} visualizes both package contents.
+Figure \ref{fig:unencrypted-package-format} visualizes the block's contents.
 
 \begin{figure}
     \center
@@ -168,12 +176,12 @@ Figure \ref{fig:unencrypted-package-format} visualizes both package contents.
             node distance=-0.15mm
         ]
 
-        \node[draw, on chain=1, minimum width=6mm] {l};
-        \node[draw, on chain=1, minimum width=90mm] {60 bytes of data};
+        \node[draw, on chain=1, minimum width=8mm] {len};
+        \node[draw, on chain=1, minimum width=88mm] {60 bytes of data};
         \node[left=1cm of 1-1] {Package 1};
 
-        \node[draw, on chain=2, minimum width=48mm, below=1cm of 1-1.west, anchor = west] {20 bytes of data};
-        \node[draw, on chain=2, minimum width=48mm] {padding};
+        \node[draw, on chain=2, minimum width=40mm, below=1cm of 1-1.west, anchor = west] {20 bytes of data};
+        \node[draw, on chain=2, minimum width=56mm] {padding};
         \node[left=1cm of 2-1] {Package 2};
     \end{tikzpicture}
 
@@ -181,7 +189,7 @@ Figure \ref{fig:unencrypted-package-format} visualizes both package contents.
     \label{fig:unencrypted-package-format}
 \end{figure}
 
-The second example (see figure \ref{fig:encrypted-package-format}) demonstrates how encrypted packages work.
+The second example (see figure \ref{fig:encrypted-package-format}) demonstrates the package format for an encrypted connection.
 In contrast to unencrypted packages there is an additional message authentication code attached to each split package which is now assumed to be 16 bytes long.
 
 \begin{figure}
@@ -195,8 +203,8 @@ In contrast to unencrypted packages there is an additional message authenticatio
         ]
 
         \node[draw, on chain=1, minimum width=24mm] {MAC};
-        \node[draw, on chain=1, minimum width=6mm ] {l};
-        \node[draw, on chain=1, minimum width=66mm] {44 bytes data};
+        \node[draw, on chain=1, minimum width=8mm ] {len};
+        \node[draw, on chain=1, minimum width=64mm] {44 bytes data};
         \node[left=1cm of 1-1] {Package 1};
 
         \node[draw, on chain=2, minimum width=24mm, below=1cm of 1-1.west, anchor = west] {MAC};
@@ -212,10 +220,10 @@ In contrast to unencrypted packages there is an additional message authenticatio
     \label{fig:encrypted-package-format}
 \end{figure}
 
-On the client side to process the split packages we will fetch the initial fixed-size package.
-If the connection is encrypted, we will check the decrypt the message and verify the message authentication code.
-Now we inspect the first four bytes to gain knowledge about the total package length -- if it exceeds the amount of bytes sent in the initial message, we will receive, verify and decrypt all following packages until all bytes are received.
-Finally, we concatenate all content together to obtain the complete package.
+The client will now fetch the initial fixed-size block
+If the connection is encrypted, he will decrypt it and verify its message authentication code.
+Now we inspect the first four bytes to gain knowledge about the total package length -- if it exceeds the amount of bytes sent in the initial message, we will receive, decrypt and verify all following packages until all bytes are received.
+Finally, we concatenate the blocks to obtain the complete package.
 
 \subsection{Connection establishment}
 
