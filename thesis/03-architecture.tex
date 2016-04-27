@@ -384,34 +384,38 @@ The output is then concatenated with both parties' public keys' and hashed, resu
 \subsubsection{Discovery}
 
 Device discovery is the process of discovering previously unknown services in a certain subnet.
-To achieve the discovery, a client has to query all possible addresses in this subnet and subsequently await responses from servers.
-This can easily be achieved with UDP multicast, that is we send a message to the multicast address of the subnet.
-As UDP is port based it is mandatory that we choose a well-known port in advance to the protocol as otherwise it would be impossible to bootstrap the initial communication.
+That is given a client and a certain amount of services that all reside in the subnet we want to get to know all the services that are present without previously knowing where they are.
 
-There are two major distinctions on how service discovery can be achieved: a client- and a service-driven approach.
-The service-driven is based on the service periodically sending an announce message to the multicast address, thereby notifying possibly listening clients of the availability of a certain service.
-
-The client-driven approach on the other side lets the client query the subnet for existing services by announcing that it wants to know about available services.
-Every service that is listening and that receives this request will then answer the client and announce its presence.
+Let us consider the two obvious solutions coming to mind, that is client- and service-driven approaches.
+\begin{itemize}
+    \item The service-driven approach is based on the service periodically broadcasting its availability to the subnet, thereby notifying possibly listening clients of the availability of a certain service.
+    \item The client-driven approach on the other side lets the client query the subnet for existing services by announcing that it wants to know about available services.
+        Every service listening to these announcements will receive the query and subsequently announce its availability to the server.
+\end{itemize}
 
 Both methods have their own merit.
 Periodic announcements of the service conceal the intent of clients to discover local services as they are not directly involved in the process of finding services.
-They have the disadvantage of additional overhead, though, as we regularly have to announce our service.
-While this might not be problematic when only few services are available in a certain subnet it may become unwieldy when hundreds of services are present.
+They have the disadvantage of additional overhead, though, as we regularly have to announce our service to the whole subnet.
+While this might not be problematic when only few services are available in a certain subnet it may become unwieldy when hundreds of services are present which are constantly firing announce messages to each member of the network.
 
-This disadvantage is mitigated by the probing approach by clients that want to discover nearby services.
-Just how important this is gets particularly clear when we consider the process how users want to start interacting with a certain service.
-Assume that a user starts up his mobile phone with our app with the intent to start using a certain service.
-With the periodic probing approach the user will in the worst case have to wait for the whole time span between two announcements of the service he wants to connect to.
-Depending on how this timeout was chosen this may be an uncomfortably long time.
-As users are generally uncomfortable with doing nothing for a rather long time (CITATION NEEDED) they might simply stop waiting and just scrap their plan.
+On the other hand with a client-driven approach it is easy to avoid this particular problem.
+Given a client which wants to probe the network for available services we will simply drop a broadcast message to the subnet and wait for available services to respond.
+Like this the whole process is intent-driven, as the user has an explicit intent of discovering services, and repeating messages are avoided.
 
-When we directly probe the subnet for available services instead the response times will in the mean case be much less than in the other case.
+Just how important this distinction is gets particularly clear when we consider the process how users want to start interacting with a certain service.
+Assume Alice starts up her mobile phone and intents to discover a certain service she expects to be available in the local network.
+Given the approach where services periodically announce their availability, Alice might have to wait the whole time span between two announcements if she just missed the previous one.
+Depending on how the announcement interval was chosen this may be a long time.
+The worst case scenario is when Alice becomes too uncomfortable waiting for the first availability announment to arrive, instead simply dropping her intent and aborting discovery.
+
+When we actively probe the subnet for available services instead the response times will in the mean case be much less than with the other approach.
 That is the delay of services popping up is only based on latency and processing time of both service and client.
-As a consequence we have chosen the probing approach.\\
+As a consequence we have chosen to implement the client-driven approach of actively probing the subnet.\\
+
+%%%% TODO: proof-read from here on
 
 The initial exchange between a client and service which have never seen each other before is somewhat problematic, as in general we cannot establish the authenticity of either one.
-To accomodate for this we distinguish between undirected (see figure \ref{fig:service-discovery}) and directed service discovery(see figure \ref{fig:directed-service-discovery}).
+To accomodate for this we distinguish between undirected (see figure \ref{fig:undirected-service-discovery}) and directed service discovery(see figure \ref{fig:directed-service-discovery}).
 While the undirected discovery protocol is unauthenticated we are able to improve the situation for directed service discovery in certain cases.
 
 Through a sidechannel we are able to retrieve additional data about a service we want to connect to.
