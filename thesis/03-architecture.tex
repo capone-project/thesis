@@ -412,20 +412,93 @@ When we actively probe the subnet for available services instead the response ti
 That is the delay of services popping up is only based on latency and processing time of both service and client.
 As a consequence we have chosen to implement the client-driven approach of actively probing the subnet.\\
 
-%%%% TODO: proof-read from here on
 
-The initial exchange between a client and service which have never seen each other before is somewhat problematic, as in general we cannot establish the authenticity of either one.
-To accomodate for this we distinguish between undirected (see figure \ref{fig:undirected-service-discovery}) and directed service discovery(see figure \ref{fig:directed-service-discovery}).
-While the undirected discovery protocol is unauthenticated we are able to improve the situation for directed service discovery in certain cases.
+The initial exchange between a client and service which have never seen each other before is problematic security wise.
+Without further information we are not able to verify that the other side is in fact the one we want to talk to.
+Even though we can verify that a server we connect to has the identity it claims by establishing the connection in an authenticated way, we cannot assume anything about the claimed identity if we do not know anything about it through other channels.
 
-Through a sidechannel we are able to retrieve additional data about a service we want to connect to.
-As described by McCune et al. \cite{mccune2005seeing} we can establish additional trust amongst other things by scanning a QR code that is either printed on the case of the service or, further improving the trust level, by dynamically displaying a QR code on the screen.
-This is particularly interesting in the case where we want to connect to a display service.
-Upon notifying the service in a certain out-of-band way (e.g. by pressing a certain button on the display) it will generate a QR code and display it on the screen.
+The situation can be improved by relying on said other channels to first gain information about the service we want to connect to.
+Through e.g. a physical sidechannel we may be able to retrieve additional data about a service and thus increase our confidence that we are in fact talking to the service we intended.
+As described by McCune et al. \cite{mccune2005seeing}, this physical side channel can be something as simple as a QR code that is present on a certain machine which is to be scanned by a client which has the intent to connect.
+This QR code may contain data like the public signature key of the machine so that we can compare discovered server's public signatures with the one we just scanned.
+Like this, we are able to increase the trust level of the service.
+
+The procedure of scanning a QR code is particularly interesting in the case where we want to connect to a display service.
+Upon notifying the service in an out-of-band way (e.g. by pressing a certain button on the display) it may generate a QR code and display it on the screen.
 The client can subsequently scan the code and in such a way retrieve information like the public key and address of the display.
 As soon as we have obtained data through this side channel we are able to verify authenticity of the service we are communicating with, assuming the side channel has not been compromised.
 
-Let us now consider the actual discovery protocol.
+Another way to increase confidence in discovered services may be through solutions like CryptID \cite{malchow2015cryptid}.
+CryptID aims to provide a secure naming services based on published public keys and distributed hash tables (DHT).
+A user is able to search an index which is backed by the DHT for keywords to obtain information about registered identities matching the query.
+Every identity is represented by a CryptID, which is in fact a public signature key and thus verifyable.
+This CryptID can then be resolved to a network address, such that we are able to verify the mapping between the identity and its address.\\
+
+We do not try to solve the problem of key distribution in this thesis.
+Instead, we assume that participants of the service network have means through which they are able to exchange public signature keys for identities in a secure way.
+What we still do have to solve is getting to know local clients, for example in public environments where people do not actually care that much who is actually providing a certain service.
+This may be the case when users want to share insensitive data with a public service which is to be viewed by others, but other scenarios will certainly exist.
+
+In order to be able to solve both use cases, that is discoery of previously unknown services and discovery of services whose identity is known through other means, the actual device discovery implemented has two modes.
+\begin{description}
+    \item[Undirected service discovery]\hfill\\
+        Undirected service discovery solves the use case where we want to discover unknown services.
+        We broadcast a discovery  message into a subnet and receive announcements from available services.
+        See figure \ref{fig:undirected-service-discovery}.
+    \item[Directed service discovery]\hfill\\
+        Directed service discovery solves the use case where we know a certain service might be present and want to probe it for availability.
+        We establish an authenticated connection to it with pre-shared public signature keys and then receive its announcement.
+        See figure \ref{fig:directed-service-discovery}.
+\end{description}
+
+Let us now consider the undirected discovery protocol.
+For the actual message interface for Protobuf, see listing \ref{src:discovery-protos}.
+We assume both client and service own a long term signing key pair $(pk_c, sk_c)$ and $(pk_s, sk_s)$, respectively, that is used for establishing their own identity.
+
+The initial \emph{Discover} message servers the purpose of notifying all servers listening on the local network that a client wants to discover what services are available.
+It contains a protocol version, port and the public key of the client.
+
+\begin{description}
+    \item[Version]\hfill\\
+        The version is required as future iterations of the protocol may lead to incompatibilities between different versions of the software stack that is in use on both client and service.
+        With a version field, the receiving server is able to switch between protocol versions based on this field and send back messages conforming to that version or otherwise to ignore the discover message when the version is too old and not supported anymore.
+        It is of utmost importance to check those versions for both parties to avoid running into incompatibilities that may cause the protocol to seemingly work while in fact it is broken in a subtle way.
+    \item[Port]\hfill\\
+        The port specifies where servers should connect back to.
+        While it would be possible to simply have a globally known port number where servers will always connect back to, letting the client specify a port number gives us more flexibility in constrained networks where certain ports may be occupied or blocked.
+    \item[Sign key]\hfill\\
+        The signature key of the client. %% TODO: either sign or remove sign key?
+\end{description}
+
+The message is then serialized by the client and sent via UDP to the local broadcast address.
+We do not sign the message as the whole point of undirected service discovery is that we typically do not know about surrounding services.
+As such, the reverse argument would be that surrounding services have no knowledge about clients, as well, and thus do not really care for the messages originating from a certain client.\\
+
+On the receiving side we first unpack the message to retrieve version, port and public key.
+
+After establishing message integrity the service will now compare the client's version to its own version and only proceed if he is able to correctly service that version.
+This may require switching between multiple message interface formats.
+He will then assemble a response message containing its own version, name, available local services and its public key.
+
+It is possible for a single server to announce multiple services.
+Those services may be distinguished by the port they are listenging at.
+Instead of announcing multiple service types at a single port, which would then require multiplexing requests to their respective service and thus introduce additional complexity, each service has its own port which will later be used to connect to that service.
+
+Each service announced has a name, category and port.
+\begin{description}
+    \item[Name]\hfill\\
+        The name is an arbitrarily chosen identifier which should describe the service.
+        Its aim is to help users easily distinguish services that are available in the local network based on their identifiers.
+        Obviously, these names should not be taken as the sole identifier for services, though, as they are trivially malleable.
+    \item[Category]\hfill\\
+        The category is used as a distringuisher such that users are able to filter out services that do not serve their purpose.
+        Assuming a user Alice wants to have connect to a service providing input devices, she may easily filter the list of local services by restricting them to the category ``Input'', only.
+    \item[Port]\hfill\\
+        The port specifies where clients need to connect to to interact with these services.
+\end{description}
+
+The server will now send back the serialized message to the querying client.
+The client's address is assembled by taking the originator address from the UDP package and the port specified in the Discover message.\\
 
 \begin{figure}[H]
     \centering
@@ -445,43 +518,41 @@ Let us now consider the actual discovery protocol.
         \mess{s2}{Announce}{c}
     \end{sequencediagram}
 
-    \caption{Service Discovery}
+    \caption{Undirected Service Discovery}
     \label{fig:undirected-service-discovery}
 \end{figure}
 
-We assume both client and service own a long term key pair $(pk_c, sk_c)$ and $(pk_s, sk_s)$, respectively, that is used for establishing their own identity.
-The initial \emph{Discover} message contains a protocol version, port and the public key of the client.
+In contrast to the undirected service discovery the directed service discovery provides a way to obtain information about a server's servicse in an authenticated way.
+As we have previously obtained the public signature key of the server we want to talk to, we are already able to establish authenticated and encrypted connections.
 
-The version is required as future iterations on the protocol may lead to incompatibilities between different versions of the software stack that is in use on both client and service.
-It is of utmost importance to check those versions for both parties to avoid running into incompatibilities that may cause the protocol to seemingly work while in fact it is broken in a subtle way.
+So instead of exchanging one package for the Discover and Announce messages, we want to instead exchange multiple messages with each other to perform an authenticated hand shake as demonstrated in section \ref{sec:connection-establishment}.
+If we would use UDP for this, as well, we would have to correctly order and multiplex incoming packages based on originator and sequence.
+To avoid this burden, we instead use a different socket for directed service discovery which uses TCP as a protocol.
 
-When the service receives a UDP message the originating address is recorded in this message.
-When we want to respond to that message, though, we are not able to do so without also knowing which port to send that response to, as UDP is a connection-less protocol.
-As such we include a listing port inside the initial message that will be used by the service to send the response message.
+Despite the initial connection establishment all subsequent steps remain unchanged, albeit data sent is encrypted with the generated ephemeral key.
 
-Last we also include the client's long term public key to establish the client's identity and which will be used in future exchanges to encrypt further messages.
-The whole message is then signed by the client and sent to the service.\\
+\begin{figure}[H]
+    \centering
 
-On the receiving side we first unpack the message to retrieve version, port and public key.
-With the public key and the message's tag we are now able to verify the integrity of the received package.
-Obviously, though, we are not able to say anything about the authenticity about it as it could have been intercepted by a malicious third party, exchanging the message tag and public key.
+    \begin{sequencediagram}
+        \newthread{c}{Client}
+        \newthread[4]{s}{Service}
 
-After establishing message integrity the service will now compare the client's version to its own version and only proceed if he is able to correctly service that version.
-He will then assemble a response package containing its own version, name, available local services and its public key.
+        \begin{messcall}{c}{InitiateConnection()}{s}
+            \postlevel
+            \postlevel
 
-It is possible for a single server to announce multiple services.
-Those services may be distinguished by the port they are listenging at.
-Instead of announcing multiple service types at a single port, which would then require multiplexing requests to their respective service and thus introduce additional complexity, each service has its own port which will later be used to connect to that service.
+            \begin{messcall}{s}{Announce}{c}{}
+            \end{messcall}
+            \prelevel
+        \end{messcall}
+    \end{sequencediagram}
 
-% TODO: encrypt message with public key?
-The server will now again generate a message tag and send both message and tag encrypted with the public key of the client to the client's listening port that has been previously announced.
+    \caption{Directed Service Discovery}
+    \label{fig:directed-service-discovery}
+\end{figure}
 
-In contrast to the indirected service discovery, there is only one significant difference in the directed service discovery.
-As we have previously obtained public key data of the server we want to talk to we are already able to use its key to encrypt the first message.
-That is instead of sending $m \| t$ in the fisrt step, we send $\text{Enc}_{pk_s}(m \| t)$.
-Like this it is impossible to tamper with the first message in such a way that the receiver retrieves a valid message with invalid key data.
-
-All subsequent steps remain unchanged.
+\lstinputlisting[caption=Discovery Interface,label=src:discovery-protos]{../source/sd/proto/discovery.proto}
 
 \subsubsection{Query}
 
