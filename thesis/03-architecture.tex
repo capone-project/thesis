@@ -622,11 +622,11 @@ Despite the initial connection establishment all subsequent steps remain unchang
         \mess{e}{Register}{c}
         \postlevel
 
-        \begin{call}{r}{Request(e, s, params)}{c}{Service Session}
+        \begin{call}{r}{Request(e, s, params)}{c}{Capability}
             \postlevel
-            \begin{call}{c}{Ask(r, s, params)}{e}{Service Session}
+            \begin{call}{c}{Ask(r, s, params)}{e}{Capability}
                 \postlevel
-                \begin{call}{e}{Initiate(params)}{s}{Service Session}
+                \begin{call}{e}{Initiate(params)}{s}{Capability}
                 \end{call}
                 \postlevel
             \end{call}
@@ -657,14 +657,14 @@ Despite the initial connection establishment all subsequent steps remain unchang
         \newinst[4]{i}{Invoker}
 
         \begin{call}{c}{Initiate(Parameters)}{s}{Service Session}
-            \begin{call}{s}{CreateSession()}{s}{Session}
+            \begin{call}{s}{CreateSession()}{s}{Capability}
             \end{call}
         \end{call}
 
         \postlevel
 
         \begin{call}{c}{Initiate(ServiceSession)}{i}{Invoker Session}
-            \begin{call}{i}{CreateSession()}{i}{Session}
+            \begin{call}{i}{CreateSession()}{i}{Capability}
             \end{call}
         \end{call}
         \postlevel
