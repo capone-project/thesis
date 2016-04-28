@@ -456,7 +456,7 @@ For the actual message interface for Protobuf, see listing \ref{src:discovery-pr
 We assume both client and service own a long term signing key pair $(pk_c, sk_c)$ and $(pk_s, sk_s)$, respectively, that is used for establishing their own identity.
 
 The initial \emph{Discover} message servers the purpose of notifying all servers listening on the local network that a client wants to discover what services are available.
-It contains a protocol version, port and the public key of the client.
+It contains the following fields (see listing \ref{src:discovery-protos}):
 
 \begin{description}
     \item[Version]\hfill\\
@@ -466,19 +466,16 @@ It contains a protocol version, port and the public key of the client.
     \item[Port]\hfill\\
         The port specifies where servers should connect back to.
         While it would be possible to simply have a globally known port number where servers will always connect back to, letting the client specify a port number gives us more flexibility in constrained networks where certain ports may be occupied or blocked.
-    \item[Sign key]\hfill\\
-        The signature key of the client. %% TODO: either sign or remove sign key?
 \end{description}
 
 The message is then serialized by the client and sent via UDP to the local broadcast address.
 We do not sign the message as the whole point of undirected service discovery is that we typically do not know about surrounding services.
 As such, the reverse argument would be that surrounding services have no knowledge about clients, as well, and thus do not really care for the messages originating from a certain client.\\
 
-On the receiving side we first unpack the message to retrieve version, port and public key.
-
-After establishing message integrity the service will now compare the client's version to its own version and only proceed if he is able to correctly service that version.
+On the receiving side we first unpack the message to retrieve version and port.
+The server will now compare the client's version to versions known to the server and only proceed if he is able to correctly service that version.
 This may require switching between multiple message interface formats.
-He will then assemble a response message containing its own version, name, available local services and its public key.
+He will then assemble a response message containing its own version, name, provided services and its public key.
 
 It is possible for a single server to announce multiple services.
 Those services may be distinguished by the port they are listenging at.
