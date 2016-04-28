@@ -558,7 +558,7 @@ Despite the initial connection establishment all subsequent steps remain unchang
 
     \begin{sequencediagram}
         \newthread{c}{Client}
-        \newinst[8]{s}{Server}
+        \newinst[8]{s}{Service}
 
         \begin{messcall}{c}{InitiateConnection()}{s}
             \postlevel
@@ -581,7 +581,7 @@ Despite the initial connection establishment all subsequent steps remain unchang
 
     \begin{sequencediagram}
         \newthread{c}{Client}
-        \newinst[8]{s}{Server}
+        \newinst[8]{s}{Service}
 
         \begin{messcall}{c}{InitiateConnection()}{s}
             \postlevel
@@ -613,7 +613,7 @@ Despite the initial connection establishment all subsequent steps remain unchang
         \newthread{r}{Requester r}
         \newinst[2]{e}{Entity e}
         \newinst[2]{s}{Service s}
-        \newinst[2]{c}{Capability Server}
+        \newinst[2]{c}{Capability Service}
 
         \mess{e}{Register}{c}
         \postlevel
