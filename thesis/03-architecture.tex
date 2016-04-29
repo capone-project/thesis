@@ -549,9 +549,65 @@ Despite the initial connection establishment all subsequent steps remain unchang
     \label{fig:directed-service-discovery}
 \end{figure}
 
-\lstinputlisting[caption=Discovery Interface,label=src:discovery-protos]{../source/sd/proto/discovery.proto}
+\lstinputlisting[caption=Discovery Interface,label=src:discovery-protos,float,floatplacement=h]{../source/sd/proto/discovery.proto}
 
 \subsubsection{Query}
+
+Now that we have discovered servers at our location and know basic information about the services they provide.
+Currently we only know about the server's location, their identity and name, category and port of its services.
+While this is key data for a user who wants to connect, it does not provide enough detail to actually know what the service provides, if it suits our needs and how to connect.
+
+To get to know these specifica we can connect to a specific service on a server and ask about what it actually provides.
+It would certainly be possible to provide such information in the service discovery which precedes this step, but the protocol has been explicitly designed to hand over as little information as is required in the device discovery.
+This serves two purposes:
+\begin{itemize}
+    \item Device discovery is usually centered around transmitting single UDP packages.
+        That is, we explicitly do not want to handle more complex communication between client and server, which may be required to implement more sophisticated exchanges between client and server.
+        Furthermore, we want to keep UDP packages as small as possible to not overload the subnet whene there are lots of servers present trying to announce their availability to one or multiple clients which want to discover servers.
+    \item Details about certain services provided on a server may contain sensitive information.
+        One kind of possibly sensitive information is the location, which might be confidential in certain setups.
+        In some cases even the actual service provided may be confidential.
+    \item To keep confidential data secure we may want to verify that connecting parties are in fact authorized to access the service or information about it.
+        As service discovery is not authorized by default it is obvious that we do not want to publish information in the service discovery.
+\end{itemize}
+
+These reasons lead to the design of an additional step to obtain data on a service, which is the query.
+When a client discovered a service and has the intent to connect to it, he will first query the service instance.
+Querying involves first initiating a secured connection as explained before and then transmitting its intent to query the service (see figure \ref{fig:query}).
+
+Upon receiving the initial connection, the service will first verify that the client's identity is allowed to connect to the service at all.
+If not, the service will drop the connection.
+Otherwise, we will assemble a so-called service description, containing details about the service (see listing \ref{src:query-protos} for the message interface):
+\begin{description}
+    \item[Name]\hfill\\
+        This is the same field as announced in the service discovery.
+    \item[Category]\hfill\\
+        This is the same field as announced in the service discovery.
+    \item[Port]\hfill\\
+        This is the same field as announced in the service discovery.
+    \item[Type]\hfill\\
+        The actual type of the service.
+        While the category already specifies what kind of service it is, e.g. a display or input device, this reports the actual implementation of the service.
+        For example a service of type ``Display'' may be backed by VNC, RDP or xpra, which would then be the respective type of the service.
+        As such, the client may choose the concrete plugin for servicing the type if it is able to support it.
+    \item[Version]\hfill\\
+        The version specifies the service type's implementation version.
+        If for example a new version of the application backing the service plugin is released which is incompatible to previous versions, we may need to increment the plugin's version in order to guarantee the interoperability.
+        Versions are per plugin type.
+    \item[Location]\hfill\\
+        For many applications it is important for users to know about the service's location.
+        Assuming a client resides in a conference room with multiple displays and wants to present data on one of those screens.
+        The client now obviously wants to know which service corresponds to the actual screen he wants to present his data, instead of displaying it on the wrong screen in the room or even in another conference room.
+        The location field is intended to help clients find the correct service.
+    \item[Parameters]\hfill\\
+        Each service may provide a certain set of supported parameters which alter their behavior.
+        For a CPU service plugin which executes a certain application on the server, we may want to specify which executable to start, its parameters and environment variables.
+        The service would then report that it supports three parameters ``executable'', ``parameters'' and ``environment'', which may be specified by the client.
+        The service may also hint allowed values by specifying possible values in the value field for each parameter.
+\end{description}
+
+The connection will now be closed upon receiving the actual service description.
+The user will now decide if he actually wants to connect to the service based on the information given to him.
 
 \begin{figure}[H]
     \centering
@@ -563,48 +619,155 @@ Despite the initial connection establishment all subsequent steps remain unchang
         \begin{messcall}{c}{InitiateConnection()}{s}
             \postlevel
             \begin{call}{c}{Query()}{s}{Service description}
+                    \postlevel
             \end{call}
         \end{messcall}
 
     \end{sequencediagram}
+
     \caption{Query Diagram}
+    \label{fig:query}
 \end{figure}
 
-\lstinputlisting[caption=Query Interface,label=src:query-protos,firstline=10,lastline=24]{../source/sd/proto/connect.proto}
+\lstinputlisting[caption=Query Interface,label=src:query-protos,firstline=10,lastline=24,float,floatplacement=h]{../source/sd/proto/connect.proto}
 
 \subsubsection{Session Initiation}
 
-\begin{align*}
-    \text{capability} \coloneqq pk_s(\text{sessionid}, \text{parameters})
-\end{align*}
+When a user has decided to connect to a service based on the details given by a service query, he will request a new session with the service.
+The session request contains an identity and parameters, both set by the client wishing to establish the new session.
+On the service side, we now persist the identity and parameters and generate a new session identifier, which is passed back to the client.
+Now the specified identity is able to connect to the session with the associated session identifier.
+
+Let us now consider the design decisions which are hinted at in the given overview.
+It is important to understand that we have to different steps involved in the actual session initiation:
+Initially, the client only wants to establish a new session with the service, telling it for which identity to create the session and what the parameters are.
+The client then terminates upon receiving the session identifier.
+The second step, which does not need to happen immediately after establishing the session but can happen at a later point, actually connects to the established session and starts the service that is to be invoked.
+The service will only allow clients to connect which have the identity specified in the session request.
+That is, given two clients, the first client may establish a session which only the second client will be allowed to connect to.
+
+The whole session protocol is thus based on capabilities.
+Upon receiving a request, the service creates a new capability for the given identity, persisting the given parameters and generating an identifier.
+Whenever the identity now connects, the service will check if a capability matching both the identity and identifier exists and if so, will use the persisted parameters to actually start the session.
+
+It is important that only the identity requesting the session is able to set the parameters.
+Imagine a scenario where user Alice wants to give user Bob the permission to access a specific file on a file service.
+Alice would request a new session with Bob's identity and parameters specifying that single file.
+If Bob was now able to modify those parameters, he could simply tell the service to provide other files present in Alice's file system, as well, thus escalating privileges.\\
+
+Assume the simple case where user Alice wants to invoke a service herself (see figure \ref{fig:direct-connect}).
+She initially connects to the service and performs the handshake with it.
+Afterwards, she requests a new session, specifying her own identity as the session owner and providing service parameters.
+The service will now create and store a new capability associated with Alice and store parameters alongside this capability.
+The session identifier is now sent back to Alice.
+
+When Alice now wants to invoke the service, she will initiate an authenticated connection and then invoke the session with the session identifier, which specifies the capability.
+The server will verify that Alice is allowed to invoke the capability by comparing the public signature keys and, if the verification succeeds, start the service with the parameters stored.
+The capability is now removed so that Alice may not invoke the same capability twice.
 
 \begin{figure}[H]
     \centering
 
     \begin{sequencediagram}
-        \newthread{c}{Client}
-        \newinst[8]{s}{Service}
+        \newthread{c}{Alice}
+        \newinst[6]{s}{Service}
 
-        \begin{messcall}{c}{InitiateConnection()}{s}
+        \begin{sdblock}{Session Request}{}
             \postlevel
-            \begin{call}{c}{InitiateSession(parameters)}{s}{Session Capability}
-            \end{call}
-        \end{messcall}
+            \begin{messcall}{c}{InitiateConnection()}{s}
+                \postlevel
+                \begin{call}{c}{RequestSession(Alice, parameters)}{s}{Capability}
+                    \begin{call}{s}{CreateCapability(Alice, parameters)}{s}{Capability}
+                    \end{call}
+                \end{call}
+            \end{messcall}
+        \end{sdblock}
 
         \postlevel
 
-        \begin{messcall}{c}{InitiateConnection()}{s}
+        \begin{sdblock}{Session Initiation}{}
             \postlevel
-            \begin{messcall}{c}{Connect(session capability)}{s}
+            \begin{messcall}{c}{InitiateConnection()}{s}
+                \postlevel
+                \begin{messcall}{c}{ConnectSession(Capability)}{s}
+                    \postlevel
+                    \begin{call}{s}{Verify(Alice, Capability)}{s}{}
+                    \end{call}
+                \end{messcall}
             \end{messcall}
-        \end{messcall}
+            \prelevel
+        \end{sdblock}
 
         \prelevel
     \end{sequencediagram}
+
     \caption{Direct Connect}
+    \label{fig:direct-connect}
 \end{figure}
 
-\lstinputlisting[caption=Session Interface,label=src:session-protos,firstline=26]{../source/sd/proto/connect.proto}
+Let us now consider a slightly more complicated scenario involving two clients Alice and Bob and a service (see figure \ref{fig:indirect-connect}).
+The intent of Alice is to establish a session for Bob which he may invoke.
+This corresponds e.g. to the scenario mentioned before, where Alice wants to give access to a certain set of files to Bob, where these files are stored on the service.
+
+The initial procedure is the same as when performing a direct connect, except that Alice specifies Bob's identity for the capability.
+The server then creates a new capability for Bob and persists the parameters provided by Alice.
+Alice now tells Bob the session identifier which he is now able to use for connecting to the session.
+Regard that we do not specify how to pass the capability to Bob, see section \label{sec:invoke-service} for more details on how to solve secure capability transfer.
+
+When Bob has the intention of connecting to the session created by Alice, he will initiate an authenticated connection to the service.
+He will now proceed and send the identifier received from Alice to the server to establish the session.
+After verifying the capability, the service retrieves parameters stored alongside the capability and initiate the session.
+
+\begin{figure}[H]
+    \centering
+
+    \begin{sequencediagram}
+        \newthread{c1}{Alice}
+        \newinst[4]{s}{Service}
+        \newthread[4]{c2}{Bob}
+
+        \begin{sdblock}{Session Request}{}
+            \postlevel
+            \begin{messcall}{c1}{InitiateConnection()}{s}
+                \postlevel
+                \begin{call}{c1}{RequestSession(Bob, parameters)}{s}{Capability}
+                    \postlevel
+                \end{call}
+            \end{messcall}
+        \end{sdblock}
+
+        \postlevel
+        \begin{messcall}{c1}{Capability}{c2}
+        \end{messcall}
+
+        \begin{sdblock}{Session Initiation}{}
+            \postlevel
+            \begin{messcall}{c2}{InitiateConnection()}{s}
+                \postlevel
+                \begin{messcall}{c2}{Connect(Capability)}{s}
+                    \postlevel
+                    \begin{call}{s}{Verify(Bob, Capability)}{s}{}
+                    \end{call}
+                \end{messcall}
+            \end{messcall}
+        \end{sdblock}
+
+        \prelevel
+    \end{sequencediagram}
+
+    \caption{Indirect Connect}
+    \label{fig:indirect-connect}
+\end{figure}
+
+The actual message interfaces is rather obvious (see listing \ref{src:session-protos}).
+The initial SessionRequestMessage contains an identity and the session's parameters.
+The service responds with a SessionMessage, containing the session identifier that is to be used for invoking the actual session.
+Starting the session is done with a SessionInitiationMessage, which contains only the session identifier, as well.
+
+\lstinputlisting[caption=Session Interface,label=src:session-protos,firstline=26,float,floatplacement=h]{../source/sd/proto/connect.proto}
+
+Due to the two-phase capability based structure we are able to implement several use cases without compromising security of the user giving access to third parties, given the actual service is implemented in a secure way.
+We will detail these building blocks in the next section.
 
 \subsection{Services}
 
@@ -644,9 +807,10 @@ Despite the initial connection establishment all subsequent steps remain unchang
     \caption{Capability Request}
 \end{figure}
 
-\lstinputlisting[caption=Capability Service Interface,label=src:capability-protos]{../source/sd/proto/capabilities.proto}
+\lstinputlisting[caption=Capability Service Interface,label=src:capability-protos,float,floatplacement=h]{../source/sd/proto/capabilities.proto}
 
 \subsubsection{Invoke Service}
+\label{sec:invoke-service}
 
 \begin{figure}[H]
     \centering
