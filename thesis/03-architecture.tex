@@ -118,197 +118,461 @@
     \caption{Connecting an app}
 \end{figure}
 
-\subsection{Message Diagrams}
+\subsection{Low-level protocol}
+\label{sec:low-level-protocol}
+
+The low-level protocol determines how the actual packets sent between client and server are constructed.
+It specifies a common format independent of the actual transport layer that is used to guarantee a common understanding of how to handle incoming bytes.
+The protocol is currently designed to be used over either TCP or UDP but should be generic enough to be used for other transport layers.
+We will concentrate on describing design choices based on TCP and UDP transport layours only, though.
+
+\subsubsection{Package boundaries}
+
+The major difference between TCP and UDP is that TCP is stream based and UDP is packet based.
+This means that UDP packages have their size attached to the package itself, so it is guaranteed that when receiving a single package over UDP we know package boundaries and thus can split incoming packages by these boundaries.
+On TCP this is not true, though, so we need to design a package format which is able to specify package boundaries so the client is able to determine a unit.
+
+The initial design simply prefixed every single package with an unencrypted package length fixed to four bytes in network byte order.
+This allowed the client to initially receive four bytes, convert these to host byte order and subsequently receive the amount of bytes specified.
+While easy to implement this has several disadvantages.
+
+The most obvious disadvantage is that the package length was always transmitted unencrypted and without any message authentication code.
+This allows potential adversaries to do easily traffic analysis based on package lengths or drive an attack by simply tampering with the length.
+As the receiver of the package cannot verify the package's length in any way he has to trust it and thus may receive invalid packages.
+
+In order to solve the problem the most obvious solution would be to simply encrypt the length and attach a message authentication code.
+By doing so we would prevent the adversary of knowing the following data's length and prevent that he is able to tamper with it.
+Like this, we obviously gain a boost in security compared to sending package length's in plain text.
+
+On the other hand, the adversary is still able to observe actual package lengths.
+In the case of UDP being used as a transport layer this is trivial:
+An adversary can simply inspect package headers and thus extract the actual package length, as data is in the general case sent in a single package.
+In the case of TCP where no actual package length is encoded in the TCP header this is a little bit more involved but in many cases still feasible as client and server are likely to exchange single messages by turn.
+So by substracting the prefixed package length and its message authentication code from the total bytes sent in one turn we are able to gain knowledge of the actual message's length with a high probability.
+
+Due to this we are effectively giving the adversary an decryption oracle as he is able to correlate package lengths and their encrypted representations.
+Furthermore it becomes much easier for an adversary to analyze traffic by inspecting actual package lengths.
+\\\\
+
+To fix the problem we instead send blocks of a fixed length instead of prefixing every package with an encrypted length.
+The initial fixed-length block is prefixed with the overall length of the assembled package.
+If the overall length exceeds the length of the remaining bytes of the first fixed length block, then the complete block is assembled by concatenating the first block excluding its length prefix and all subsequent blocks until the announced length is received.
+The last block is right-padded with zeroes until its length matches the block length.
+The package length is only encoded in the first block.
+
+The following example demonstrates the package format for unencrypted packages.
+We assume a fixed length block size of 64 bytes.
+If a party now wishes to transfer a package of 80 bytes the package will get split into two blocks.
+The first block is prefixed with four bytes containing the actual package length and filled with the initial $64 - 4 = 60$ bytes.
+The second package is filled with the remaining $80 - 60 = 20$ bytes and right-padded with $64 - 20 = 44$ zeroes.
+Figure \ref{fig:unencrypted-package-format} visualizes the block's contents.
+
+\begin{figure}
+    \center
+
+    \begin{tikzpicture}[
+            every node/.style={ minimum width=6mm, minimum height=8mm },
+            start chain=1 going right,
+            start chain=2 going right,
+            node distance=-0.15mm
+        ]
+
+        \node[draw, on chain=1, minimum width=8mm] {len};
+        \node[draw, on chain=1, minimum width=88mm] {60 bytes of data};
+        \node[left=1cm of 1-1] {Package 1};
+
+        \node[draw, on chain=2, minimum width=40mm, below=1cm of 1-1.west, anchor = west] {20 bytes of data};
+        \node[draw, on chain=2, minimum width=56mm] {padding};
+        \node[left=1cm of 2-1] {Package 2};
+    \end{tikzpicture}
+
+    \caption{Unencrypted package format}
+    \label{fig:unencrypted-package-format}
+\end{figure}
+
+The second example (see figure \ref{fig:encrypted-package-format}) demonstrates the package format for an encrypted connection.
+In contrast to unencrypted packages there is an additional message authentication code attached to each split package which is now assumed to be 16 bytes long.
+
+\begin{figure}
+    \center
+
+    \begin{tikzpicture}[
+            every node/.style={ minimum width=6mm, minimum height=8mm },
+            start chain=1 going right,
+            start chain=2 going right,
+            node distance=-0.15mm
+        ]
+
+        \node[draw, on chain=1, minimum width=24mm] {MAC};
+        \node[draw, on chain=1, minimum width=8mm ] {len};
+        \node[draw, on chain=1, minimum width=64mm] {44 bytes data};
+        \node[left=1cm of 1-1] {Package 1};
+
+        \node[draw, on chain=2, minimum width=24mm, below=1cm of 1-1.west, anchor = west] {MAC};
+        \node[draw, on chain=2, minimum width=54mm] {36 bytes data};
+        \node[draw, on chain=2, minimum width=18mm] {padding};
+        \node[left=1cm of 2-1] {Package 2};
+
+        \draw [decorate,decoration={brace,amplitude=10pt}] (1-2.north west) -- (1-3.north east) node[midway,yshift=7mm] {encrypted};
+        \draw [decorate,decoration={brace,amplitude=10pt,mirror}] (2-2.south west) -- (2-3.south east) node[midway,yshift=-7mm] {encrypted};
+    \end{tikzpicture}
+
+    \caption{Encrypted package format}
+    \label{fig:encrypted-package-format}
+\end{figure}
+
+The client will now fetch the initial fixed-size block
+If the connection is encrypted, he will decrypt it and verify its message authentication code.
+Now we inspect the first four bytes to gain knowledge about the total package length -- if it exceeds the amount of bytes sent in the initial message, we will receive, decrypt and verify all following packages until all bytes are received.
+Finally, we concatenate the blocks to obtain the complete package.
+
+\subsubsection{Cryptography}
+
+All connections except the initial service discovery are authenitcated and encrypted to keep information safe.
+Encryption is done via secret-key authenticated encryption with an encryption key shared between both parties.
+The key is an ephemeral key generated in an authenticated way via Diffie-Hellman key exchange when establishing the connection (see section \ref{sec:connection-establishment} for more details on the actual key exchange).
+
+As the generated key is an ephemeral key which is not to be re-used in later sessions we are able to use a simple counter mode for nonces.
+That is, on initial connection the client per definition has a nonce of value $0$ and the server has a nonce of value $1$.
+Whenever either the client or server encrypts and sends a new block, its nonce is incremented by $2$.
+On the receiving side we increment the remote nonce by $2$ every time we receive an encrypted block.
+This guarantees (given nonces of sufficient length) that nonces are never repeated as collisions between client and server nonce are impossible and nonces are monotonously increasing.
+
+The algorithm used for encryption is the Salsa20 stream cipher by Daniel J. Bernstein \cite{bernstein2008salsa}.
+It is a family of 256-bit stream ciphers to designed to be used in a wide range of cryptographic applications.
+It uses a 256-bit key and a 64-bit nonce and expands them into a $2^{70}$-byte stream.
+Encryption for a plain text message with $n$ bytes is done by xor'ing the plaintext with the first $n$ bytes of the stream.
+Decryption is done likewise, xor'ing the ciphertext with the first $n$ bytes of the same stream.
+We specifically use the Salsa20/20 stream cipher, which is a 20-round stream cipher, compared to reduced-round ciphers specified by Daniel J. Bernstein.
+
+The algorithm used for message authentication is the Poly1305 message authentication code by Daniel J. Bernstein \cite{bernstein2005poly1305}.
+Poly1305 takes a 32-byte key and a message and produces a 16-byte tag that authenticates the message.
+The key for the combination of Salsa20/Poly1305 is generated by deriving a subkey from a tuple of key and nonce used for encrypting the actual message.
+
+\subsubsection{Message exchange}
+
+Exchanging data between hosts poses several questions.
+Consider we want to send a data structure over to another host.
+The naive approach would be to simply stream over the in-memory representation of the structure and let the receiver interpret the data stream as the corresponding structure.
+This naive approach is not even guaranteed to work for two hosts running on the same architecture, as for example the compiler may choose to re-arrange structure entries.
+The approach finally falls flat when considering different operating systems with different application binary interfaces or even different memory layouts, e.g. different byte orders.
+
+The problem of correctly serializing data is not trivial and thus we choose to not handle the problem ourselves but let a library designed for this problem handle serialization.
+Google Protocol Buffers \cite{varda2008protocol} implement a method for serializing structured data in platform- and language-independent way.
+Protocol Buffers come with a way to specify interface descriptions that describe how data is structured in a certain message type.
+These interface descriptions are then compiled to language-specific code that can be imported via language-specific constructs.
+
+One inherent benefit of this approach is that we are able to re-use the interface definitions across multiple sites.
+In particular, we use the same interface definitions across the command line client and server which are both written in C, and the Android controller which is written in Java.
+
+The whole protocol is built upon these interface descriptions with the only exception being when we forward application-specific data between two specific services.
+As we do not want to know about the specific protocols they use in order to be generic as possible we simply relay data from and to both service end points.
+Otherwise all message exchanges boil down to serializing data with Protocol Buffers and then de-serializing them on the receiving site.
+
+\subsection{Protocol}
+
+We will now discuss the application level protocol as it is used by servers and clients to communicate with each other.
+Everything discussed in here will use the low-level protocol discussed in section \ref{sec:low-level-protocol}.
+
+\subsubsection{Connection establishment}
+\label{sec:connection-establishment}
+
+When a client connects to a service we want to encrypt encrypt their communication.
+Obviously we need to have a way to negotiate the encryption between both parties, as the server has to know who is about to connect and the client wants to authenticate that he is really talking to the server he wants to talk to.
+We will now consider the key exchange protocol used to negotiate ephemeral encryption key used for the connection.
+
+The key exchange assumes that the public identities, that is the public signature keys of both parties, are known to each other.
+They are used to verify the actual identity of the opposite party.
+
+The sequence diagram in figure \ref{fig:connection-establishment} provides an overview of the key negotiation between two parties, the client $C$ and the service $S$, where $C$ has the intent to connect to $S$.
+Let us first define all functions used in the diagram.
+
+\begin{description}
+    \item[Sign$_s(m)$]\hfill\\
+        The signing algorithm generates upon input of a private signature key $s$ and message $m$ a signature $\sigma \leftarrow \text{Sign}_{s}(m)$.
+    \item[Verify$_v(m, \sigma)$]\hfill\\
+        The verification algorithm takes as input a public verification key $v$, a message $m$ and a signature $\sigma$.
+        Verify returns success iff the signature $\sigma$ is valid for the verification key $v$ and message $m$.
+    \item[GenerateKeypair()]\hfill\\
+        The key generation algorithm outputs a pair of keys $(enc, dec)$, where $enc$ is the public encryption key and $dec$ is the private decryption key.
+        Keys are generated with a cryptographically secure random number generator.
+    \item[CalculateKey($enc, dec$)]
+        The key calculation algorithm generates upon input of a local private encryption key and a remote public decryption key a new symmetric key via Diffie-Hellman key generation.
+\end{description}
+
+First the client $C$ generates a new ephemeral key pair $(enc_C, dec_C) = \text{GenerateKeypair}()$.
+He then proceeds to send an initial message containing his public verification key $vrfy_C$, the newly generated public ephemeral key $enc_C$ and a signature of $vrfy_C$ and $enc_C$ concatenated.
+
+Upon receiving the initial message, the service verifies that the concatenated keys have indeed been signed by the announced client's public verification key.
+This step verifies that the received message has at one point been in fact generated and signed by an entity which possesses the key $vrfy_C$.
+If the verification is successfull, we continue and generate our own ephemeral keypair $(enc_S, dec_S) = \text{GenerateKeypair}()$.
+
+The service now sends a signature of the generated ephemeral keys of both client and service as well as both keys in plain text.
+Back on the client side we can now verify that we are indeed talking to the correct identity, as the signature now contains not only the remote's newly generated ephemeral public key, but also our own randomly generated public key.
+Due to this it is safe to assume that the service indeed posseses the private signature key belonging to the public signature key we know.
+
+At this point of time we have verified that we are actually talking to an entity possessing $vrfy_S$, but the server does not yet know that he is indeet talking to a client possessing $vrfy_C$, as the initial message could have been recorded and replayed by an adversary.
+To fix the situation we now perform the same step of signing both public ephemeral keys and sending them to the server again, who may now verify whom he is talking to.
+
+When both parties are verified to each other we can now calculate the symmetric key which is used for subsequent communication.
+For each party, the key is calculated by performing a scalar multiplication between the party's private ephemeral key and the remote's public ephemeral key.
+The output is then concatenated with both parties' public keys' and hashed, resulting in a new secret which is shared between both client and server.
+
+\begin{figure}
+    \centering
+
+    \begin{sequencediagram}
+        \newthread{c}{Client ($vrfy_C$, $sign_C$)}
+        \newthread[4]{s}{Service ($vrfy_S$, $sign_S$)}
+
+        \begin{call}{c}{GenerateKeypair()}{c}{($enc_C$, $dec_C$)}
+            \postlevel
+        \end{call}
+
+        \postlevel
+
+        \begin{messcall}{c}{$\sigma = \text{Sign}_{sign_C}(vrfy_C \| enc_C), vrfy_C, enc_C$}{s}
+        \end{messcall}
+
+        \begin{call}{s}{Verify$_{vrfy_C}(\sigma, vrfy_C \| enc_C)$}{s}{}
+            \postlevel
+        \end{call}
+
+        \postlevel
+
+        \begin{call}{s}{GenerateKeypair()}{s}{($enc_S$, $dec_S$)}
+            \postlevel
+        \end{call}
+
+        \postlevel
+
+        \begin{messcall}{s}{$\sigma = \text{Sign}_{sign_S}(enc_S \| enc_C), enc_S, enc_C$}{c}
+        \end{messcall}
+
+        \begin{call}{c}{$\text{Verify}_{vrfy_S}(\sigma, enc_S \| enc_C)$}{c}{}
+            \postlevel
+        \end{call}
+
+        \postlevel
+
+        \begin{messcall}{c}{$\sigma = \text{Sign}_{sign_C}(enc_S || enc_C), enc_S, enc_C$}{s}
+        \end{messcall}
+
+        \begin{call}{s}{$\text{Verify}_{vrfy_C}(\sigma, enc_S \| enc_C)$}{s}{}
+            \postlevel
+        \end{call}
+
+        \postlevel
+
+        \begin{call}{c}{CalculateKey($enc_S$, $dec_C$)}{c}{Key}
+            \postlevel
+        \end{call}
+
+        \prelevel
+        \prelevel
+        \prelevel
+
+        \begin{call}{s}{CalculateKey($enc_C$, $dec_S$)}{s}{Key}
+            \postlevel
+        \end{call}
+    \end{sequencediagram}
+
+    \caption{Connection establishment}
+    \label{fig:connection-establishment}
+\end{figure}
 
 \subsubsection{Discovery}
 
 Device discovery is the process of discovering previously unknown services in a certain subnet.
-To achieve the discovery, a client has to query all possible addresses in this subnet and subsequently await responses from servers.
-This can easily be achieved with UDP multicast, that is we send a message to the multicast address of the subnet.
-As UDP is port based it is mandatory that we choose a well-known port in advance to the protocol as otherwise it would be impossible to bootstrap the initial communication.
+That is given a client and a certain amount of services that all reside in the subnet we want to get to know all the services that are present without previously knowing where they are.
 
-There are two major distinctions on how service discovery can be achieved: a client- and a service-driven approach.
-The service-driven is based on the service periodically sending an announce message to the multicast address, thereby notifying possibly listening clients of the availability of a certain service.
-
-The client-driven approach on the other side lets the client query the subnet for existing services by announcing that it wants to know about available services.
-Every service that is listening and that receives this request will then answer the client and announce its presence.
+Let us consider the two obvious solutions coming to mind, that is client- and service-driven approaches.
+\begin{itemize}
+    \item The service-driven approach is based on the service periodically broadcasting its availability to the subnet, thereby notifying possibly listening clients of the availability of a certain service.
+    \item The client-driven approach on the other side lets the client query the subnet for existing services by announcing that it wants to know about available services.
+        Every service listening to these announcements will receive the query and subsequently announce its availability to the server.
+\end{itemize}
 
 Both methods have their own merit.
 Periodic announcements of the service conceal the intent of clients to discover local services as they are not directly involved in the process of finding services.
-They have the disadvantage of additional overhead, though, as we regularly have to announce our service.
-While this might not be problematic when only few services are available in a certain subnet it may become unwieldy when hundreds of services are present.
+They have the disadvantage of additional overhead, though, as we regularly have to announce our service to the whole subnet.
+While this might not be problematic when only few services are available in a certain subnet it may become unwieldy when hundreds of services are present which are constantly firing announce messages to each member of the network.
 
-This disadvantage is mitigated by the probing approach by clients that want to discover nearby services.
-Just how important this is gets particularly clear when we consider the process how users want to start interacting with a certain service.
-Assume that a user starts up his mobile phone with our app with the intent to start using a certain service.
-With the periodic probing approach the user will in the worst case have to wait for the whole time span between two announcements of the service he wants to connect to.
-Depending on how this timeout was chosen this may be an uncomfortably long time.
-As users are generally uncomfortable with doing nothing for a rather long time (CITATION NEEDED) they might simply stop waiting and just scrap their plan.
+On the other hand with a client-driven approach it is easy to avoid this particular problem.
+Given a client which wants to probe the network for available services we will simply drop a broadcast message to the subnet and wait for available services to respond.
+Like this the whole process is intent-driven, as the user has an explicit intent of discovering services, and repeating messages are avoided.
 
-When we directly probe the subnet for available services instead the response times will in the mean case be much less than in the other case.
+Just how important this distinction is gets particularly clear when we consider the process how users want to start interacting with a certain service.
+Assume Alice starts up her mobile phone and intents to discover a certain service she expects to be available in the local network.
+Given the approach where services periodically announce their availability, Alice might have to wait the whole time span between two announcements if she just missed the previous one.
+Depending on how the announcement interval was chosen this may be a long time.
+The worst case scenario is when Alice becomes too uncomfortable waiting for the first availability announment to arrive, instead simply dropping her intent and aborting discovery.
+
+When we actively probe the subnet for available services instead the response times will in the mean case be much less than with the other approach.
 That is the delay of services popping up is only based on latency and processing time of both service and client.
-As a consequence we have chosen the probing approach.\\
+As a consequence we have chosen to implement the client-driven approach of actively probing the subnet.\\
 
-The initial exchange between a client and service which have never seen each other before is somewhat problematic, as in general we cannot establish the authenticity of either one.
-To accomodate for this we distinguish between undirected (see figure \ref{fig:undirected-service-discovery}) and directed service discovery(see figure \ref{fig:directed-service-discovery}).
-While the undirected discovery protocol is unauthenticated we are able to improve the situation for directed service discovery in certain cases.
 
-Through a sidechannel we are able to retrieve additional data about a service we want to connect to.
-As described by McCune et al. \cite{mccune2005seeing} we can establish additional trust amongst other things by scanning a QR code that is either printed on the case of the service or, further improving the trust level, by dynamically displaying a QR code on the screen.
-This is particularly interesting in the case where we want to connect to a display service.
-Upon notifying the service in a certain out-of-band way (e.g. by pressing a certain button on the display) it will generate a QR code and display it on the screen.
+The initial exchange between a client and service which have never seen each other before is problematic security wise.
+Without further information we are not able to verify that the other side is in fact the one we want to talk to.
+Even though we can verify that a server we connect to has the identity it claims by establishing the connection in an authenticated way, we cannot assume anything about the claimed identity if we do not know anything about it through other channels.
+
+The situation can be improved by relying on said other channels to first gain information about the service we want to connect to.
+Through e.g. a physical sidechannel we may be able to retrieve additional data about a service and thus increase our confidence that we are in fact talking to the service we intended.
+As described by McCune et al. \cite{mccune2005seeing}, this physical side channel can be something as simple as a QR code that is present on a certain machine which is to be scanned by a client which has the intent to connect.
+This QR code may contain data like the public signature key of the machine so that we can compare discovered server's public signatures with the one we just scanned.
+Like this, we are able to increase the trust level of the service.
+
+The procedure of scanning a QR code is particularly interesting in the case where we want to connect to a display service.
+Upon notifying the service in an out-of-band way (e.g. by pressing a certain button on the display) it may generate a QR code and display it on the screen.
 The client can subsequently scan the code and in such a way retrieve information like the public key and address of the display.
 As soon as we have obtained data through this side channel we are able to verify authenticity of the service we are communicating with, assuming the side channel has not been compromised.
 
-Let us now consider the actual discovery protocol.
+Another way to increase confidence in discovered services may be through solutions like CryptID \cite{malchow2015cryptid}.
+CryptID aims to provide a secure naming services based on published public keys and distributed hash tables (DHT).
+A user is able to search an index which is backed by the DHT for keywords to obtain information about registered identities matching the query.
+Every identity is represented by a CryptID, which is in fact a public signature key and thus verifyable.
+This CryptID can then be resolved to a network address, such that we are able to verify the mapping between the identity and its address.\\
 
-\begin{figure}[H]
-    \centering
+We do not try to solve the problem of key distribution in this thesis.
+Instead, we assume that participants of the service network have means through which they are able to exchange public signature keys for identities in a secure way.
+What we still do have to solve is getting to know local clients, for example in public environments where people do not actually care that much who is actually providing a certain service.
+This may be the case when users want to share insensitive data with a public service which is to be viewed by others, but other scenarios will certainly exist.
 
-    \begin{sequencediagram}
-        \newinst{c}{Client}
-        \newinst[8]{s}{Service}
+In order to be able to solve both use cases, that is discoery of previously unknown services and discovery of services whose identity is known through other means, the actual device discovery implemented has two modes.
+\begin{description}
+    \item[Undirected service discovery]\hfill\\
+        Undirected service discovery solves the use case where we want to discover unknown services.
+        We broadcast a discovery  message into a subnet and receive announcements from available services.
+        See figure \ref{fig:undirected-service-discovery}.
+    \item[Directed service discovery]\hfill\\
+        Directed service discovery solves the use case where we know a certain service might be present and want to probe it for availability.
+        We establish an authenticated connection to it with pre-shared public signature keys and then receive its announcement.
+        See figure \ref{fig:directed-service-discovery}.
+\end{description}
 
-        \mess{c}{Discover}{s}
-        \draw (Discover from) -- (Discover to) node[midway,below]
-            {$
-                \begin{aligned}
-                    m \leftarrow &\{\text{version}, \text{port}, pk_c\}\\
-                    t \leftarrow &S_{sk_c}(m)\\
-                                 &\text{send}(m \| t)
-                \end{aligned}
-            $};
+Let us now consider the undirected discovery protocol.
+For the actual message interface for Protobuf, see listing \ref{src:discovery-protos}.
+We assume both client and service own a long term signing key pair $(pk_c, sk_c)$ and $(pk_s, sk_s)$, respectively, that is used for establishing their own identity.
 
-        \postlevel
-        \postlevel
-        \postlevel
-        \postlevel
+The initial \emph{Discover} message servers the purpose of notifying all servers listening on the local network that a client wants to discover what services are available.
+It contains the following fields (see listing \ref{src:discovery-protos}):
 
-        \mess{s}{Announce}{c}
-        \draw (Announce from) -- (Announce to) node[midway,below]
-            {$
-                \begin{aligned}
-                    \text{services} \coloneqq &[ (port, type) ]\\
-                    m \leftarrow &\{\text{version}, \text{name}, \text{services}, pk_s\}\\
-                    t \leftarrow &S_{sk_p}(m)\\
-                                 &\text{send}(\text{Enc}_{pk_c}(m \| t))
-                \end{aligned}
-            $};
+\begin{description}
+    \item[Version]\hfill\\
+        The version is required as future iterations of the protocol may lead to incompatibilities between different versions of the software stack that is in use on both client and service.
+        With a version field, the receiving server is able to switch between protocol versions based on this field and send back messages conforming to that version or otherwise to ignore the discover message when the version is too old and not supported anymore.
+        It is of utmost importance to check those versions for both parties to avoid running into incompatibilities that may cause the protocol to seemingly work while in fact it is broken in a subtle way.
+    \item[Port]\hfill\\
+        The port specifies where servers should connect back to.
+        While it would be possible to simply have a globally known port number where servers will always connect back to, letting the client specify a port number gives us more flexibility in constrained networks where certain ports may be occupied or blocked.
+\end{description}
 
-        \postlevel
-        \postlevel
-        \postlevel
-        \postlevel
-    \end{sequencediagram}
+The message is then serialized by the client and sent via UDP to the local broadcast address.
+We do not sign the message as the whole point of undirected service discovery is that we typically do not know about surrounding services.
+As such, the reverse argument would be that surrounding services have no knowledge about clients, as well, and thus do not really care for the messages originating from a certain client.\\
 
-    \caption{Undirected Service Discovery Messaging Chart}
-    \label{fig:undirected-service-discovery}
-\end{figure}
-
-We assume both client and service own a long term key pair $(pk_c, sk_c)$ and $(pk_s, sk_s)$, respectively, that is used for establishing their own identity.
-The initial \emph{Discover} message contains a protocol version, port and the public key of the client.
-
-The version is required as future iterations on the protocol may lead to incompatibilities between different versions of the software stack that is in use on both client and service.
-It is of utmost importance to check those versions for both parties to avoid running into incompatibilities that may cause the protocol to seemingly work while in fact it is broken in a subtle way.
-
-When the service receives a UDP message the originating address is recorded in this message.
-When we want to respond to that message, though, we are not able to do so without also knowing which port to send that response to, as UDP is a connection-less protocol.
-As such we include a listing port inside the initial message that will be used by the service to send the response message.
-
-Last we also include the client's long term public key to establish the client's identity and which will be used in future exchanges to encrypt further messages.
-The whole message is then signed by the client and sent to the service.\\
-
-On the receiving side we first unpack the message to retrieve version, port and public key.
-With the public key and the message's tag we are now able to verify the integrity of the received package.
-Obviously, though, we are not able to say anything about the authenticity about it as it could have been intercepted by a malicious third party, exchanging the message tag and public key.
-
-After establishing message integrity the service will now compare the client's version to its own version and only proceed if he is able to correctly service that version.
-He will then assemble a response package containing its own version, name, available local services and its public key.
+On the receiving side we first unpack the message to retrieve version and port.
+The server will now compare the client's version to versions known to the server and only proceed if he is able to correctly service that version.
+This may require switching between multiple message interface formats.
+He will then assemble a response message containing its own version, name, provided services and its public key.
 
 It is possible for a single server to announce multiple services.
 Those services may be distinguished by the port they are listenging at.
 Instead of announcing multiple service types at a single port, which would then require multiplexing requests to their respective service and thus introduce additional complexity, each service has its own port which will later be used to connect to that service.
 
-% TODO: encrypt message with public key?
-The server will now again generate a message tag and send both message and tag encrypted with the public key of the client to the client's listening port that has been previously announced.
+Each service announced has a name, category and port.
+\begin{description}
+    \item[Name]\hfill\\
+        The name is an arbitrarily chosen identifier which should describe the service.
+        Its aim is to help users easily distinguish services that are available in the local network based on their identifiers.
+        Obviously, these names should not be taken as the sole identifier for services, though, as they are trivially malleable.
+    \item[Category]\hfill\\
+        The category is used as a distringuisher such that users are able to filter out services that do not serve their purpose.
+        Assuming a user Alice wants to have connect to a service providing input devices, she may easily filter the list of local services by restricting them to the category ``Input'', only.
+    \item[Port]\hfill\\
+        The port specifies where clients need to connect to to interact with these services.
+\end{description}
+
+The server will now send back the serialized message to the querying client.
+The client's address is assembled by taking the originator address from the UDP package and the port specified in the Discover message.\\
 
 \begin{figure}[H]
     \centering
 
     \begin{sequencediagram}
-        \newinst{c}{Client}
-        \newinst[8]{s}{Service}
+        \newinst{s1}{Service 1}
+        \newthread[4]{c}{Client}
+        \newinst[4]{s2}{Service 2}
 
-        \mess{c}{Discover}{s}
-        \draw (Discover from) -- (Discover to) node[midway,below]
-            {$
-                \begin{aligned}
-                    m \leftarrow &\{\text{version}, \text{port}, pk_c\}\\
-                    t \leftarrow &S_{sk_c}(m)\\
-                                 &\text{send}(\text{Enc}_{pk_s}(m \| t))
-                \end{aligned}
-            $};
+        \mess{c}{Discover}{s1}
+        \prelevel
+        \mess{c}{Discover}{s2}
 
         \postlevel
-        \postlevel
-        \postlevel
-        \postlevel
 
-        \mess{s}{Announce}{c}
-        \draw (Announce from) -- (Announce to) node[midway,below]
-            {$
-                \begin{aligned}
-                    \text{services} \coloneqq &[ (port, type) ]\\
-                    m \leftarrow &\{\text{version}, \text{name}, \text{services}, pk_s\}\\
-                    t \leftarrow &S_{sk_p}(m)\\
-                                 &\text{send}(\text{Enc}_{pk_c}(m \| t))
-                \end{aligned}
-            $};
-
-        \postlevel
-        \postlevel
-        \postlevel
-        \postlevel
+        \mess{s1}{Announce}{c}
+        \mess{s2}{Announce}{c}
     \end{sequencediagram}
 
-    \caption{Directed Service Discovery Messaging Chart}
+    \caption{Undirected Service Discovery}
+    \label{fig:undirected-service-discovery}
+\end{figure}
+
+In contrast to the undirected service discovery the directed service discovery provides a way to obtain information about a server's servicse in an authenticated way.
+As we have previously obtained the public signature key of the server we want to talk to, we are already able to establish authenticated and encrypted connections.
+
+So instead of exchanging one package for the Discover and Announce messages, we want to instead exchange multiple messages with each other to perform an authenticated hand shake as demonstrated in section \ref{sec:connection-establishment}.
+If we would use UDP for this, as well, we would have to correctly order and multiplex incoming packages based on originator and sequence.
+To avoid this burden, we instead use a different socket for directed service discovery which uses TCP as a protocol.
+
+Despite the initial connection establishment all subsequent steps remain unchanged, albeit data sent is encrypted with the generated ephemeral key.
+
+\begin{figure}[H]
+    \centering
+
+    \begin{sequencediagram}
+        \newthread{c}{Client}
+        \newthread[4]{s}{Service}
+
+        \begin{messcall}{c}{InitiateConnection()}{s}
+            \postlevel
+            \postlevel
+
+            \begin{messcall}{s}{Announce}{c}{}
+            \end{messcall}
+            \prelevel
+        \end{messcall}
+    \end{sequencediagram}
+
+    \caption{Directed Service Discovery}
     \label{fig:directed-service-discovery}
 \end{figure}
 
-In contrast to the indirected service discovery, there is only one significant difference in the directed service discovery.
-As we have previously obtained public key data of the server we want to talk to we are already able to use its key to encrypt the first message.
-That is instead of sending $m \| t$ in the fisrt step, we send $\text{Enc}_{pk_s}(m \| t)$.
-Like this it is impossible to tamper with the first message in such a way that the receiver retrieves a valid message with invalid key data.
+\lstinputlisting[caption=Discovery Interface,label=src:discovery-protos]{../source/sd/proto/discovery.proto}
 
-All subsequent steps remain unchanged.
-
-\subsubsection{Handshake}
+\subsubsection{Query}
 
 \begin{figure}[H]
     \centering
 
     \begin{sequencediagram}
-        \newinst{c}{Client}
-        \newinst[8]{s}{Server}
+        \newthread{c}{Client}
+        \newinst[8]{s}{Service}
 
-        \mess{c}{Probe}{s}
-        \draw (Probe from) -- (Probe to) node[midway,below]
-            {$pk_s(pk_c)$};
+        \begin{messcall}{c}{InitiateConnection()}{s}
+            \postlevel
+            \begin{call}{c}{Query()}{s}{Service description}
+            \end{call}
+        \end{messcall}
 
-        \postlevel
-        \postlevel
-        \postlevel
-
-        \mess{s}{Service Description}{c}
-        \draw (Service Description from) -- (Service Description to) node[midway,below]
-            {$pk_c(\text{name}, \text{addresses}, \text{location}, \text{type}, \text{parameters}, \text{status})$};
-
-        \postlevel
     \end{sequencediagram}
-    \caption{Probe Messaging Chart}
+    \caption{Query Diagram}
 \end{figure}
 
-\subsubsection{Connection}
+\lstinputlisting[caption=Query Interface,label=src:query-protos,firstline=10,lastline=24]{../source/sd/proto/connect.proto}
+
+\subsubsection{Session Initiation}
 
 \begin{align*}
     \text{capability} \coloneqq pk_s(\text{sessionid}, \text{parameters})
@@ -318,100 +582,147 @@ All subsequent steps remain unchanged.
     \centering
 
     \begin{sequencediagram}
-        \newinst{c}{Client}
-        \newinst[8]{s}{Server}
+        \newthread{c}{Client}
+        \newinst[8]{s}{Service}
 
-        \mess{c}{Ephemeral Key Generation}{s}
-        \mess{s}{}{c}
-
-        \postlevel
-        \postlevel
-        \postlevel
-
-        \mess{c}{Connection Request}{s}
-        \draw (Connection Request from) -- (Connection Request to) node[midway,below]
-            {$pk_s(pk_c, \text{parameters})$};
+        \begin{messcall}{c}{InitiateConnection()}{s}
+            \postlevel
+            \begin{call}{c}{InitiateSession(parameters)}{s}{Session Capability}
+            \end{call}
+        \end{messcall}
 
         \postlevel
-        \postlevel
-        \postlevel
 
-        \mess{s}{Connection Capability}{c}
-        \draw (Connection Capability from) -- (Connection Capability to) node[midway,below]
-            {$pk_c(\text{sessionid})$};
+        \begin{messcall}{c}{InitiateConnection()}{s}
+            \postlevel
+            \begin{messcall}{c}{Connect(session capability)}{s}
+            \end{messcall}
+        \end{messcall}
 
-        \postlevel
-        \postlevel
-        \postlevel
-
-        \mess{c}{Connect}{s}
-        \draw (Connect from) -- (Connect to) node[midway,below]
-            {$pk_s(\text{sessionid})$};
-
-        \postlevel
-        \postlevel
-        \postlevel
-
-        \mess{s}{Connect OK}{c}
+        \prelevel
     \end{sequencediagram}
     \caption{Direct Connect}
 \end{figure}
 
-\begin{figure}[H]
-    \centering
+\lstinputlisting[caption=Session Interface,label=src:session-protos,firstline=26]{../source/sd/proto/connect.proto}
 
-    \begin{sequencediagram}
-        \newinst{o}{CPU Server}
-        \newinst[4]{c}{Client}
-        \newinst[4]{s}{Server}
+\subsection{Services}
 
-        \mess{c}{Connection Request}{s}
-        \postlevel
-        \mess{s}{Connection Capability}{c}
-
-        \postlevel
-        \postlevel
-
-        \mess{c}{Connection Request}{o}
-        \postlevel
-        \mess{o}{Connection Capability}{c}
-        \postlevel
-        \mess{c}{Connect}{o}
-
-        \postlevel
-        \postlevel
-
-        \mess{o}{Connect}{s}
-        \postlevel
-        \mess{s}{Connect OK}{o}
-        \postlevel
-        \mess{o}{Connect OK}{c}
-    \end{sequencediagram}
-    \caption{Relayed Connect}
-\end{figure}
+\subsubsection{Capability Service}
 
 \begin{figure}[H]
     \centering
 
     \begin{sequencediagram}
-        \newinst{c}{Client}
-        \newinst[4]{s}{Server}
-        \newinst[4]{o}{Other Client}
+        \newthread{r}{Requester r}
+        \newinst[2]{e}{Entity e}
+        \newinst[2]{s}{Service s}
+        \newinst[2]{c}{Capability Service}
 
-        \mess{s}{Connect OK}{c}
+        \mess{e}{Register}{c}
+        \postlevel
+
+        \begin{call}{r}{Request(e, s, params)}{c}{Capability}
+            \postlevel
+            \begin{call}{c}{Ask(r, s, params)}{e}{Capability}
+                \postlevel
+                \begin{call}{e}{Initiate(params)}{s}{Capability}
+                \end{call}
+                \postlevel
+            \end{call}
+            \postlevel
+        \end{call}
 
         \postlevel
-        \postlevel
 
-        \mess{o}{Connection Request}{s}
-        \mess{s}{Capability Request}{c}
-        \mess{c}{Capability Grant}{s}
-        \mess{s}{Connection Capability}{o}
-        \mess{o}{Connect}{s}
-        \mess{s}{Connect OK}{o}
+        \begin{messcall}{r}{Start}{s}
+            \postlevel
+        \end{messcall}
 
+        \prelevel
     \end{sequencediagram}
     \caption{Capability Request}
+\end{figure}
+
+\lstinputlisting[caption=Capability Service Interface,label=src:capability-protos]{../source/sd/proto/capabilities.proto}
+
+\subsubsection{Invoke Service}
+
+\begin{figure}[H]
+    \centering
+
+    \begin{sequencediagram}
+        \newthread{c}{Client}
+        \newinst[4]{s}{Service}
+        \newinst[4]{i}{Invoker}
+
+        \begin{call}{c}{Initiate(Parameters)}{s}{Service Session}
+            \begin{call}{s}{CreateSession()}{s}{Capability}
+            \end{call}
+        \end{call}
+
+        \postlevel
+
+        \begin{call}{c}{Initiate(ServiceSession)}{i}{Invoker Session}
+            \begin{call}{i}{CreateSession()}{i}{Capability}
+            \end{call}
+        \end{call}
+        \postlevel
+
+        \begin{messcall}{c}{Start}{i}
+            \begin{messcall}{i}{Start}{s}
+                \postlevel
+            \end{messcall}
+            \prelevel
+        \end{messcall}
+        \prelevel
+    \end{sequencediagram}
+
+    \caption{Invoke Service}
+\end{figure}
+
+\subsubsection{xpra Service}
+
+\begin{figure}[H]
+    \centering
+
+    \begin{sequencediagram}
+        \newinst{x}{Xpra server}
+        \newthread[4]{c}{Client}
+        \newinst[4]{s}{Display service}
+
+        \begin{call}{c}{Start(port)}{x}{instance}
+        \end{call}
+
+        \postlevel
+
+        \begin{messcall}{c}{InitiateConnection()}{s}
+            \postlevel
+            \begin{call}{c}{Request(xpra-port)}{s}{session}
+            \end{call}
+        \end{messcall}
+
+        \postlevel
+
+        \begin{messcall}{c}{InitiateConnection()}{s}
+            \postlevel
+            \begin{messcall}{c}{Connect(session)}{s}
+            \end{messcall}
+
+            \postlevel
+
+            \begin{messcall}{s}{Tunneled data exchange}{x}
+                \postlevel
+            \end{messcall}
+            \prelevel
+            \prelevel
+            \prelevel
+            \begin{messcall}{x}{}{s}
+            \end{messcall}
+        \end{messcall}
+    \end{sequencediagram}
+
+    \caption{Xpra Service}
 \end{figure}
 
 \subsection{Notes}
