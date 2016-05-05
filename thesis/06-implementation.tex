@@ -1,3 +1,56 @@
-\section{Implementation}
+\section{implementation}
+
+\subsection{benchmarking}
+
+\subsubsection{package length}
+
+\begin{table}
+    begin
+    \centering
+
+    \begin{tabular}{|c|c|c|c|c|}
+        \hline
+        \bfseries Package Length & \bfseries WX Plain & \bfseries RX Plain & \bfseries WX Encrypted & \bfseries RX Encrypted
+        \csvreader[head to column names]{data/bench-100mb.csv}{}
+        {\\\hline\length & \wxplain & \rxplain & \wxenc & \rxenc}
+        \\\hline
+    \end{tabular}
+
+    \caption{Benchmarks for 100MB package}
+    \label{tab:package-length-100mb}
+\end{table}
+
+\begin{figure}
+    \centering
+    \begin{tikzpicture}
+        \begin{axis}[ylabel=Cycles,xlabel=Package length,xtick={64,1024,2048,4096}]
+            \addplot table [x=length,y=wxplain, col sep=comma] {data/bench-100mb.csv};
+            \addplot table [x=length,y=wxenc, col sep=comma] {data/bench-100mb.csv};
+        \end{axis}
+    \end{tikzpicture}
+    \caption{Sending 100MB message}
+\end{figure}
+
+\begin{figure}
+    \centering
+    \begin{tikzpicture}
+        \begin{axis}[ylabel=Cycles,xlabel=Package length,xtick={64,1024,2048,4096}]
+            \addplot table [x=length,y=wxplain, col sep=comma] {data/bench-100kb.csv};
+            \addplot table [x=length,y=wxenc, col sep=comma] {data/bench-100kb.csv};
+        \end{axis}
+    \end{tikzpicture}
+    \caption{Sending 100KB message}
+\end{figure}
+
+\begin{figure}
+    \centering
+    \begin{tikzpicture}
+        \begin{axis}[ylabel=Cycles,xlabel=Package length,xtick={64,1024,2048,4096}]
+            \addplot table [x=length,y=wxplain, col sep=comma] {data/bench-256b.csv};
+            \addplot table [x=length,y=wxenc, col sep=comma] {data/bench-256b.csv};
+        \end{axis}
+    \end{tikzpicture}
+    \caption{Sending 256B message}
+\end{figure}
 
 % vim: ft=tex tw=0
