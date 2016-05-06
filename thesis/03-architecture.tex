@@ -95,61 +95,6 @@ Along with the identity, she also sends over details about the other service as 
 She now invokes her own service, which goes on to start the session with the display service stored in the session's parameters.
 The locally running application is now forwarded to the display until the session is terminated.
 
-\subsection{Connection flowchart}
-
-\begin{figure}[H]
-    \centering
-
-    \begin{tikzpicture}
-        [
-            line/.style = {
-                draw,
-                -latex'
-            },
-            block/.style = {
-                rectangle,
-                draw,
-                fill=blue!20,
-                text width=5em,
-                text centered,
-                rounded corners,
-                minimum height=4em
-            },
-            decision/.style = {
-                diamond,
-                draw,
-                fill=blue!20,
-                text width=4.5em,
-                text badly centered,
-                inner sep=0pt
-            }
-        ]
-
-        \node[block] (attach) {App attaches};
-        \node[block,below=of attach] (announce) {App announces};
-        \node[decision,below=of announce] (satisfiable) {Reqs satisfiable?};
-        \node[block,right=of satisfiable] (unsatisfied) {Fail due to unsatisfiability};
-        \node[block,below=of satisfiable] (askpeers) {Notify peer devices};
-        \node[decision,below=of askpeers] (ack) {All devs acknowledge?};
-        \node[block,right=of ack] (nack) {Fail due to nack};
-        \node[block,below=of ack] (start) {Notify app of start};
-        \node[block,below=of start] (negotiate) {Negotiate secure connections with peers};
-        \node[block,below=of negotiate] (run) {Run};
-
-        \path[line] (attach) -- (announce);
-        \path[line] (announce) -- (satisfiable);
-        \path[line] (satisfiable) -- node[near start,below] {no?} (unsatisfied);
-        \path[line] (satisfiable) -- node[near start,right] {yes?} (askpeers);
-        \path[line] (askpeers) -- (ack);
-        \path[line] (ack) -- node[near start,below] {no?} (nack);
-        \path[line] (ack) -- node[near start,right] {yes?} (start);
-        \path[line] (start) -- (negotiate);
-        \path[line] (negotiate) -- (run);
-    \end{tikzpicture}
-
-    \caption{Connecting an app}
-\end{figure}
-
 \subsection{Low-level protocol}
 \label{sec:low-level-protocol}
 
@@ -302,6 +247,7 @@ As we do not want to know about the specific protocols they use in order to be g
 Otherwise all message exchanges boil down to serializing data with Protocol Buffers and then de-serializing them on the receiving site.
 
 \subsection{Protocol}
+\label{sec:protocol}
 
 We will now discuss the application level protocol as it is used by servers and clients to communicate with each other.
 Everything discussed in here will use the low-level protocol discussed in section \ref{sec:low-level-protocol}.
