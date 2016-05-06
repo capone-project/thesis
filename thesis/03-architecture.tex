@@ -93,7 +93,18 @@ The server creates the new session and tells Alice its identifier.
 As the session is established and ready for use, Alice now creates a new session on her own server, this time setting her own identity as the session owner.
 Along with the identity, she also sends over details about the other service as well as the session identifier she just obtained as parameters which should be used by her own service.
 She now invokes her own service, which goes on to start the session with the display service stored in the session's parameters.
-The locally running application is now forwarded to the display until the session is terminated.
+The locally running application is now forwarded to the display until the session is terminated.\\
+
+Summarizing the above, the following steps are required to connect to a service:
+\begin{enumerate}
+    \item Discover services in the local subnet by broadcasting messages
+    \item Query a specific service on a server for its details
+    \item Establish a session with a set of parameters and specify a session owner
+    \item Let the owner connect to and thus start the session
+\end{enumerate}
+
+We will discuss how these steps are implemented in section \ref{sec:protocol}.
+But first, let us examine how data is transmitted on the wire.
 
 \subsection{Low-level protocol}
 \label{sec:low-level-protocol}
