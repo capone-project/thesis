@@ -878,23 +878,4 @@ We will detail these building blocks in the next section.
     \caption{Xpra Service}
 \end{figure}
 
-\subsection{Notes}
-
-\begin{itemize}
-    \item host has graphic server
-    \item only knows about window extents, not contents due to encryption
-    \item initially gets all keyboard/mouse inputs
-    \item upon mouse enter inside a window, notifies mouse server of window extents
-    \item mouse server keeps track of relative mouse position, notifies server upon exit of extents
-    \item window server registers shortcuts that are required for window changing
-    \item shortcuts may NEVER be rebound by client applications
-
-    \item you can attach and reattach apps to other devices without any problems!!!
-    \item overlay in server manager when app is connected and reqs are not fulfilled
-    \item one container may run multiple apps
-        \begin{itemize}
-            \item clustering based on security level
-        \end{itemize}
-\end{itemize}
-
 % vim: ft=tex tw=0
