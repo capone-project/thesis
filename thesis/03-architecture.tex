@@ -1,122 +1,110 @@
 \section{Architecture}
 
-\tikzset{
-    host/.style={
-        draw,
-        rectangle
-    },
-    switch/.style={
-        draw,
-        rectangle
-    },
-    hwslave/.style={
-        draw,
-        rectangle
-    },
-    appslave/.style={
-        draw,
-        ellipse
-    },
-    netlink/.style={
-        draw,
-        line width=0.4mm,
-        triangle 45-triangle 45
-    }
-}
+We will now take a look at the high-level architecture of the whole application stack.
+That is we will cover the initial process of a client dicsovering available servers in a local network, querying found servers and then connecting to a specific service.
+Let us first define the terms.
+
+\begin{description}
+    \item[Server]\hfill\\
+        A server is a single entity which may host several services.
+        As such, he has an identity which is represented to clients and connecting services via a public signature key.
+        The server is responsible for handling the process of service discovery.
+    \item[Service]\hfill\\
+        A service is hosted on the server which announced the service's availability.
+        Services provide a certain bit of functionality, e.g. they may provide a display for use by other parties or provide the functionality of executing a certain program.
+    \item[Session]\hfill\\
+        When a client wants to start a certain service, he will first have to initiate a session which can then be used to actually start the service.
+        Upon sending an identity and a set of parameters to the service, it will create a new session and return an identifier for the session.
+        The session identity is then able to connect to the service using the identifier and as such start using its functionality.
+    \item[Client]\hfill\\
+        Clients are parties which have the intent to invoke a certain service.
+        A client has an identity, as well, which is used by services to identify their permissions and to establish sessions.
+\end{description}
+
+We will now take a look at the actual process how a single client will proceed if it wants to invoke a certain set of services (see figure \ref{fig:overview}).
 
 \begin{figure}[H]
     \centering
 
-    \begin{tikzpicture}
-        \node[host] (host) {HOST};
-        \node[switch,above=of host] (switch) {SWITCH};
-
-        \node[hwslave,above=4cm of switch] (network) {NETWORK};
-        \node[draw,cloud,above=1cm of network] (inet) {INET};
-
-        \node[hwslave,left=2cm of switch,yshift=+1.0cm] (mouse)    {MOUSE};
-        \node[hwslave,left=2cm of switch,yshift=+2.0cm] (keyboard) {KEYBOARD};
-        \node[hwslave,left=2cm of switch,yshift=+3.0cm] (storage)  {STORAGE};
-        \node[hwslave,left=2cm of switch,yshift=+4.0cm] (gpu)      {GPU};
-
-        \node[appslave,right=2cm of switch,yshift=+1.0cm] (app1) {APP1};
-        \node[appslave,right=2cm of switch,yshift=+2.0cm] (app2) {APP2};
-        \node[right=2cm of switch,yshift=+3.0cm]          (appi) {$\ldots$};
-        \node[appslave,right=2cm of switch,yshift=+4.0cm] (appn) {APP$n$};
-
-        \path[netlink] (host) to (switch.south);
-
-        \path[netlink] (switch) to (network);
-        \path[netlink] (network) to (inet);
-
-        \path[netlink] ([xshift=0.00cm]switch.north west) |- (mouse.east);
-        \path[netlink] ([xshift=0.25cm]switch.north west) |- (keyboard.east);
-        \path[netlink] ([xshift=0.50cm]switch.north west) |- (storage.east);
-        \path[netlink] ([xshift=0.75cm]switch.north west) |- (gpu.east);
-
-        \path[netlink]        ([xshift=-0.00cm]switch.north east) |- (app1.west);
-        \path[netlink]        ([xshift=-0.25cm]switch.north east) |- (app2.west);
-        \path[netlink,dashed] ([xshift=-0.50cm]switch.north east) |- (appi.west);
-        \path[netlink]        ([xshift=-0.75cm]switch.north east) |- (appn.west);
-    \end{tikzpicture}
-
-    \caption{Architecture}
-\end{figure}
-
-\subsection{Connection flowchart}
-
-\begin{figure}[H]
-    \centering
-
-    \begin{tikzpicture}
-        [
-            line/.style = {
-                draw,
-                -latex'
-            },
-            block/.style = {
-                rectangle,
-                draw,
-                fill=blue!20,
-                text width=5em,
-                text centered,
-                rounded corners,
-                minimum height=4em
-            },
-            decision/.style = {
-                diamond,
-                draw,
-                fill=blue!20,
-                text width=4.5em,
-                text badly centered,
-                inner sep=0pt
-            }
+    \begin{tikzpicture}[
+            connection/.style={draw, -triangle 45},
+            server/.style={draw, rectangle, minimum height=1cm, minimum width=0.4cm},
+            service/.style={draw, ellipse}
         ]
 
-        \node[block] (attach) {App attaches};
-        \node[block,below=of attach] (announce) {App announces};
-        \node[decision,below=of announce] (satisfiable) {Reqs satisfiable?};
-        \node[block,right=of satisfiable] (unsatisfied) {Fail due to unsatisfiability};
-        \node[block,below=of satisfiable] (askpeers) {Notify peer devices};
-        \node[decision,below=of askpeers] (ack) {All devs acknowledge?};
-        \node[block,right=of ack] (nack) {Fail due to nack};
-        \node[block,below=of ack] (start) {Notify app of start};
-        \node[block,below=of start] (negotiate) {Negotiate secure connections with peers};
-        \node[block,below=of negotiate] (run) {Run};
+        \node (client) {Client};
 
-        \path[line] (attach) -- (announce);
-        \path[line] (announce) -- (satisfiable);
-        \path[line] (satisfiable) -- node[near start,below] {no?} (unsatisfied);
-        \path[line] (satisfiable) -- node[near start,right] {yes?} (askpeers);
-        \path[line] (askpeers) -- (ack);
-        \path[line] (ack) -- node[near start,below] {no?} (nack);
-        \path[line] (ack) -- node[near start,right] {yes?} (start);
-        \path[line] (start) -- (negotiate);
-        \path[line] (negotiate) -- (run);
+        \node[server, left=3.0cm of client,  yshift=0.8cm] (s1) {};
+        \node[service, left=of s1] (display) {Display};
+        \path[draw] (display) -- (s1);
+
+        \node[server, above=3.0cm of client, xshift=2.0cm] (s2) {};
+        \node[service, above=of s2, xshift=-1.5cm] (cpu2) {CPU};
+        \path[draw] (cpu2) -- (s2);
+        \node[service, above=of s2, xshift=+1.5cm] (display2) {Display};
+        \path[draw] (display2) -- (s2);
+
+        \node[server, below=3.0cm of client, xshift=3.0cm] (s3) {};
+        \node[service, right=of s3] (invoke) {Invoke};
+        \path[draw] (invoke) -- (s3);
+
+        \path[connection, bend right=20] (client) to node[above] {1.} (s1);
+        \path[connection, bend right=20] (client) to node[left] {1.} (s2);
+        \path[connection, bend right=20] (client) to node[below left] {1.} (s3);
+
+        \path[connection, bend left=20, transform canvas={yshift=-1mm}] (s1) to (client);
+        \path[connection, bend left=20, transform canvas={xshift=+1mm}] (s2) to (client);
+        \path[connection, bend left=20, transform canvas={yshift=+0.5mm, xshift=+0.5mm}] (s3) to (client);
+
+        \path[connection, bend left=20] (client) to node[below] {2.} (s1);
+        \path[connection, bend right=20, transform canvas={yshift=+1mm}] (s1) to (client);
+
+        \path[connection, bend left=20] (client) to node[above right] {3.} (s3);
+        \path[connection, bend right=20, transform canvas={yshift=-0.5mm, xshift=-0.5mm}] (s3) to (client);
+
+        \path[connection] (client) to node[right] {4.} (s3);
+        \path[connection, bend left=30] (s3) to node[below] {5.} (s1);
     \end{tikzpicture}
 
-    \caption{Connecting an app}
+    \caption{Overview}
+    \label{fig:overview}
 \end{figure}
+
+Let us assume that Alice wants to connect a display provided by one service with an executable that she has running on her own server.
+Both servers are part of the same network and can thus connect to each other without problems.
+
+The initial step is to discover the devices taking part in the protocol.
+After connecting to the internal network with her mobile phone, Alice will start the client application and initiate the service discovery.
+The service discovery will broadcast a message into the network and alert the servers that a new client has appeared which wants to discover all servers with their services.
+Alice will now receive announcements of the three available servers in the local network together with their identity and a list of services they host.
+One of these servers is her own computer running the executable she wants to connect to the display, which is already marked in her application as being known and verified.
+
+Alice compares the remaining server's identities to the one Bob gave her to find the server sharing the display.
+As she trusts Bob, she also trusts that the identity given to her is actually valid and that the attached server is of benign nature.
+She now spotted the server on the list and recognizes that it indeed exposes a display service, which she now queries for further details.
+The server announces that the service is actually backed by the xpra service, which is a specific implementation used for graphics forwarding.
+As Alice is already running her local application inside an xpra instance, everything is fine and she proceeds.
+
+Now comes the time of actually connecting to the service.
+Alice establishes a connection to the newly discovered display service and creates a new session.
+As she does not want to connect herself but instead wants her server to connect to the display, she specifies her server's identity as the session owner.
+The server creates the new session and tells Alice its identifier.
+
+As the session is established and ready for use, Alice now creates a new session on her own server, this time setting her own identity as the session owner.
+Along with the identity, she also sends over details about the other service as well as the session identifier she just obtained as parameters which should be used by her own service.
+She now invokes her own service, which goes on to start the session with the display service stored in the session's parameters.
+The locally running application is now forwarded to the display until the session is terminated.\\
+
+Summarizing the above, the following steps are required to connect to a service:
+\begin{enumerate}
+    \item Discover services in the local subnet by broadcasting messages
+    \item Query a specific service on a server for its details
+    \item Establish a session with a set of parameters and specify a session owner
+    \item Let the owner connect to and thus start the session
+\end{enumerate}
+
+We will discuss how these steps are implemented in section \ref{sec:protocol}.
+But first, let us examine how data is transmitted on the wire.
 
 \subsection{Low-level protocol}
 \label{sec:low-level-protocol}
@@ -270,6 +258,7 @@ As we do not want to know about the specific protocols they use in order to be g
 Otherwise all message exchanges boil down to serializing data with Protocol Buffers and then de-serializing them on the receiving site.
 
 \subsection{Protocol}
+\label{sec:protocol}
 
 We will now discuss the application level protocol as it is used by servers and clients to communicate with each other.
 Everything discussed in here will use the low-level protocol discussed in section \ref{sec:low-level-protocol}.
@@ -888,24 +877,5 @@ We will detail these building blocks in the next section.
 
     \caption{Xpra Service}
 \end{figure}
-
-\subsection{Notes}
-
-\begin{itemize}
-    \item host has graphic server
-    \item only knows about window extents, not contents due to encryption
-    \item initially gets all keyboard/mouse inputs
-    \item upon mouse enter inside a window, notifies mouse server of window extents
-    \item mouse server keeps track of relative mouse position, notifies server upon exit of extents
-    \item window server registers shortcuts that are required for window changing
-    \item shortcuts may NEVER be rebound by client applications
-
-    \item you can attach and reattach apps to other devices without any problems!!!
-    \item overlay in server manager when app is connected and reqs are not fulfilled
-    \item one container may run multiple apps
-        \begin{itemize}
-            \item clustering based on security level
-        \end{itemize}
-\end{itemize}
 
 % vim: ft=tex tw=0
