@@ -4,52 +4,88 @@
 
 \subsubsection{Package length}
 
-\begin{table}
+\begin{figure}[t]
     \centering
 
-    \begin{tabular}{|c|c|c|c|c|}
-        \hline
-        \bfseries Package Length & \bfseries WX Plain & \bfseries RX Plain & \bfseries WX Encrypted & \bfseries RX Encrypted
-        \csvreader[head to column names]{data/bench-100mb.csv}{}
-        {\\\hline\length & \wxplain & \rxplain & \wxenc & \rxenc}
-        \\\hline
-    \end{tabular}
+    \begin{subfigure}[t]{0.4\textwidth}
+        \resizebox*{!}{0.9\textwidth}
+        {
+            \begin{tikzpicture}
+                \begin{axis}[ylabel=Throughput (in MB/s),ymax=200,xmode=log,xlabel=Block length (in bytes)]
+                    \addplot table [x=pkglen,y=tpenc, col sep=comma,discard if not={datalen}{256}] {data/bench.csv};
+                    \addlegendentry{0ms latency}
 
-    \caption{Benchmarks for 100MB package}
-    \label{tab:package-length-100mb}
-\end{table}
+                    \addplot table [x=pkglen,y=tpenc, col sep=comma,discard if not={datalen}{256}] {data/bench-2ms.csv};
+                    \addlegendentry{2ms latency}
 
-\begin{figure}
-    \centering
-    \begin{tikzpicture}
-        \begin{axis}[ylabel=Cycles,xlabel=Package length,xtick={64,1024,2048,4096}]
-            \addplot table [x=length,y=wxplain, col sep=comma] {data/bench-100mb.csv};
-            \addplot table [x=length,y=wxenc, col sep=comma] {data/bench-100mb.csv};
-        \end{axis}
-    \end{tikzpicture}
-    \caption{Sending 100MB message}
-\end{figure}
+                    \addplot table [x=pkglen,y=tpenc, col sep=comma,discard if not={datalen}{256}] {data/bench-20ms.csv};
+                    \addlegendentry{20ms latency}
+                \end{axis}
+            \end{tikzpicture}
+        }
+        \caption{256 bytes of data}
+    \end{subfigure}
+    \hspace{2em}
+    \begin{subfigure}[t]{0.4\textwidth}
+        \resizebox*{!}{0.9\textwidth}
+        {
+            \begin{tikzpicture}
+                \begin{axis}[ylabel=Throughput (in MB/s),ymax=400,xmode=log,xlabel=Block length (in bytes)]
+                    \addplot table [x=pkglen,y=tpenc, col sep=comma,discard if not={datalen}{1024}] {data/bench.csv};
+                    \addlegendentry{0ms latency}
 
-\begin{figure}
-    \centering
-    \begin{tikzpicture}
-        \begin{axis}[ylabel=Cycles,xlabel=Package length,xtick={64,1024,2048,4096}]
-            \addplot table [x=length,y=wxplain, col sep=comma] {data/bench-100kb.csv};
-            \addplot table [x=length,y=wxenc, col sep=comma] {data/bench-100kb.csv};
-        \end{axis}
-    \end{tikzpicture}
-    \caption{Sending 100KB message}
-\end{figure}
+                    \addplot table [x=pkglen,y=tpenc, col sep=comma,discard if not={datalen}{1024}] {data/bench-2ms.csv};
+                    \addlegendentry{2ms latency}
 
-\begin{figure}
-    \centering
-    \begin{tikzpicture}
-        \begin{axis}[ylabel=Cycles,xlabel=Package length,xtick={64,1024,2048,4096}]
-            \addplot table [x=length,y=wxplain, col sep=comma] {data/bench-256b.csv};
-            \addplot table [x=length,y=wxenc, col sep=comma] {data/bench-256b.csv};
-        \end{axis}
-    \end{tikzpicture}
-    \caption{Sending 256B message}
+                    \addplot table [x=pkglen,y=tpenc, col sep=comma,discard if not={datalen}{1024}] {data/bench-20ms.csv};
+                    \addlegendentry{20ms latency}
+                \end{axis}
+            \end{tikzpicture}
+        }
+        \caption{1 kilobyte of data}
+    \end{subfigure}
+
+    \vspace{1em}
+
+    \begin{subfigure}[t]{0.4\textwidth}
+        \resizebox*{!}{0.9\textwidth}
+        {
+            \begin{tikzpicture}
+                \begin{axis}[ylabel=Throughput (in MB/s),ymax=650,xmode=log,xlabel=Block length (in bytes)]
+                    \addplot table [x=pkglen,y=tpenc, col sep=comma,discard if not={datalen}{102400}] {data/bench.csv};
+                    \addlegendentry{0ms latency}
+
+                    \addplot table [x=pkglen,y=tpenc, col sep=comma,discard if not={datalen}{102400}] {data/bench-2ms.csv};
+                    \addlegendentry{2ms latency}
+
+                    \addplot table [x=pkglen,y=tpenc, col sep=comma,discard if not={datalen}{102400}] {data/bench-20ms.csv};
+                    \addlegendentry{20ms latency}
+                \end{axis}
+            \end{tikzpicture}
+        }
+        \caption{100 kilobytes of data}
+    \end{subfigure}
+    \hspace{2em}
+    \begin{subfigure}[t]{0.4\textwidth}
+        \resizebox*{!}{0.9\textwidth}
+        {
+            \begin{tikzpicture}
+                \begin{axis}[ylabel=Throughput (in MB/s),ymax=650,xmode=log,xlabel=Block length (in bytes)]
+                    \addplot table [x=pkglen,y=tpenc, col sep=comma,discard if not={datalen}{10240000}] {data/bench.csv};
+                    \addlegendentry{0ms latency}
+
+                    \addplot table [x=pkglen,y=tpenc, col sep=comma,discard if not={datalen}{10240000}] {data/bench-2ms.csv};
+                    \addlegendentry{2ms latency}
+
+                    \addplot table [x=pkglen,y=tpenc, col sep=comma,discard if not={datalen}{10240000}] {data/bench-20ms.csv};
+                    \addlegendentry{20ms latency}
+                \end{axis}
+            \end{tikzpicture}
+        }
+        \caption{10 megabyte of data}
+    \end{subfigure}
+
+    \caption{Sending data with different block lengths}
 \end{figure}
 
 % vim: ft=tex tw=0
