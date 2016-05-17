@@ -112,16 +112,17 @@ But first, let us examine how data is transmitted on the wire.
 The low-level protocol determines how the actual packets sent between client and server are constructed.
 It specifies a common format independent of the actual transport layer that is used to guarantee a common understanding of how to handle incoming bytes.
 The protocol is currently designed to be used over either TCP or UDP but should be generic enough to be used for other transport layers.
-We will concentrate on describing design choices based on TCP and UDP transport layours only, though.
+We will concentrate on describing design choices based on TCP and UDP transport layouts only, though.
 
 \subsubsection{Package boundaries}
 
-The major difference between TCP and UDP is that TCP is stream based and UDP is packet based.
-This means that UDP packages have their size attached to the package itself, so it is guaranteed that when receiving a single package over UDP we know package boundaries and thus can split incoming packages by these boundaries.
-On TCP this is not true, though, so we need to design a package format which is able to specify package boundaries so the client is able to determine a unit.
+In contrast to TCP, UDP is a connection-less protocol that is based upon packages instead of a data stream.
+As clients have to distinguish these packages in the UDP protocol, they have their package length attached to the package header.
+As such it is guaranteed that when receiving a single package over UDP we know package boundaries and thus can split incoming packages by these boundaries.
+On TCP we have to develop our own solution to distinguish single packets, so we need to design a package format which is able to specify package boundaries.
 
 The initial design simply prefixed every single package with an unencrypted package length fixed to four bytes in network byte order.
-This allowed the client to initially receive four bytes, convert these to host byte order and subsequently receive the amount of bytes specified.
+This allows the client to initially receive four bytes, convert these to host byte order and subsequently receive the amount of bytes specified.
 While easy to implement this has several disadvantages.
 
 The most obvious disadvantage is that the package length was always transmitted unencrypted and without any message authentication code.
@@ -136,13 +137,13 @@ On the other hand, the adversary is still able to observe actual package lengths
 In the case of UDP being used as a transport layer this is trivial:
 An adversary can simply inspect package headers and thus extract the actual package length, as data is in the general case sent in a single package.
 In the case of TCP where no actual package length is encoded in the TCP header this is a little bit more involved but in many cases still feasible as client and server are likely to exchange single messages by turn.
-So by substracting the prefixed package length and its message authentication code from the total bytes sent in one turn we are able to gain knowledge of the actual message's length with a high probability.
+So by substracting the prefixed package length and its message authentication code from the total bytes sent in one turn we are able to gain knowledge of the actual message length with a high probability.
 
 Due to this we are effectively giving the adversary an decryption oracle as he is able to correlate package lengths and their encrypted representations.
 Furthermore it becomes much easier for an adversary to analyze traffic by inspecting actual package lengths.
 \\\\
 
-To fix the problem we instead send blocks of a fixed length instead of prefixing every package with an encrypted length.
+To fix the problem we send blocks of a fixed length instead of prefixing every package with an encrypted length.
 The initial fixed-length block is prefixed with the overall length of the assembled package.
 If the overall length exceeds the length of the remaining bytes of the first fixed length block, then the complete block is assembled by concatenating the first block excluding its length prefix and all subsequent blocks until the announced length is received.
 The last block is right-padded with zeroes until its length matches the block length.
@@ -266,7 +267,7 @@ Everything discussed in here will use the low-level protocol discussed in sectio
 \subsubsection{Connection establishment}
 \label{sec:connection-establishment}
 
-When a client connects to a service we want to encrypt encrypt their communication.
+When a client connects to a service we want to encrypt their communication.
 Obviously we need to have a way to negotiate the encryption between both parties, as the server has to know who is about to connect and the client wants to authenticate that he is really talking to the server he wants to talk to.
 We will now consider the key exchange protocol used to negotiate ephemeral encryption key used for the connection.
 
@@ -300,7 +301,7 @@ The service now sends a signature of the generated ephemeral keys of both client
 Back on the client side we can now verify that we are indeed talking to the correct identity, as the signature now contains not only the remote's newly generated ephemeral public key, but also our own randomly generated public key.
 Due to this it is safe to assume that the service indeed posseses the private signature key belonging to the public signature key we know.
 
-At this point of time we have verified that we are actually talking to an entity possessing $vrfy_S$, but the server does not yet know that he is indeet talking to a client possessing $vrfy_C$, as the initial message could have been recorded and replayed by an adversary.
+At this point of time we have verified that we are indeed talking to an entity possessing $vrfy_S$, but the server does not yet know that he is indeet talking to a client possessing $vrfy_C$, as the initial message could have been recorded and replayed by an adversary.
 To fix the situation we now perform the same step of signing both public ephemeral keys and sending them to the server again, who may now verify whom he is talking to.
 
 When both parties are verified to each other we can now calculate the symmetric key which is used for subsequent communication.
