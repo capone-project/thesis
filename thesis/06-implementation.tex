@@ -91,12 +91,15 @@
 \begin{figure}
     \centering
     \begin{tikzpicture}
-        \begin{axis}[ylabel=Time (in ms),ymax=2100,xlabel=Network latency (in ms)]
-            \addplot table [x=latency,y=connect, col sep=comma] {data/latency.csv};
-            \addlegendentry{Client}
+        \begin{axis}[ylabel=Connection time (in ms),xmode=log,xlabel=Block length (in bytes)]
+            \addplot table [x=pkglen,y=connect, col sep=comma,discard if not={latency}{0}] {data/latency.csv};
+            \addlegendentry{0ms latency}
 
-            \addplot table [x=latency,y=await, col sep=comma] {data/latency.csv};
-            \addlegendentry{Server}
+            \addplot table [x=pkglen,y=connect, col sep=comma,discard if not={latency}{2}] {data/latency.csv};
+            \addlegendentry{2ms latency}
+
+            \addplot table [x=pkglen,y=connect, col sep=comma,discard if not={latency}{20}] {data/latency.csv};
+            \addlegendentry{20ms latency}
         \end{axis}
     \end{tikzpicture}
     \caption{Connection latency}
