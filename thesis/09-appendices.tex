@@ -1,0 +1,56 @@
+\section{Benchmarking results}
+
+\subsection{Throughput}
+
+\begin{sidewaystable}
+    \centering
+    \footnotesize
+
+    \begin{tabular}{|c|c|c|c|}
+        \hline
+        \bfseries Blocklen (bytes) & \bfseries Messagelen (bytes)  & \bfseries Plain throughput (s/MB) & \bfseries Encrypted throughput (s/MB)
+
+        \csvreader[head to column names]{data/bench.csv}{}
+        {\\\hline \pkglen & \datalen & \tpplain & \tpenc }
+        \\\hline
+    \end{tabular}
+
+    \caption{Benchmarking results sending messages without latency}
+    \label{tab:benchmarking-sending-0ms}
+\end{sidewaystable}
+
+\begin{sidewaystable}
+    \centering
+    \footnotesize
+
+    \begin{tabular}{|c|c|c|c|}
+        \hline
+        \bfseries Blocklen (bytes) & \bfseries Messagelen (bytes)  & \bfseries Plain throughput (s/MB) & \bfseries Encrypted throughput (s/MB)
+
+        \csvreader[head to column names]{data/bench-2ms.csv}{}
+        {\\\hline \pkglen & \datalen & \tpplain & \tpenc }
+        \\\hline
+    \end{tabular}
+
+    \caption{Benchmarking results sending messages with 2ms latency}
+    \label{tab:benchmarking-sending-2ms}
+\end{sidewaystable}
+
+\begin{sidewaystable}
+    \centering
+    \footnotesize
+
+    \begin{tabular}{|c|c|c|c|}
+        \hline
+        \bfseries Blocklen (bytes) & \bfseries Messagelen (bytes)  & \bfseries Plain throughput (s/MB) & \bfseries Encrypted throughput (s/MB)
+
+        \csvreader[head to column names]{data/bench.csv}{}
+        {\\\hline \pkglen & \datalen & \tpplain & \tpenc }
+        \\\hline
+    \end{tabular}
+
+    \caption{Benchmarking results sending messages with 20ms latency}
+    \label{tab:benchmarking-sending-20ms}
+\end{sidewaystable}
+
+% vim: ft=tex tw=0

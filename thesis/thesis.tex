@@ -15,6 +15,8 @@
 \usepackage{csvsimple}
 \usepackage{pgfplots}
 \usepackage{subcaption}
+\usepackage[toc,page]{appendix}
+\usepackage{rotating}
 
 \usepackage{sty/pgf-umlsd}
 
@@ -90,6 +92,12 @@
     \input{04-drivers}
     \input{05-matchmaking}
     \input{06-implementation}
+
+    \clearpage
+
+    \begin{appendices}
+        \input{09-appendices}
+    \end{appendices}
 
     \clearpage
     \nocite{*}
