@@ -53,4 +53,21 @@
     \label{tab:benchmarking-sending-20ms}
 \end{sidewaystable}
 
+\subsection{Latency}
+
+\begin{table}
+    \centering
+    \footnotesize
+
+    \begin{tabular}{|c|c|c|}
+        \hline
+        \bfseries Latency & \bfseries Client connection time (in ms) & \bfseries Server connection time (in ms)
+
+        \csvreader[head to column names]{data/latency.csv}{}
+        {\\\hline \latency & \connect & \await }
+        \\\hline
+    \end{tabular}
+    \caption{Traffic shaping scenarios}
+\end{table}
+
 % vim: ft=tex tw=0
