@@ -88,4 +88,18 @@
     \caption{Sending data with different block lengths}
 \end{figure}
 
+\begin{figure}
+    \centering
+    \begin{tikzpicture}
+        \begin{axis}[ylabel=Time (in ms),ymax=2100,xlabel=Network latency (in ms)]
+            \addplot table [x=latency,y=connect, col sep=comma] {data/latency.csv};
+            \addlegendentry{Client}
+
+            \addplot table [x=latency,y=await, col sep=comma] {data/latency.csv};
+            \addlegendentry{Server}
+        \end{axis}
+    \end{tikzpicture}
+    \caption{Connection latency}
+\end{figure}
+
 % vim: ft=tex tw=0
