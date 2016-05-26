@@ -14,6 +14,9 @@
 \usepackage{float}
 \usepackage{csvsimple}
 \usepackage{pgfplots}
+\usepackage{subcaption}
+\usepackage[toc,page]{appendix}
+\usepackage{rotating}
 
 \usepackage{sty/pgf-umlsd}
 
@@ -43,6 +46,19 @@
 
 \lstset{language=C}
 \lstset{captionpos=b}
+
+\pgfplotsset{
+    discard if not/.style 2 args={
+        x filter/.code={
+            \edef\tempa{\thisrow{#1}}
+            \edef\tempb{#2}
+            \ifx\tempa\tempb
+            \else
+                \def\pgfmathresult{inf}
+            \fi
+        }
+    }
+}
 
 % Titel and author
 \title{A Protocol for Connecting Distributed Resources}
@@ -76,6 +92,12 @@
     \input{04-drivers}
     \input{05-matchmaking}
     \input{06-implementation}
+
+    \clearpage
+
+    \begin{appendices}
+        \input{09-appendices}
+    \end{appendices}
 
     \clearpage
     \nocite{*}
