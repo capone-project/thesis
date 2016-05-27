@@ -59,12 +59,12 @@
     \centering
     \footnotesize
 
-    \begin{tabular}{|c|c|c|}
+    \begin{tabular}{|c|c|c|c|}
         \hline
-        \bfseries Latency & \bfseries Client connection time (in ms) & \bfseries Server connection time (in ms)
+        \bfseries Blocklen (bytes) & \bfseries Latency (in ms) & \bfseries Client time (in ms) & \bfseries Server time (in ms)
 
         \csvreader[head to column names]{data/latency.csv}{}
-        {\\\hline \latency & \connect & \await }
+        {\\\hline \pkglen & \latency & \connect & \await }
         \\\hline
     \end{tabular}
     \caption{Traffic shaping scenarios}
