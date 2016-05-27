@@ -150,7 +150,15 @@ As timings are inherently inaccurate on computer systems due to interference wit
 Experimentation showed results with errors in the range of $\pm2\%$.
 This is precise enough in order to make observations as we usually operate in the range of multiple orders of magnitude where results are sufficiently distinct.
 
-To increase reproducability on multi-core systems, both threads are fixed .
+To increase reproducability on multi-core systems, both threads are fixed to a CPU core.
+This tries to minimize scheduling problems and interference with other programs.
+
+% TODO: describe latency framework
+
+\medskip
+
+All tests have been executed on a Linux 4.6.0 host with an Intel\textregistered Core\texttrademark i5-6600K with 6MB of of cache and a clock rate of 3.50GHz.
+The benchmarking utilities and all dependencies have been compiled with GCC 5.3.0 with optimizations enabled.
 
 \subsubsection{Throughput}
 
