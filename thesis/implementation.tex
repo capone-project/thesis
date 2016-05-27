@@ -225,8 +225,8 @@ To simulate different network conditions, we use the previously described mechan
 We have chosen three different scenarios of 0ms of latency for transfer on the host itself, 2ms of latency for transfer to remote systems on the same local area network and 20ms of latency for transfer to remote systems in the wide area network.
 
 To estimate the effect of block lengths for different scenarios, we have chosen to send messages of four different lengths with 256 bytes, 1 kilobyte, 100 kilobytes and 10 megabytes of data.
-
-The results can be seen in figure \ref{fig:block-length-benchmarks}.
+The results can be seen in figure \ref{fig:block-length-benchmarks} visualized as graphs.
+See appendix \ref{sec:appendix-throughput} for bare results.
 
 \begin{figure}
     \centering
@@ -244,10 +244,14 @@ The results can be seen in figure \ref{fig:block-length-benchmarks}.
 
                     \addplot table [x=pkglen,y=tpenc, col sep=comma,discard if not={datalen}{256}] {data/bench-20ms.csv};
                     \addlegendentry{20ms latency}
+
+                    \addplot[mark=none, red, dotted] coordinates { (64,120) (4096,120) };
+                    \addplot[mark=none, brown, dotted] coordinates { (64,10) (4096,10) };
                 \end{axis}
             \end{tikzpicture}
         }
         \caption{256 bytes of data}
+        \label{fig:block-length-benchmark-256b}
     \end{subfigure}
     \hspace{2em}
     \begin{subfigure}[t]{0.4\textwidth}
@@ -263,10 +267,14 @@ The results can be seen in figure \ref{fig:block-length-benchmarks}.
 
                     \addplot table [x=pkglen,y=tpenc, col sep=comma,discard if not={datalen}{1024}] {data/bench-20ms.csv};
                     \addlegendentry{20ms latency}
+
+                    \addplot[mark=none, red, dotted] coordinates { (64,120) (4096,120) };
+                    \addplot[mark=none, brown, dotted] coordinates { (64,10) (4096,10) };
                 \end{axis}
             \end{tikzpicture}
         }
         \caption{1 kilobyte of data}
+        \label{fig:block-length-benchmark-1kb}
     \end{subfigure}
 
     \vspace{1em}
@@ -275,7 +283,7 @@ The results can be seen in figure \ref{fig:block-length-benchmarks}.
         \resizebox*{!}{0.9\textwidth}
         {
             \begin{tikzpicture}
-                \begin{axis}[ylabel=Throughput (in MB/s),ymax=650,xmode=log,xlabel=Block length (in bytes)]
+                \begin{axis}[ylabel=Throughput (in MB/s),ymax=750,xmode=log,xlabel=Block length (in bytes)]
                     \addplot table [x=pkglen,y=tpenc, col sep=comma,discard if not={datalen}{102400}] {data/bench.csv};
                     \addlegendentry{0ms latency}
 
@@ -284,17 +292,21 @@ The results can be seen in figure \ref{fig:block-length-benchmarks}.
 
                     \addplot table [x=pkglen,y=tpenc, col sep=comma,discard if not={datalen}{102400}] {data/bench-20ms.csv};
                     \addlegendentry{20ms latency}
+
+                    \addplot[mark=none, red, dotted] coordinates { (64,120) (4096,120) };
+                    \addplot[mark=none, brown, dotted] coordinates { (64,10) (4096,10) };
                 \end{axis}
             \end{tikzpicture}
         }
         \caption{100 kilobytes of data}
+        \label{fig:block-length-benchmark-100kb}
     \end{subfigure}
     \hspace{2em}
     \begin{subfigure}[t]{0.4\textwidth}
         \resizebox*{!}{0.9\textwidth}
         {
             \begin{tikzpicture}
-                \begin{axis}[ylabel=Throughput (in MB/s),ymax=650,xmode=log,xlabel=Block length (in bytes)]
+                \begin{axis}[ylabel=Throughput (in MB/s),ymax=750,xmode=log,xlabel=Block length (in bytes)]
                     \addplot table [x=pkglen,y=tpenc, col sep=comma,discard if not={datalen}{10240000}] {data/bench.csv};
                     \addlegendentry{0ms latency}
 
@@ -303,10 +315,14 @@ The results can be seen in figure \ref{fig:block-length-benchmarks}.
 
                     \addplot table [x=pkglen,y=tpenc, col sep=comma,discard if not={datalen}{10240000}] {data/bench-20ms.csv};
                     \addlegendentry{20ms latency}
+
+                    \addplot[mark=none, red, dotted] coordinates { (64,120) (4096,120) };
+                    \addplot[mark=none, brown, dotted] coordinates { (64,10) (4096,10) };
                 \end{axis}
             \end{tikzpicture}
         }
         \caption{10 megabytes of data}
+        \label{fig:block-length-benchmark-10mb}
     \end{subfigure}
 
     \caption{Sending data with different block lengths}
