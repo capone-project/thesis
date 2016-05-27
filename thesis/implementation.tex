@@ -162,7 +162,73 @@ The benchmarking utilities and all dependencies have been compiled with GCC 5.3.
 
 \subsubsection{Throughput}
 
-\begin{figure}[h]
+The throughput benchmark aims to measure how much data we can fit through a single connection to a remote host.
+The primitive used for connections in our service stack is called a channel.
+Channels encapsulate the low-level protocol of data streams, including the networking protocol (that is UDP or TCP) knowledge on how to split and re-assemble packages at their boundaries and how to encrypt or decrypt packages on encrypted connections (see section \ref{sec:low-level-protocol}).
+
+As all protocols except the initial undirected service discovery use encrypted connections we will not benchmark unencrypted channels.
+Furthermore, we will also ignore UDP-based channels as they are only used in the undirected service discovery, which does not require high throughput.
+
+\medskip
+
+We have to distinguish two different usage patterns when transmitting data.
+The first pattern is transmitting many small messages between two parties.
+This hapens a lot when transmitting control messages based on the protocol, which are usually in the range of a few bytes up to a maximum of a few hundred bytes, or for tunneled data for interactive services, e.g. input services.
+The second pattern is when doing bulk data transfer for services, e.g. when transferring big files or when streaming videos.
+
+Our goal is to maximize throughput for bulk transfers while keeping overhead low for small messages.
+The factor directly influencing this is the message's block length.
+As has been explained in the section on the low-level protocol (see section \ref{sec:low-level-protocol}, packages are split into chunks of a fixed amount of bytes by the transmitter and assembled to form the original message on the receiving side.
+We have to tune the chunk sizes in order to optimize for throughput.
+
+Unfortunately though it is not possible to tune for maximum throughput for small (in the range of up to a few hundreds of bytes) and big messages (starting at a few hundred of kilobytes) at the same time.
+In order to optimize for small messages, we would ideally split messages into one chunk exactly big enough to fit in the complete message.
+But let us assume we have optimized for a message length of 40 bytes.
+As each transferred block has to contain a message authentication code of 16 bytes and that the initial message has to contain a message length of 4 bytes, the optimal block length would be 60 bytes (40 bytes $+$ 16 bytes $+$ 4 bytes $=$ 60 bytes).
+
+When we now try to send a message of e.g. one megabyte (1024 $\cdot$ 1024 $=$ 1048576 bytes)  of data, it becomes obvious that the overhead added by the required metadata gets out of hand.
+The following formula calculates the total required amount of bytes to send assuming a block length of 60 bytes.
+Besides the total length of data to be transmitted, we need to send a message authentication code of 16 bytes for every block and an initial message length of 4 bytes:
+\begin{align*}
+    &\text{datalen} &+ &\text{blockcount} &* &\text{maclen} &+ &\text{messagelen} &= \text{total length}\\
+    \Rightarrow &1048576 &+ & \lceil(1048576 / 40)\rceil &* &16 &+ &4\\
+    \Rightarrow &1048576 &+ & 26215 &* &16 &+ &4\\
+    \Rightarrow &1468020
+\end{align*}
+This amounts to an overhead of $40\%$ to transmit the data.
+When tuning the block length to perform better for bulk transfers, the overhead would drastically decrease.
+Take the following example where we assume a block length of 4 kilobytes (4096 bytes):
+\begin{align*}
+    &1048576 &+ &\lceil(1048576 / 4096)\rceil &* &16 &+ &4\\
+    \Rightarrow &1048576 &+ &256 &* &16 &+ &4\\
+    \Rightarrow &1052676
+\end{align*}
+The overhead decreased to a mere $0.4\%$.
+So bulk transfers obviously have a big benefit when using big block sizes.
+
+But we cannot simply set a huge block size and be done, as now smaller messages are penalized.
+Given our initial assumption of a small message of 40 bytes of data and a block length of 4096 bytes, we now have an overhead of $4096 - 40 - 16 - 4 = 4038$ bytes, that is $98\%$ of the block are unused.
+As network connections tend to be slow, especially when transferring data via an uplink through the internet, this will severely hamper performance for small messages.
+
+But even for networks where sending data is cheap the overhead would bring down throughput as we have to honor that data is encrypted.
+The more data we need to send the longer it takes to encrypt and decrypt the message on both sides.
+
+\medskip
+
+As we can see, we need to make a compromise between either achieving high throughput for small or large messages.
+As such, we have to determine exactly how big the effects we just described are and how they affect throughput.
+To do so, we implemented a simple throughput benchmarking utility which is comprised of two threads sending data to each other.
+The utility transmits 1GB of data to the remote side, where data is split into messages of a user-defined size.
+This procedure is repeated for block lengths between 64 and 4096 bytes.
+
+To simulate different network conditions, we use the previously described mechanisms to target different network latencies.
+We have chosen three different scenarios of 0ms of latency for transfer on the host itself, 2ms of latency for transfer to remote systems on the same local area network and 20ms of latency for transfer to remote systems in the wide area network.
+
+To estimate the effect of block lengths for different scenarios, we have chosen to send messages of four different lengths with 256 bytes, 1 kilobyte, 100 kilobytes and 10 megabytes of data.
+
+The results can be seen in figure \ref{fig:block-length-benchmarks}.
+
+\begin{figure}
     \centering
 
     \begin{subfigure}[t]{0.4\textwidth}
@@ -240,10 +306,11 @@ The benchmarking utilities and all dependencies have been compiled with GCC 5.3.
                 \end{axis}
             \end{tikzpicture}
         }
-        \caption{10 megabyte of data}
+        \caption{10 megabytes of data}
     \end{subfigure}
 
     \caption{Sending data with different block lengths}
+    \label{fig:block-length-benchmarks}
 \end{figure}
 
 The fours graphs display measurements for the different message sizes of 256 bytes, 1 kilobyte, 100 kilobytes and 10 megabytes.
