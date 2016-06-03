@@ -245,8 +245,8 @@ See appendix \ref{sec:appendix-throughput} for bare results.
                     \addplot table [x=pkglen,y=tpenc, col sep=comma,discard if not={datalen}{256}] {data/bench-20ms.csv};
                     \addlegendentry{20ms latency}
 
-                    \addplot[mark=none, red, dotted] coordinates { (64,120) (4096,120) };
-                    \addplot[mark=none, brown, dotted] coordinates { (64,10) (4096,10) };
+                    \addplot[mark=none, blue, dashed] coordinates { (64,120) (4096,120) };
+                    \addplot[mark=none, orange, densely dotted] coordinates { (64,10) (4096,10) };
                 \end{axis}
             \end{tikzpicture}
         }
@@ -268,8 +268,8 @@ See appendix \ref{sec:appendix-throughput} for bare results.
                     \addplot table [x=pkglen,y=tpenc, col sep=comma,discard if not={datalen}{1024}] {data/bench-20ms.csv};
                     \addlegendentry{20ms latency}
 
-                    \addplot[mark=none, red, dotted] coordinates { (64,120) (4096,120) };
-                    \addplot[mark=none, brown, dotted] coordinates { (64,10) (4096,10) };
+                    \addplot[mark=none, blue, dashed] coordinates { (64,120) (4096,120) };
+                    \addplot[mark=none, orange, densely dotted] coordinates { (64,10) (4096,10) };
                 \end{axis}
             \end{tikzpicture}
         }
@@ -293,8 +293,8 @@ See appendix \ref{sec:appendix-throughput} for bare results.
                     \addplot table [x=pkglen,y=tpenc, col sep=comma,discard if not={datalen}{102400}] {data/bench-20ms.csv};
                     \addlegendentry{20ms latency}
 
-                    \addplot[mark=none, red, dotted] coordinates { (64,120) (4096,120) };
-                    \addplot[mark=none, brown, dotted] coordinates { (64,10) (4096,10) };
+                    \addplot[mark=none, blue, dashed] coordinates { (64,120) (4096,120) };
+                    \addplot[mark=none, orange, densely dotted] coordinates { (64,10) (4096,10) };
                 \end{axis}
             \end{tikzpicture}
         }
@@ -316,8 +316,8 @@ See appendix \ref{sec:appendix-throughput} for bare results.
                     \addplot table [x=pkglen,y=tpenc, col sep=comma,discard if not={datalen}{10240000}] {data/bench-20ms.csv};
                     \addlegendentry{20ms latency}
 
-                    \addplot[mark=none, red, dotted] coordinates { (64,120) (4096,120) };
-                    \addplot[mark=none, brown, dotted] coordinates { (64,10) (4096,10) };
+                    \addplot[mark=none, blue, dashed] coordinates { (64,120) (4096,120) };
+                    \addplot[mark=none, orange, densely dotted] coordinates { (64,10) (4096,10) };
                 \end{axis}
             \end{tikzpicture}
         }
@@ -336,7 +336,7 @@ Please note that a logirithmic scale is used for block lengths.
 The y axis represents the throughput achieved in megabytes per second averaged over the 1GB of data sent.
 A higher value is better.
 
-Additional constant dotted lines have been added to represent target throughput for ethernet (red, 120MB/s) and internet (brown, 10MB/s).connections .
+Additional constant dotted lines have been added to represent target throughput for ethernet (blue dashed line, 120MB/s) and internet (orange densely dotted line, 10MB/s).connections .
 These aim to put an estimated maximum achievable throughput which aids at better comprehending the chosen block length.
 
 \medskip
