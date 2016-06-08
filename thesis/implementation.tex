@@ -123,16 +123,119 @@
 
 \subsection{Benchmarking}
 
-\subsubsection{Package length}
+We will now provide measurements on how the project scales under different conditions.
+There are three major measurements we are interested in and which directly influence the framework's usability.
+\begin{description}
+    \item[Throughput]\hfill\\
+        How much data are we able to write through a channel in a certain amount of time.
+        This statistics is of particular importance when performing bulk traffic, e.g. when connected to a file service or forwarding the user's desktop to a service.
+    \item[Connection establishment]\hfill\\
+        How long does it take to negotiate a connection with remote party.
+        This is experienced by users which try to connect to a service and determines how long it will take until initial data is transferred between two entities.
+    \item[Input latency]\hfill\\
+        How long does it take until data submitted on either the user's or server's side arrives at the other party.
+        This is of importance for interactive services like input forwarding.
+\end{description}
 
-\begin{figure}[t]
+We will test throughput and connection establishment with the low-level primitives used inside the framework.
+Two small utilities (\lstinline{sd-bench} and \lstinline{sd-latency}) have been implemented to handle these and conduct the tests.
+Both programs open a TCP server socket and then spawn a new thread which connects to the open socket.
+They will then perform the actions specific to the benchmark.
+
+Timings are obtained by invoking the POSIX function \lstinline{clock_gettime} with a monotonic clock.
+Monotonic clocks do not jump in time when certain events happen on the system, e.g. when timezone changes or when \lstinline{adjtime} is called by some kind of NTP implementation.
+On most systems, the \lstinline{clock_gettime} function provides timings in nanosecond resolution.
+
+As timings are inherently inaccurate on computer systems due to interference with other programs, the kernel's scheduler, frequency scaling and more effects we are averaging the timing over repeated invocations of the core functionality that is to be benchmarked.
+Experimentation showed results with errors in the range of $\pm2\%$.
+This is precise enough in order to make observations as we usually operate in the range of multiple orders of magnitude where results are sufficiently distinct.
+
+To increase reproducability on multi-core systems, both threads are fixed to a CPU core.
+This tries to minimize scheduling problems and interference with other programs.
+
+% TODO: describe latency framework
+
+\medskip
+
+All tests have been executed on a Linux 4.6.0 host with an Intel\textregistered Core\texttrademark i5-6600K with 6MB of of cache and a clock rate of 3.50GHz.
+The benchmarking utilities and all dependencies have been compiled with GCC 5.3.0 with optimizations enabled.
+
+\subsubsection{Throughput}
+
+The throughput benchmark aims to measure how much data we can fit through a single connection to a remote host.
+The primitive used for connections in our service stack is called a channel.
+Channels encapsulate the low-level protocol of data streams, including the networking protocol (that is UDP or TCP) knowledge on how to split and re-assemble packages at their boundaries and how to encrypt or decrypt packages on encrypted connections (see section \ref{sec:low-level-protocol}).
+
+As all protocols except the initial undirected service discovery use encrypted connections we will not benchmark unencrypted channels.
+Furthermore, we will also ignore UDP-based channels as they are only used in the undirected service discovery, which does not require high throughput.
+
+\medskip
+
+We have to distinguish two different usage patterns when transmitting data.
+The first pattern is transmitting many small messages between two parties.
+This hapens a lot when transmitting control messages based on the protocol, which are usually in the range of a few bytes up to a maximum of a few hundred bytes, or for tunneled data for interactive services, e.g. input services.
+The second pattern is when doing bulk data transfer for services, e.g. when transferring big files or when streaming videos.
+
+Our goal is to maximize throughput for bulk transfers while keeping overhead low for small messages.
+The factor directly influencing this is the message's block length.
+As has been explained in the section on the low-level protocol (see section \ref{sec:low-level-protocol}, packages are split into chunks of a fixed amount of bytes by the transmitter and assembled to form the original message on the receiving side.
+We have to tune the chunk sizes in order to optimize for throughput.
+
+Unfortunately though it is not possible to tune for maximum throughput for small (in the range of up to a few hundreds of bytes) and big messages (starting at a few hundred of kilobytes) at the same time.
+In order to optimize for small messages, we would ideally split messages into one chunk exactly big enough to fit in the complete message.
+But let us assume we have optimized for a message length of 40 bytes.
+As each transferred block has to contain a message authentication code of 16 bytes and that the initial message has to contain a message length of 4 bytes, the optimal block length would be 60 bytes (40 bytes $+$ 16 bytes $+$ 4 bytes $=$ 60 bytes).
+
+When we now try to send a message of e.g. one megabyte (1024 $\cdot$ 1024 $=$ 1048576 bytes)  of data, it becomes obvious that the overhead added by the required metadata gets out of hand.
+The following formula calculates the total required amount of bytes to send assuming a block length of 60 bytes.
+Besides the total length of data to be transmitted, we need to send a message authentication code of 16 bytes for every block and an initial message length of 4 bytes:
+\begin{align*}
+    &\text{datalen} &+ &\text{blockcount} &* &\text{maclen} &+ &\text{messagelen} &= \text{total length}\\
+    \Rightarrow &1048576 &+ & \lceil(1048576 / 40)\rceil &* &16 &+ &4\\
+    \Rightarrow &1048576 &+ & 26215 &* &16 &+ &4\\
+    \Rightarrow &1468020
+\end{align*}
+This amounts to an overhead of $40\%$ to transmit the data.
+When tuning the block length to perform better for bulk transfers, the overhead would drastically decrease.
+Take the following example where we assume a block length of 4 kilobytes (4096 bytes):
+\begin{align*}
+    &1048576 &+ &\lceil(1048576 / 4096)\rceil &* &16 &+ &4\\
+    \Rightarrow &1048576 &+ &256 &* &16 &+ &4\\
+    \Rightarrow &1052676
+\end{align*}
+The overhead decreased to a mere $0.4\%$.
+So bulk transfers obviously have a big benefit when using big block sizes.
+
+But we cannot simply set a huge block size and be done, as now smaller messages are penalized.
+Given our initial assumption of a small message of 40 bytes of data and a block length of 4096 bytes, we now have an overhead of $4096 - 40 - 16 - 4 = 4038$ bytes, that is $98\%$ of the block are unused.
+As network connections tend to be slow, especially when transferring data via an uplink through the internet, this will severely hamper performance for small messages.
+
+But even for networks where sending data is cheap the overhead would bring down throughput as we have to honor that data is encrypted.
+The more data we need to send the longer it takes to encrypt and decrypt the message on both sides.
+
+\medskip
+
+As we can see, we need to make a compromise between either achieving high throughput for small or large messages.
+As such, we have to determine exactly how big the effects we just described are and how they affect throughput.
+To do so, we implemented a simple throughput benchmarking utility which is comprised of two threads sending data to each other.
+The utility transmits 1GB of data to the remote side, where data is split into messages of a user-defined size.
+This procedure is repeated for block lengths between 64 and 4096 bytes.
+
+To simulate different network conditions, we use the previously described mechanisms to target different network latencies.
+We have chosen three different scenarios of 0ms of latency for transfer on the host itself, 2ms of latency for transfer to remote systems on the same local area network and 20ms of latency for transfer to remote systems in the wide area network.
+
+To estimate the effect of block lengths for different scenarios, we have chosen to send messages of four different lengths with 256 bytes, 1 kilobyte, 100 kilobytes and 10 megabytes of data.
+The results can be seen in figure \ref{fig:block-length-benchmarks} visualized as graphs.
+See appendix \ref{sec:appendix-throughput} for bare results.
+
+\begin{figure}
     \centering
 
     \begin{subfigure}[t]{0.4\textwidth}
         \resizebox*{!}{0.9\textwidth}
         {
             \begin{tikzpicture}
-                \begin{axis}[ylabel=Throughput (in MB/s),ymax=200,xmode=log,xlabel=Block length (in bytes)]
+                \begin{axis}[ylabel=Throughput (in MB/s),ymax=200,xmode=log,xlabel={Block length (logarithmic scale, in bytes)}]
                     \addplot table [x=pkglen,y=tpenc, col sep=comma,discard if not={datalen}{256}] {data/bench.csv};
                     \addlegendentry{0ms latency}
 
@@ -141,17 +244,21 @@
 
                     \addplot table [x=pkglen,y=tpenc, col sep=comma,discard if not={datalen}{256}] {data/bench-20ms.csv};
                     \addlegendentry{20ms latency}
+
+                    \addplot[mark=none, blue, dashed] coordinates { (64,120) (4096,120) };
+                    \addplot[mark=none, orange, densely dotted] coordinates { (64,10) (4096,10) };
                 \end{axis}
             \end{tikzpicture}
         }
         \caption{256 bytes of data}
+        \label{fig:block-length-benchmark-256b}
     \end{subfigure}
     \hspace{2em}
     \begin{subfigure}[t]{0.4\textwidth}
         \resizebox*{!}{0.9\textwidth}
         {
             \begin{tikzpicture}
-                \begin{axis}[ylabel=Throughput (in MB/s),ymax=400,xmode=log,xlabel=Block length (in bytes)]
+                \begin{axis}[ylabel=Throughput (in MB/s),ymax=400,xmode=log,xlabel={Block length (logarithmic scale, in bytes)}]
                     \addplot table [x=pkglen,y=tpenc, col sep=comma,discard if not={datalen}{1024}] {data/bench.csv};
                     \addlegendentry{0ms latency}
 
@@ -160,10 +267,14 @@
 
                     \addplot table [x=pkglen,y=tpenc, col sep=comma,discard if not={datalen}{1024}] {data/bench-20ms.csv};
                     \addlegendentry{20ms latency}
+
+                    \addplot[mark=none, blue, dashed] coordinates { (64,120) (4096,120) };
+                    \addplot[mark=none, orange, densely dotted] coordinates { (64,10) (4096,10) };
                 \end{axis}
             \end{tikzpicture}
         }
         \caption{1 kilobyte of data}
+        \label{fig:block-length-benchmark-1kb}
     \end{subfigure}
 
     \vspace{1em}
@@ -172,7 +283,7 @@
         \resizebox*{!}{0.9\textwidth}
         {
             \begin{tikzpicture}
-                \begin{axis}[ylabel=Throughput (in MB/s),ymax=650,xmode=log,xlabel=Block length (in bytes)]
+                \begin{axis}[ylabel=Throughput (in MB/s),ymax=750,xmode=log,xlabel={Block length (logarithmic scale, in bytes)}]
                     \addplot table [x=pkglen,y=tpenc, col sep=comma,discard if not={datalen}{102400}] {data/bench.csv};
                     \addlegendentry{0ms latency}
 
@@ -181,17 +292,21 @@
 
                     \addplot table [x=pkglen,y=tpenc, col sep=comma,discard if not={datalen}{102400}] {data/bench-20ms.csv};
                     \addlegendentry{20ms latency}
+
+                    \addplot[mark=none, blue, dashed] coordinates { (64,120) (4096,120) };
+                    \addplot[mark=none, orange, densely dotted] coordinates { (64,10) (4096,10) };
                 \end{axis}
             \end{tikzpicture}
         }
         \caption{100 kilobytes of data}
+        \label{fig:block-length-benchmark-100kb}
     \end{subfigure}
     \hspace{2em}
     \begin{subfigure}[t]{0.4\textwidth}
         \resizebox*{!}{0.9\textwidth}
         {
             \begin{tikzpicture}
-                \begin{axis}[ylabel=Throughput (in MB/s),ymax=650,xmode=log,xlabel=Block length (in bytes)]
+                \begin{axis}[ylabel=Throughput (in MB/s),ymax=750,xmode=log,xlabel={Block length (logarithmic scale, in bytes)}]
                     \addplot table [x=pkglen,y=tpenc, col sep=comma,discard if not={datalen}{10240000}] {data/bench.csv};
                     \addlegendentry{0ms latency}
 
@@ -200,19 +315,85 @@
 
                     \addplot table [x=pkglen,y=tpenc, col sep=comma,discard if not={datalen}{10240000}] {data/bench-20ms.csv};
                     \addlegendentry{20ms latency}
+
+                    \addplot[mark=none, blue, dashed] coordinates { (64,120) (4096,120) };
+                    \addplot[mark=none, orange, densely dotted] coordinates { (64,10) (4096,10) };
                 \end{axis}
             \end{tikzpicture}
         }
-        \caption{10 megabyte of data}
+        \caption{10 megabytes of data}
+        \label{fig:block-length-benchmark-10mb}
     \end{subfigure}
 
     \caption{Sending data with different block lengths}
+    \label{fig:block-length-benchmarks}
 \end{figure}
 
-\begin{figure}
+The fours graphs display measurements for the different message sizes of 256 bytes, 1 kilobyte, 100 kilobytes and 10 megabytes.
+Each of the figures has three different graphs representing the different scenarios for transfer of data on the same host and in LAN respectively WAN.
+The x axis represents different block lengths in bytes used to split outgoing messages.
+Please note that a logirithmic scale is used for block lengths.
+The y axis represents the throughput achieved in megabytes per second averaged over the 1GB of data sent.
+A higher value is better.
+
+Additional constant dotted lines have been added to represent target throughput for ethernet (blue dashed line, 120MB/s) and internet (orange densely dotted line, 10MB/s).connections .
+These aim to put an estimated maximum achievable throughput which aids at better comprehending the chosen block length.
+
+\medskip
+
+Let us first discuss graphs \ref{fig:block-length-benchmark-256b} and \ref{fig:block-length-benchmark-1kb} as examples for transferring small messages to a remote host.
+
+What stands out is that there throughput caps out at block lengts of 512 bytes for 256 byte messages and at block lengths of 1500 bytes for 1024 byte messages, respectively.
+The reason for this is obvious: these are the smallest block lengths where the whole message fits into.
+Regard that for a message of length $l$, the smallest block length that is big enough to fit is $l + 16 + 4$.
+With smaller block lengths we have to send multiple blocks to transmit the whole message and with bigger messages we have to encrypt additional padding.
+So the optimal block length for small messages is the smallest one where the whole message with metadata fits into.
+
+One more interesting thing to observe is that with increasing latency, throughput decreases and features of the graphs seem to diminish.
+While the spike in throughput is easily visible on 0ms and 2ms of latency, it becomes barely recognizable on 20ms of latency.
+The effect of feature-flattening seems to get even more obvious the more data is sent, but this is effect results from a different maximum throughput value.
+
+Let us take a look at graphs \ref{fig:block-length-benchmark-100kb} and \ref{fig:block-length-benchmark-10mb} now for examples of bulk transfer.
+The effect of latency on throughput is very interesting for these graphs - while throughput constantly increases when there is no latency at all, it caps out at 200MB/s for 2ms of latency and at 50MB/s for 20ms of latency.
+
+For 2ms of latency the cap is at around a block length of 1500 bytes.
+The value of 1500 was included in the benchmarks as this is a typical size of the maximum transmission unit (MTU) for ethernet connections.
+The MTU is the size of the largest amount of data that can be sent in a single ethernet frame without requirement to split the frame into multiple frames.
+With this information, we have a possible explanation as to why throuput caps out at around 1500 bytes and decreases afterwards for 2ms of latency, while it steadily increases for 0ms of latency.
+Sending two frames with latency will obviously have an impact on throughput, while it does not have a real impact when there is no latency.
+
+\medskip
+
+These benchmarks do not pay attention to maximum bandwith available in LAN or WAN settings.
+Usually, we cannot achieve more than around 100 megabytes per second in Gigabit Ethernet settings and around 10 megabytes per second in WAN settings.
+We should honor this limitation when determining an optimal block length.
+
+For small packages we are not able to reach the target throughput at for 2ms of latency and fail to meet the target starting at block lengths of 1024 for 20ms of latency when sending 256 byte messages.
+For bulk transfer we start to hit the target in all scenarios when using a block length of 512 bytes.
+
+\medskip
+
+Let us subsume our findings from thesn benchmarks:
+\begin{itemize}
+    \item the optimum block length for short messages is the minimum block length able to fit in the complete message
+    \item increasing block lengths will penalize short messages due to encryption overhead
+    \item optimizing block length with high latencies is not useful due to throughput being near-flat
+    \item optimal block length should not exceed length of the MTU (e.g. 1500 bytes)
+\end{itemize}
+
+To compromise between throughput for small and bulk traffic we chose a block length of 512 bytes.
+It is the smallest block length able to achieve all target throughputs except for small messages with 2ms of latency, but we do not expect to need high throughput for small messages.
+
+It may be desirable to make the block length configurable per service.
+Services usually know their communication patterns and can thus optimize for the respective scenario they require.
+Currently no such feature exists, but the block length is trivially changable at compile time and as such it would a small feat to make block lengths configurable at runtime.
+
+\subsubsection{Connection latency}
+
+\begin{figure}[h]
     \centering
     \begin{tikzpicture}
-        \begin{axis}[ylabel=Connection time (in ms),xmode=log,xlabel=Block length (in bytes)]
+        \begin{axis}[ylabel=Connection time (in ms),xmode=log,xlabel={Block length (logarithmic scale, in bytes)}]
             \addplot table [x=pkglen,y=connect, col sep=comma,discard if not={latency}{0}] {data/latency.csv};
             \addlegendentry{0ms latency}
 
@@ -225,5 +406,7 @@
     \end{tikzpicture}
     \caption{Connection latency}
 \end{figure}
+
+\subsubsection{Input latency}
 
 % vim: ft=tex tw=0

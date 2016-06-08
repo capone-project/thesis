@@ -17,6 +17,7 @@
 \usepackage{subcaption}
 \usepackage[toc,page]{appendix}
 \usepackage{rotating}
+\usepackage{textcomp}
 
 \usepackage{sty/pgf-umlsd}
 
@@ -58,6 +59,16 @@
             \fi
         }
     }
+}
+
+\pgfplotscreateplotcyclelist{custom}{
+    dotted, red, every mark/.append style={solid, fill=red}, mark=otimes*\\%
+    dashed, blue, every mark/.append style={solid, fill=blue}, mark=square*\\%
+    densely dotted, orange, every mark/.append style={solid, fill=orange},mark=triangle*\\%
+}
+
+\pgfplotsset{
+    cycle list name=custom
 }
 
 % Titel and author
