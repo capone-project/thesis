@@ -32,7 +32,28 @@ We will now take a look at how these services actually work under the hood.
 \subsubsection{Invoke service}
 \label{sec:invoke-service}
 
-\begin{figure}[H]
+The invoke service provides the ability to start a remote service on the server providing the invoke service.
+There are up to three parties involved in the process:
+\begin{description}
+    \item[Controller]
+        The entity controlling the process.
+        The controller is the one directing the invoke service to invoke another service.
+    \item[Invoker]
+        The service providing the ability to start a service on the server it is hosted on.
+    \item[Service]
+        The service being started by the Invoker.
+        While this service will often reside on another server than the invoke service, this is not a requirement.
+\end{description}
+
+References to these specific parties will be written with a capitalized first letter.
+The whole process of service initiation has three steps (see figure \ref{fig:invoke-service}):
+\begin{enumerate}
+    \item The Controller creates a new session with the Service that is to be started later by the Invoker.
+    \item The Controller creates a new session with the Invoker, passing the capability for the session just created with the Service.
+    \item The Controller starts the session created with the Invoker, causing the Invoker to start the session on the Service.
+\end{enumerate}
+
+\begin{figure}[t]
     \centering
 
     \begin{sequencediagram}
@@ -63,7 +84,25 @@ We will now take a look at how these services actually work under the hood.
     \end{sequencediagram}
 
     \caption{Invoke Service}
+    \label{fig:invoke-service}
 \end{figure}
+
+On first sight, the order of session establishment may seem a bit puzzling, as the Service session is created before the Invoker session is being created.
+But actually this results out of the protocol's design: no entity is able to create a session in in name of another entity when it does not know about the other entity's long term signature key.
+As the Client wants to create a session which can be started by the Invoker, he will have to create a new capability which he owns but which the Invoker may use.
+
+This use case is exactly why capabilities differentiate between their owners and their invokers:
+the owner is the entity who creates the capability and who may destroy the capability before it has been used, but he is unable to use the capability.
+The invoker of a capability is only able to use a capability which has been granted by either himself when creating a new session or which has been passed by another entity.
+
+Returning back to the invoke service it now becomes obvious why the Client creates the session with the Service, as only he is able to create a session in his own name.
+It would theoretically be possible for the Invoker to create the session himself, but assuming the Service has some kind of access control he might either not be allowed to create sessions or he may not be allowed to create sessions capable of accessing data belonging to Client.
+
+All subsequent steps are now trivial:
+Given the session just created, Service returns a capability which can be used by Invoker to the Client.
+Client now creates a new session with Invoker, passing on the capability as well as specifying the address of the service that is to be invoked.
+
+When the Invoker session has been created, Client starts it, causing the Invoker to retrieve the passed on capability for Service from the session parameters and connects to the session on Service.
 
 \subsubsection{Capability service}
 \label{sec:capability-service}
