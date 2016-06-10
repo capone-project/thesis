@@ -279,47 +279,116 @@ That is, the server should not be made accessible by everybody but usually only 
 \subsubsection{Xpra service}
 \label{sec:xpra-service}
 
-\begin{figure}[H]
+The Xpra service wants to allow a client to forwards its graphical applications to a display connected to the Xpra service.
+Given a set of graphical applications on the client starting the Xpra service, the Xpra service will connect to the Xpra instance running on the client encapsulating the applications and then display them on the attached display.
+
+Xpra itself builds upon the X11 server technology and heavily uses X virtual frame buffers (Xvfb).
+Xvfb is a technology where framebuffers are created which are not actually rendered to a display, but graphical applications are instead rendered into memory.
+These virtual framebuffers can then be attached to by an Xpra client which will subsequently receive graphic updates and render these to the display.
+
+Xpra was chosen as the display technology as it is very flexible in how it works.
+Besides having cross-plattform support for Windows, Linux and OS X, it is also capabable of driving the communication between server and client with different encodings.
+While it usually uses Portable Network Graphics (PNG) as encoding, it is also able to use the video codec H264 as encoding.
+As such it is not only suitable to remotely display typical office desktops with text applications, but it is also able to stream graphically heavy applications like video players.
+
+Xpra is built upon a server-client approach.
+While the server owns the Xvfb where graphical applications are instantiated inside, the client attaches to the server and thus displays the actual graphics.
+This gets particularly confusing to reason about combined with the Xpra service, which is hosted on the server but acts as the client to the Xvfb buffer.
+
+The setup includes three involved entities:
+\begin{description}
+    \item[Xpra server]\hfill\\
+        The Xpra server instance with the Xvfb where applications are rendered to.
+        This Xpra server is usually instantiated on the Client side.
+    \item[Client]\hfill\\
+        The Client is the entity having a running Xpra server with a set of applications rendering to it.
+        He wishes to display these applications on the Display service
+    \item[Display service]\hfill\\
+        The Display service is responsible for controlling the display and connecting to the Xpra server of the Client.
+\end{description}
+
+The following steps are required to display applications on the remote screen controlled by the Display service:
+\begin{enumerate}
+    \item The Client starts the Xpra server and (optionally) some applications running in the Xvfb
+    \item The Client requests and starts a connection with the Display service
+    \item The Display service starts up the Xpra client
+    \item Data between Xpra server and Xpra client is tunneled through an encrypted channel
+\end{enumerate}
+
+The UML flow diagram in figure \ref{fig:xpra-service} details these steps.
+The following functions are used:
+
+\begin{description}
+    \item[StartXpra($p$)]
+        Start a new Xpra server instance on port $p$.
+    \item[Request($i$) $\rightarrow$ $c$]
+        Request a new session with no parameters for entity $i$.
+        Returns a capability $c$ which can be used by $i$.
+    \item[CreateSession($e$, $i$, $p$) $\rightarrow$ $c$]
+        Create a new session with session owner $e$ for invocation by entity $i$, storing the set of parameters $p$.
+        Returns a capability $c$ used to invoke the session.
+    \item[Start($c$)]
+        Start the session associated with capability $c$.
+    \item[Forward($p$)]
+        Forward data between port $p$ and the channel to the invoked entity.
+    \item[ConnectXpra($p$)]
+        Connect to a local Xpra instance on port $p$.
+\end{description}
+
+\begin{figure}[t]
     \centering
 
     \begin{sequencediagram}
         \newinst{x}{Xpra server}
-        \newthread[4]{c}{Client}
-        \newinst[4]{s}{Display service}
+        \newthread[2]{c}{Client $c$}
+        \newinst[2]{s}{Display service}
 
-        \begin{call}{c}{Start(port)}{x}{instance}
-        \end{call}
-
-        \postlevel
-
-        \begin{messcall}{c}{InitiateConnection()}{s}
+        \begin{messcall}{c}{StartXpra($p_{xs}$)}{x}
             \postlevel
-            \begin{call}{c}{Request(xpra-port)}{s}{session}
+
+            \begin{call}{c}{Request($c$)}{s}{Capability $c$}
+                \begin{call}{s}{CreateSession($c$, $c$, $p$)}{s}{Capability $c$}
+                \end{call}
             \end{call}
-        \end{messcall}
-
-        \postlevel
-
-        \begin{messcall}{c}{InitiateConnection()}{s}
-            \postlevel
-            \begin{messcall}{c}{Connect(session)}{s}
-            \end{messcall}
 
             \postlevel
 
-            \begin{messcall}{s}{Tunneled data exchange}{x}
-                \postlevel
+            \begin{messcall}{c}{Start($c$)}{s}
+                \begin{call}{s}{StartXpraClient()}{s}{$p_{xc}$}
+                \end{call}
+
+                \begin{messcall}{s}{Forward($p_{xc}$)}{c}
+                \end{messcall}
+                \prelevel
+                \begin{messcall}{c}{ConnectXpra($p_{xs}$)}{x}
+                \end{messcall}
+
+                \begin{messcall}{x}{Display data}{c}
+                \end{messcall}
+                \prelevel
+                \prelevel
+                \begin{messcall}{c}{Forward($p_{xs}$)}{s}
+                \end{messcall}
+
+            \prelevel
             \end{messcall}
             \prelevel
-            \prelevel
-            \prelevel
-            \begin{messcall}{x}{}{s}
-            \end{messcall}
         \end{messcall}
     \end{sequencediagram}
 
     \caption{Xpra Service}
+    \label{fig:xpra-service}
 \end{figure}
+
+Initially, the Client starts up a Xpra server with the applications.
+The Xpra server will be bound to a local TCP port listening on the loopback interface only, so no other computers in the local network are able to connect to the Xpra server.
+
+The Client establishes and connects to a new session with no parameters on the Display service.
+Upon starting the session, the Display service creates a new Unix socket which will be put into listening mode, starts up the Xpra client and lets it connect to the newly created socket.
+All traffic going through this socket will now be forwarded over the client channel and thus be encrypted.
+
+As soon as initial data is arriving on the client's channel receiving side, he will open a new connection to the loopback interface on the port he has initially instructed the Xpra server to run on.
+As soon as the Xpra server accepts the connection, he will forward data between the server channel and the Xpra server socket and thus finish the session setup.
 
 \subsubsection{Synergy service}
 \label{sec:synergy-service}
