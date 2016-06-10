@@ -393,6 +393,36 @@ As soon as the Xpra server accepts the connection, he will forward data between 
 \subsubsection{Synergy service}
 \label{sec:synergy-service}
 
+The Synergy service is an implementation of a mouse and keyboard sharing application.
+It provides cross-plattform support for Windows, Linux and OS X.
+
+The service actually works nearly the same as the Xpra service and thus is not described in detail.
+On client-side, the Synergy server is started which will handle capturing and forwarding mouse and keyboard input.
+When the client starts a session with the Synergy service, the Synergy service starts up a Synergy client.
+All data between the Synergy client and server will then be tunneled through the channel between client and server.
+
+\medskip
+
+What requires further though is the actual mode of input how it is set up in the end.
+There are two possibilities on how to set it up: either input can be connected to the display server or it can be connected to the server hosting the actual application.
+
+The most immediate concern is that of confidential input, e.g. when a user runs a confidential application on his server which then requires a password.
+We will assume that the actual input device itself is safe to use and not tampered with as otherwise all considerations done on the software layer become naught.
+
+As the user may not trust the environment where he is currently located, he might not want to connect his input devices to the display service, which would then forward traffic to the connected application.
+Instead, he might want to send all input through the encrypted channel to his home server so that input is passed on directly to the application instead of first going through the Xpra service where keyloggers may be active.
+
+Actually, assuming the Xpra service is being used for screen sharing, both modes are supported currently.
+Input connected directly to the display's X server is currently able to modify displayed applications.
+On the other hand, it is possible to connect input to the Xvfb in which applications are rendered directly, so that no additional redirection exists.
+Unfortunately, Xpra is currently implemented such that the mouse cursor is not display so that a user cannot see the mouse cursor.
+
+A workaround may be to split up mouse and keyboard input so that the mouse is connected to the display service and keyboard input is directly wired into the Xvfb.
+While the mouse cursor would usually be visible anyway and thus should not provide any sensitive information to bystanders, the keyboard's input is often concealed when sensitive information is requested.
+So the mouse will still be visible as it is directly connected to the display service and can be used to guide input of the keyboard around without revealing input data from the keyboard to third parties except the server executing the application.
+
+Such a set up has not been tested though despite simple proof-of-concept tests with the Xvfb and input guidance.
+
 \subsection{Benchmarking}
 \label{sec:benchmarking}
 
