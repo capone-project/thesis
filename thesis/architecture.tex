@@ -1,4 +1,5 @@
 \section{Architecture}
+\label{sec:architecture}
 
 We will now take a look at the high-level architecture of the whole application stack.
 That is we will cover the initial process of a client dicsovering available servers in a local network, querying found servers and then connecting to a specific service.
@@ -543,6 +544,7 @@ Despite the initial connection establishment all subsequent steps remain unchang
 \lstinputlisting[caption=Discovery Interface,label=src:discovery-protos,float,floatplacement=h]{../../source/sd/proto/discovery.proto}
 
 \subsubsection{Query}
+\label{sec:query}
 
 Now that we have discovered servers at our location and know basic information about the services they provide.
 Currently we only know about the server's location, their identity and name, category and port of its services.
@@ -623,6 +625,7 @@ The user will now decide if he actually wants to connect to the service based on
 \lstinputlisting[caption=Query Interface,label=src:query-protos,firstline=10,lastline=24,float,floatplacement=h]{../../source/sd/proto/connect.proto}
 
 \subsubsection{Session Initiation}
+\label{sec:session-initiation}
 
 When a user has decided to connect to a service based on the details given by a service query, he will request a new session with the service.
 The session request contains an identity and parameters, both set by the client wishing to establish the new session.
