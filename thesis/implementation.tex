@@ -1,8 +1,10 @@
 \section{Implementation}
 
 \subsection{Services}
+\label{sec:services}
 
-\subsubsection{Capability Service}
+\subsubsection{Capability service}
+\label{sec:capability-service}
 
 \begin{figure}[H]
     \centering
@@ -40,7 +42,7 @@
 
 \lstinputlisting[caption=Capability Service Interface,label=src:capability-protos,float,floatplacement=h]{../../source/sd/proto/capabilities.proto}
 
-\subsubsection{Invoke Service}
+\subsubsection{Invoke service}
 \label{sec:invoke-service}
 
 \begin{figure}[H]
@@ -76,7 +78,8 @@
     \caption{Invoke Service}
 \end{figure}
 
-\subsubsection{xpra Service}
+\subsubsection{Xpra service}
+\label{sec:xpra-service}
 
 \begin{figure}[H]
     \centering
@@ -120,8 +123,11 @@
     \caption{Xpra Service}
 \end{figure}
 
+\subsubsection{Execution service}
+\label{sec:exec-service}
 
 \subsection{Benchmarking}
+\label{sec:benchmarking}
 
 We will now provide measurements on how the project scales under different conditions.
 There are three major measurements we are interested in and which directly influence the framework's usability.
@@ -408,5 +414,128 @@ Currently no such feature exists, but the block length is trivially changable at
 \end{figure}
 
 \subsubsection{Input latency}
+
+\subsection{Development process}
+
+The complete software stack is split up into two major components, namely the server-side part and the controller application for Android.
+While these two components are strictly split up in functionality and dependencies, they still reside in a mono-repository so that it becomes easier to modify the core protocol and adjust both sides to work with the new version.
+
+The server-side stack is written in the C programming language and currently clocks in at 6680 source lines of code excluding empty lines and comments.
+Code is logically split up into a set of executables and libraries like following:
+\begin{description}
+    \item[Benchmarking]\hfill\\
+        Two executables exist that drive the logic behind the benchmarks described in section \ref{sec:benchmarking}, where \emph{sd-bench} handles logic around throughput-benchmarks and \emph{sd-latency} estimates connection establishment latency.
+    \item[Discovery]\hfill\\
+        Service discovery is handled by \emph{sd-discovery-server} with a complementary executable \emph{sd-discover} used for testing the server implementation.
+        It handles the process of directed and multicast server discovery as described in section \ref{sec:discovery}.
+    \item[Server]\hfill\\
+        The server executable \emph{sd-server} implements session management as well as handing off incoming connections to the requested service plugins.
+        To drive the server from command line, another executable \emph{sd-client} has been written, that is able to query the server for details, request and start sessions.
+    \item[Services]\hfill\\
+        The services component contains the services implemented and described before in section \ref{sec:services}.
+    \item[Library]\hfill\\
+        Most functionality, most importantly the core protocol as well as the session handling, has been written such that it is layed out in a single shared object with a documented interface.
+        Like this it is easy to re-use logic in different executables or even in other projects.
+        One more great benefit is that with a library-style interface, it is easy to drive unit tests on the library's interface.
+    \item[Tests]\hfill\\
+        Unit tests exist that cover much of the logic of the core library.
+\end{description}
+
+Table \ref{tab:sloc} summarizes the source lines of code per component, where the column ``Lines of source code'' counts the actual lines of code excluding comments and whitespace and the column ``Total lines'' counts the total amount of lines.
+\begin{table}
+    \centering
+    \begin{tabular}{|c|c|c|}
+        \hline
+        \bfseries Component & \bfseries Lines of source code & \bfseries Total lines\\
+        \hline
+        Benchmarking & 293 & 405\\
+        \hline
+        Discovery & 331 & 456\\
+        \hline
+        Server & 515 & 678\\
+        \hline
+        Services & 971 & 1523\\
+        \hline
+        Library & 2407 & 4798\\
+        \hline
+        Tests & 2075 & 2811 \\
+        \hline
+    \end{tabular}
+    \caption{Lines of code per component for server}
+    \label{tab:sloc}
+\end{table}
+
+A great emphasis has been put on cross-platform support.
+As such, the code is written in strict ISO C90 \cite{iso-c90} which is supported by all modern compilers.
+To guarantee that the code actually works on multiple platforms, multiple continuous integration (CI) services have been set up.
+The CI services get notified on the event that a new commit has been pushed to a monitored repository and if so, they fetch the changes, build the applications and execute tests.
+Currently, there are two CI services have been registered:
+\begin{itemize}
+    \item Travis CI \cite{travis} provides Linux and OS X build platforms
+    \item AppVeyor \cite{appveyor} provides Windows build platforms
+\end{itemize}
+
+The project uses the Git source control management system \cite{git} and GitHub as its hosting platform \cite{github}.
+In order to have a clean development process and a main branch which is always potentially releasable, that is it always builds and unit tests pass on all plattforms, a development process is specified making heavy use of branches.
+Every unit of development, e.g. a new feature, bugfixing or refactoring, is done in a separate branch which is then pushed to the main repository where it is picked up by the CI services.
+As soon as all CI services have determined that the changes do not break the build on any plattform and that all unit tests pass, the branch can be merged into the mainline.
+
+As the C programming language requires manual resource management it is important to verify that the executables have no resource leaks and do not try to access resources that are not available anymore.
+Most importantly, this involves checking for invalid memory dereferences, buffer overflows and memory leaks which are commonly used in attempts to exploit applciations.
+
+To work against this threat, special CI jobs exist which utilize the address and undefined behavior sanitizers of the GNU compiler collection (GCC) \cite{gcc}.
+Executables compiled with these features enabled instrument the application in a specific way in order to analyze the application at run-time for invalid address references or for code relying on undefined behavior.
+Like this, it is possible to catch programming errors related to referencing uninitialized memory, out-of-bounds array access, memory leaks and more.
+The CI jobs execute the test suite with these flags enabled and report errors encountered during the execution.
+
+One more service has been set up with Coverity Scan \cite{coverity}.
+Code submitted to it will be analyzed at build time and submitted to the service, which then performs static analysis on source code level.
+In contrast to the aforementioned CI services, Coverity Scan does not only analyze code which is actually executed while running the unit tests but covers the complete source code.
+It is able to catch a lot of errors like invalid memory access and leaked file descriptors, but also catches other errors like time-of-check-time-of-use errors or problems related to multithreading.
+
+\bigskip
+
+The second component of the ecosystem is the controller application for Android mobile phones.
+As the Android operating system provides a development environment based on the Dalvik Virtual Machine, the main programming language used to develop Android applications is the Java programming language.
+
+As with the parts written in C, some effort has been done to have a clean separation between the protocol libraries and low-level functionality and the actual user interface.
+The total controller application is around 2660 lines of actual code which can be split up into the following components:
+\begin{description}
+    \item[User interface]\hfill\\
+        The user interface provides all functionality directly presented to the user.
+        Core functionality currently provided by the application includes key management for the user's long term signature key, service discovery and favorites-management as well is the invocation of services.
+    \item[Service plugins]\hfill\\
+        Service plugins provide implementations for actual services which can be started.
+        As of now, three service plugins have been implemented for the controller:
+        \begin{itemize}
+            \item a capability plugin handling the relay of capabilities as described in \ref{sec:capability-service}
+            \item an invoke plugin causing a server to invoke another service chosen by the user as described in \ref{sec:invoke-service}
+            \item an exec plugin handling execution of programs on remote servers as described in \ref{sec:exec-service}
+        \end{itemize}
+    \item[Protocol]\hfill\\
+        This module implements the protocol.
+        This includes the low-level protocol used by channels as described in \ref{sec:low-level-protocol} and the messages exchanged for querying, session establishment and session invocation as described in section \ref{sec:protocol}.
+\end{description}
+
+\begin{table}
+    \centering
+    \begin{tabular}{|c|c|c|}
+        \hline
+        \bfseries Component & \bfseries Lines of source code & \bfseries Total lines\\
+        \hline
+        User interface & 968 & 1357\\
+        \hline
+        Service plugins & 711 & 1022\\
+        \hline
+        Protocol & 982 & 1513\\
+        \hline
+    \end{tabular}
+    \caption{Lines of code per component for Android controller}
+    \label{tab:sloc-controller}
+\end{table}
+
+Table \ref{tab:sloc-controller} provides an overview over the amount of code per component.
+
+Due to timing constraints no tests are available for the Android application and no CI services have been set up.
 
 % vim: ft=tex tw=0
