@@ -264,6 +264,18 @@ To solve this problem, one can envision that the session establishment should be
 The connection between Service and Registrant would obviously still be encrypted so the Capability Service is not able to listen on anything these services are talking.
 In such a design, the Capability Service would completely proxy all traffic between Registrant, Client and Service withouth the Registrant talking to the Service or Client directly at all.
 
+\subsubsection{Execution service}
+\label{sec:exec-service}
+
+The execution is a simple service providing some kind of shell to start up command line applications.
+Upon connecting, the user specifies which executable to start, the parameters passed to the executable and the environment variables which should be set.
+
+The server then starts the executable and forwards all output from \lstinline{stdout} and \lstinline{stderr} the client's channel as well as forwarding all input from the client's channel to \lstinline{stdin} of the executable.
+As such clients starting the execution service are able to receive output of the program and provide input.
+
+As this service is by default able to execute arbitrary command on the server, careful attention should be paid to the access policy.
+That is, the server should not be made accessible by everybody but usually only by special users.
+
 \subsubsection{Xpra service}
 \label{sec:xpra-service}
 
@@ -311,9 +323,6 @@ In such a design, the Capability Service would completely proxy all traffic betw
 
 \subsubsection{Synergy service}
 \label{sec:synergy-service}
-
-\subsubsection{Execution service}
-\label{sec:exec-service}
 
 \subsection{Benchmarking}
 \label{sec:benchmarking}
