@@ -46,36 +46,51 @@ There are up to three parties involved in the process:
 \end{description}
 
 References to these specific parties will be written with a capitalized first letter.
-The whole process of service initiation has three steps (see figure \ref{fig:invoke-service}):
+The whole process of service initiation has three steps:
 \begin{enumerate}
     \item The Controller creates a new session with the Service that is to be started later by the Invoker.
     \item The Controller creates a new session with the Invoker, passing the capability for the session just created with the Service.
     \item The Controller starts the session created with the Invoker, causing the Invoker to start the session on the Service.
 \end{enumerate}
 
+These steps are visualized in an UML flow diagram in figure \ref{fig:invoke-service}.
+Each entity has a public identity represented by the lowercase letter following its name.
+The following functions are used in the diagram:
+\begin{description}
+    \item[Request($i$, $p$) $\rightarrow$ $c$]
+        Request a new session with a set of parameters represented as key-value pairs for entity $i$.
+        Returns a capability $c$ which can be used by $i$.
+    \item[CreateSession($e$, $i$, $p$) $\rightarrow$ $c$]
+        Create a new session with session owner $e$ for invocation by entity $i$, storing the set of parameters $p$.
+        Returns a capability $c$ used to invoke the session.
+    \item[Start($c$)]
+        Start the session associated with capability $c$.
+\end{description}
+
 \begin{figure}[t]
     \centering
 
     \begin{sequencediagram}
-        \newthread{c}{Client}
-        \newinst[4]{s}{Service}
-        \newinst[4]{i}{Invoker}
+        \newthread{c}{Client $c$}
+        \newinst[3]{s}{Service $s$}
+        \newinst[3]{i}{Invoker $i$}
 
-        \begin{call}{c}{Initiate(Parameters)}{s}{Service Session}
-            \begin{call}{s}{CreateSession()}{s}{Capability}
+        \begin{call}{c}{Request($i$, $p=\{\ldots\}$)}{s}{Capability $c_1$}
+            \begin{call}{s}{CreateSession($c$, $i$, $p$)}{s}{Capability $c_1$}
             \end{call}
         \end{call}
 
         \postlevel
 
-        \begin{call}{c}{Initiate(ServiceSession)}{i}{Invoker Session}
-            \begin{call}{i}{CreateSession()}{i}{Capability}
+        \begin{call}{c}{Request($c$, $p=\{\text{service}=s, \text{cap}=c_1\}$)}{i}{Capability $c_2$}
+            \begin{call}{i}{CreateSession($c$, $c$, $p$)}{i}{Capability $c_2$}
             \end{call}
         \end{call}
         \postlevel
 
-        \begin{messcall}{c}{Start}{i}
-            \begin{messcall}{i}{Start}{s}
+        \begin{messcall}{c}{Start($c_1$)}{i}
+            \postlevel
+            \begin{messcall}{i}{Start($c_2$)}{s}
                 \postlevel
             \end{messcall}
             \prelevel
