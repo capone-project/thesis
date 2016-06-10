@@ -122,23 +122,82 @@ When the Invoker session has been created, Client starts it, causing the Invoker
 \subsubsection{Capability service}
 \label{sec:capability-service}
 
-\begin{figure}[H]
+The capability service solves the use case wher an entity desires the ability to invoke a service in the name of another service.
+That is it is the direct contrary to the invoke service, which can be used to push a capability to an invoker, in that the capability service pulls a capability from another entity.
+
+Ideally, the capability service would not be required at all but instead, a requester would just directly ask another entity for permissions to execute a certain service.
+But the requirement to directly connect to another entity requires the requester to always know of the address of the entity he wishes to ask.
+As it may be very likely that the person asked for the capability uses a mobile phone with the Android application as a controller, the address might not be as stable as one would wish in this case.
+Furthermore, it might be impossible to establish a direct connection when entities are in different networks, which usually use network address translation and do not allow direct connections to arbitrary ports.
+
+In order to solve this problem, the capability service was developed as a means to forward capability requests between a requesting entity and a requested entity.
+In fact the service does nothing more than allow entities to register themselves at the server and then subsequently forwards requests from other entities to registered entities and sending back capabilities created from accepted requests.
+So it can be regarded as some kind of proxy service.
+
+There are four participating entities which we will now define.
+As before, we will subsequently refer to these entities by uppercasing the first letter.
+\begin{description}
+    \item[Client]\hfill\\
+        The Client wishes to connect to the Service in the name of Registrant.
+    \item[Registrant]\hfill\\
+        The Registrant is an entity registered at the Capability Service.
+        He is responsible for accepting or rejecting capability requests sent by Client.
+    \item[Service]\hfill\\
+        The Service is the service for which capabilities are requested for.
+    \item[Capability Service]\hfill\\
+        The Capability Service is a well-known service where entities may register to become Registrants or where capability requests are sent to by Clients in order to ask for permissions.
+\end{description}
+
+The process of capability requests involves five steps:
+\begin{enumerate}
+    \item The Registrant connects to the Capability Service
+    \item The Client requests a capability from Registrant to invoke Service with a set of parameters by sending a request to Capability Service
+    \item Capability Service forwards the request to Registrant
+    \item Registrant decides if the request should be accepted or rejected.
+        If it accepted, he creates a new session on Service for Client and send the capability to Capability Service
+    \item Capability Service forwards the Capability to Client, who can now start the session on Service
+\end{enumerate}
+
+The whole process is visualized in figure \ref{fig:capability-request}.
+The following functions are used in the diagram:
+\begin{description}
+    \item[Register()]\hfill\\
+        Creates and starts a session with a Capability Service to become a registrant.
+    \item[CapRequest($r$, $s$, $p$) $\rightarrow$ $c$]\hfill\\
+        Request permissions to start service $s$ in the name of registrant $r$ with the set of parameters $p$.
+        Returns a capability $c$ usable by the requester for service $s$.
+    \item[Ask($c$, $s$, $p$) $\rightarrow$ $c$]\hfill\\
+        Ask Registrant to create a capability for the client $c$ to invoke service $s$ with a set of parameters $p$.
+        Returns a capability $c$ usable by the client $c$ if the registrant accepts the request.
+    \item[Request($i$, $p$) $\rightarrow$ $c$]
+        Request a new session with a set of parameters represented as key-value pairs for entity $i$.
+        Returns a capability $c$ which can be used by $i$.
+    \item[CreateSession($e$, $i$, $p$) $\rightarrow$ $c$]
+        Create a new session with session owner $e$ for invocation by entity $i$, storing the set of parameters $p$.
+        Returns a capability $c$ used to invoke the session.
+    \item[Start($c$)]
+        Start the session associated with capability $c$.
+\end{description}
+
+\begin{figure}[t]
     \centering
 
     \begin{sequencediagram}
-        \newthread{r}{Requester r}
-        \newinst[2]{e}{Entity e}
+        \newthread{c}{Client c}
+        \newinst[1]{r}{Registrant r}
         \newinst[2]{s}{Service s}
-        \newinst[2]{c}{Capability Service}
+        \newinst[2]{cap}{Capability Service}
 
-        \mess{e}{Register}{c}
+        \mess{r}{Register}{cap}
         \postlevel
 
-        \begin{call}{r}{Request(e, s, params)}{c}{Capability}
+        \begin{call}{c}{CapRequest($r$, $s$, $p=\{\ldots\}$)}{cap}{Capability $c_1$}
             \postlevel
-            \begin{call}{c}{Ask(r, s, params)}{e}{Capability}
+            \begin{call}{cap}{Ask($c$, $s$, $p$)}{r}{Capability $c_1$}
                 \postlevel
-                \begin{call}{e}{Initiate(params)}{s}{Capability}
+                \begin{call}{r}{Request($c$, $p$)}{s}{Capability $c_1$}
+                    \begin{call}{s}{CreateSession($r$, $c$, $p$)}{s}{Capability $c_1$}
+                    \end{call}
                 \end{call}
                 \postlevel
             \end{call}
@@ -147,16 +206,63 @@ When the Invoker session has been created, Client starts it, causing the Invoker
 
         \postlevel
 
-        \begin{messcall}{r}{Start}{s}
+        \begin{messcall}{c}{Start($c_1$)}{s}
             \postlevel
         \end{messcall}
 
         \prelevel
     \end{sequencediagram}
+
     \caption{Capability Request}
+    \label{fig:capability-request}
 \end{figure}
 
-\lstinputlisting[caption=Capability Service Interface,label=src:capability-protos,float,floatplacement=h]{../../source/sd/proto/capabilities.proto}
+Let us now take a more detailed look at the steps.
+The initial step is the registration of the Registrant.
+The Capability Service needs to know where to send incoming capability requests to.
+As such, entities who want to be able to answer capability requests need to register with the Capability Service in order to be able to retrieve the requests.
+
+The registration is very simple in that a new session is created and opened with the Capability Service which, where the session is created as a \emph{Registrant} session.
+Upon starting the session, the connection between Registrant and Capability Service will be kept alive and used to relay incoming requests.
+Intuitively, one Capability Service can accept multiple Registrants at the same time.
+For multiple Registrants with different identities the service works as one might expect:
+Upon an incoming request, the Capability Service compares the requested identity with the identities of Registrants -- if one Registrant matches, the request will be forwarded to him.
+Even though it is possible for the same entity to register twice at a Capability Service, this does not really make sense currently as the capability request is only forwarded to the first Registrant matching the entity requested by an incoming request.
+This might change in future to either allow only one Registrant having the same identity at the same time or by forwarding the request to all matching Registrants, waiting for the first one to accept.
+
+Independent of the registration, Clients may send capability requests to the server.
+Each capability request contains whom to ask for permissions, which service the Client wants to have a capability for and a set of parameters which should be used to establish a session.
+The request is sent to the Capability Service, which will now search its Registrants for one matching with the requested entity.
+If one is found, the Capability Service will forward the capability request together with the entity of the Client asking for the capability to the matching Registrant.
+
+As the Registrant receives the Capability Request, he will have to somehow determine if the requesting entity should be allowed to invoke the service as he requests or if the request should be rejected.
+If he accepts the request, he will create a new session with Service for Client with the forwarded parameters, retrieves the newly created capability and forwards it to the Capability Service, which will subsequently forward the capability to the Client.
+The Client is now able to use the capability to start a session with Service.
+
+\medskip
+
+The Registrant should be further explained now.
+Often, the Registrant will be a human being, using for example the Android controller application to register with the Capability Service.
+When receiving a capability request, the mobile phone will notify the user by for example ringing or vibrating.
+As the user opens the request, he will now get a view detailing who asks for a capability, which service should be invoked and what the set of parameters is.
+He now has two buttons to either accept or reject the request, causing the mobile phone to establish the requested session and forward it to the Capability Service if it was accepted.
+
+But actually, human beings are just a special case of Registrants.
+Instead of a human receiving requests, a special controller may connect to a Capability Service which is connected to some source for actual access control policies.
+This controller will register and receive just the same as human Registrants would, but may automatically accept or reject requests based on the access control policy.
+
+In theory, these automated controllers can be as simple or complex as one can imagine.
+While a conventional user may have a controller allowing all his friends to connect to his home display, large enterprises could deploy controllers with distinguished policies based on information retrieved from Active Directory Domains Services.
+
+One more possible use case is where a user owns a long-term signature key which is too important for him to have on his mobile phone in order to connect to certain services.
+Instead, he may have a controller running at home with a Registrant connected owning the real long-term signature key.
+The user may now establish a policy where the Registrant will always accept requests from his mobile phone, so he is able to have a different long-term signature key on his mobile phone and still always establish sessions with his real identity.
+
+Currently, though, this specific use-case is a bit limited by the actual implementation, as the Registrant needs to be able to connect to the requested Service.
+In many cases, as stated before, this may not work due to firewalls or inaccessibility of the Service from the Registrant's network.
+To solve this problem, one can envision that the session establishment should be tunneled through the Capability Service, as well, instead of directly trying to connect to the Service.
+The connection between Service and Registrant would obviously still be encrypted so the Capability Service is not able to listen on anything these services are talking.
+In such a design, the Capability Service would completely proxy all traffic between Registrant, Client and Service withouth the Registrant talking to the Service or Client directly at all.
 
 \subsubsection{Xpra service}
 \label{sec:xpra-service}
