@@ -3,6 +3,42 @@
 \subsection{Services}
 \label{sec:services}
 
+\subsubsection{Invoke service}
+\label{sec:invoke-service}
+
+\begin{figure}[H]
+    \centering
+
+    \begin{sequencediagram}
+        \newthread{c}{Client}
+        \newinst[4]{s}{Service}
+        \newinst[4]{i}{Invoker}
+
+        \begin{call}{c}{Initiate(Parameters)}{s}{Service Session}
+            \begin{call}{s}{CreateSession()}{s}{Capability}
+            \end{call}
+        \end{call}
+
+        \postlevel
+
+        \begin{call}{c}{Initiate(ServiceSession)}{i}{Invoker Session}
+            \begin{call}{i}{CreateSession()}{i}{Capability}
+            \end{call}
+        \end{call}
+        \postlevel
+
+        \begin{messcall}{c}{Start}{i}
+            \begin{messcall}{i}{Start}{s}
+                \postlevel
+            \end{messcall}
+            \prelevel
+        \end{messcall}
+        \prelevel
+    \end{sequencediagram}
+
+    \caption{Invoke Service}
+\end{figure}
+
 \subsubsection{Capability service}
 \label{sec:capability-service}
 
@@ -41,42 +77,6 @@
 \end{figure}
 
 \lstinputlisting[caption=Capability Service Interface,label=src:capability-protos,float,floatplacement=h]{../../source/sd/proto/capabilities.proto}
-
-\subsubsection{Invoke service}
-\label{sec:invoke-service}
-
-\begin{figure}[H]
-    \centering
-
-    \begin{sequencediagram}
-        \newthread{c}{Client}
-        \newinst[4]{s}{Service}
-        \newinst[4]{i}{Invoker}
-
-        \begin{call}{c}{Initiate(Parameters)}{s}{Service Session}
-            \begin{call}{s}{CreateSession()}{s}{Capability}
-            \end{call}
-        \end{call}
-
-        \postlevel
-
-        \begin{call}{c}{Initiate(ServiceSession)}{i}{Invoker Session}
-            \begin{call}{i}{CreateSession()}{i}{Capability}
-            \end{call}
-        \end{call}
-        \postlevel
-
-        \begin{messcall}{c}{Start}{i}
-            \begin{messcall}{i}{Start}{s}
-                \postlevel
-            \end{messcall}
-            \prelevel
-        \end{messcall}
-        \prelevel
-    \end{sequencediagram}
-
-    \caption{Invoke Service}
-\end{figure}
 
 \subsubsection{Xpra service}
 \label{sec:xpra-service}
