@@ -3,6 +3,32 @@
 \subsection{Services}
 \label{sec:services}
 
+Next to the protocol as it has been specified in section \ref{sec:architecture}, all functionality provided by the server is implemented in terms of services.
+A service as such is a single unit providing usually providing a single functionality to users.
+
+In order to start using service, the user first has to establish a service session and then subsequently start using the session (see section \ref{sec:session-initiation} for more details).
+When establishing the service session, the user has to specify a set of parameters.
+These parameters are passed on to the service when the created session is started by the user and may influence its behavior.
+Assuming a shell service which provides the functionality to execute a program, the parameters may for example include which program to execute, what its parameters are and possibly environmental variables passed to the service.
+
+There are currently five exemplary services implemented:
+\begin{description}
+    \item[Invoke service]\hfill\\
+        Invoke services handle the use case where a user wants to execute a service on certain server hosting the invoke service.
+        This is used heavily when the Android controller application is used, which will usually not execute provided services itself but instead cause another server (which provides the invoke service) to start the service.
+    \item[Capability service]\hfill\\
+        Capability services handle the use case where a user wants to ask another user for the permission to execute a service in his name.
+    \item[Xpra service]\hfill\\
+        Xpra is a specific implementation of an X11 server session manager.
+        When applications are started in the Xpra server, it is possible to attach to this application on another computer and display the application on another screen.
+    \item[Synergy service]\hfill\\
+        Synergy handles forwarding of input devices, that is mouse and keyboard, to another computer.
+    \item[Execution service]\hfill\\
+        The execution service provides an interface to execute applications on a server.
+\end{description}
+
+We will now take a look at how these services actually work under the hood.
+
 \subsubsection{Invoke service}
 \label{sec:invoke-service}
 
