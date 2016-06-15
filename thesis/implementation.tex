@@ -712,6 +712,20 @@ Currently no such feature exists, but the block length is trivially changable at
 
 \subsubsection{Input latency}
 
+\begin{figure}[h]
+    \centering
+    \begin{tikzpicture}
+        \begin{axis}[ylabel=Input delay (in ms),xmode=log,ymax=1600,xlabel={Block length (logarithmic scale, in bytes)},xmax=7500]
+            \pgfplotsinvokeforeach {0, 2, 20} {
+                \addplot table [forget plot,x=pkglen,y=delay, col sep=comma,discard if not={latency}{#1}] {data/input.csv};
+                \addlegendentry {#1ms latency}
+                \addplot+[mark=none,xcomb,dashed] table [x expr=7500,y=delay, col sep=comma,discard if not={pkglen}{0},discard if not={latency}{#1}] {data/input.csv};
+            }
+        \end{axis}
+    \end{tikzpicture}
+    \caption{Input latency}
+\end{figure}
+
 \subsection{Development process}
 
 The complete software stack is split up into two major components, namely the server-side part and the controller application for Android.
