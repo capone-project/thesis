@@ -725,9 +725,27 @@ It may be desirable to make the block length configurable per service.
 Services usually know their communication patterns and can thus optimize for the respective scenario they require.
 Currently no such feature exists, but the block length is trivially changable at compile time and as such it would a small feat to make block lengths configurable at runtime.
 
-\subsubsection{Connection latency}
+\subsubsection{Connection establishment latency}
 
-\begin{figure}[h]
+The second benchmark involves connection establishment latency.
+When a client connects to servers, the first thing that is always performed is negotiation of an ephemeral key, which requires a total of three messages being exchanged between all parties.
+In this benchmark, we want to determine how the complete sequence of key negotiation performs under different networking settings and how this is influenced by different block lengths.
+
+To test the connection establishment process, we wrote a simple benchmarking utility.
+The utility consists of a client and a server thread, where the client repeatedly connects to the server, initiates the key exchange protocol and then disconnects again.
+The whole process is repeated 1000 times in order to increase the timing's validity.
+
+See figure \ref{fig:connection-establishment} for the results visualized as a graph and appendix \ref{sec:appendix-connection-establishment} for the bare timings.
+The horizontal axis displays the block length in bytes, that is what is size of the fixed-size blocks used to split messages by.
+The block length is measured in a logrithmic scale ranging from 64 bytes up to 4096 bytes.
+The vertical axis displays the overall time required for the complete connection establishment process in milliseconds.
+Each of the three graphs represents a networking condition with a different latency.
+
+Displayed is only the time required for the client to connect and initiate the algorithm, as the server has to perform the same steps without the initial connection establishment and only sends one of the three messages.
+So timings on the client side result in more interesting measurements.
+Appendix \ref{sec:appendix-connection-establishment} contains both client and server timings, though.
+
+\begin{figure}[t]
     \centering
     \begin{tikzpicture}
         \begin{axis}[ylabel=Connection time (in ms),xmode=log,xlabel={Block length (logarithmic scale, in bytes)}]
