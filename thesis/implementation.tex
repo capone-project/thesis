@@ -456,7 +456,41 @@ This is precise enough in order to make observations as we usually operate in th
 To increase reproducability on multi-core systems, both threads are fixed to a CPU core.
 This tries to minimize scheduling problems and interference with other programs.
 
-% TODO: describe latency framework
+\medskip
+
+All benchmarks were done with three different network settings in mind to actually show how the framework behaves in different use cases.
+These three settings involve same-host, local network and usage via the internet.
+
+How networks perform is dependend on various parameters.
+The most important ones include bandwith, packet delay, packet loss, packet duplication and packet reordering.
+These factors together determine how well networks perform under different loads.
+
+Packet loss, duplication and reordering are not tested in any benchmark as all operations except device discovery are done via the Transmission Control Protocol (TCP).
+The TCP stack already handles all these conditions transparently, so by testing these parameters we would in fact be benchmarking how well the TCP protocol behaves.
+Another reason is that these parameters can only be emulated via statistical distributions.
+In order to have reproducible results, we would have to greatly increase the scope of how long the framework is benchmarked to average out the effects of each of these parameters.
+
+Bandwith is not respected, as well.
+For the throughput benchmark, we obviously do not want to limit the available bandwith as we want to determine how much data we are able to process in a fixed amount of time and as such cannot restrict available bandwith.
+The other two tests on connection establishment and input latency are not limited by bandwith and as such it would be of no use to consider bandwith in here and thus complicate the benchmarking setup.
+
+The last parameter remaining is packet delay, that is how long does it take for a packet emitted from one host to arrive at another host.
+The different network scenarios all have different package delay characteristics.
+While same-host communication should be near-instant, that is all data sent is only delayed by the time the operating system requires to process data in the TCP/IP stack and by the framework, local area networks and the internet both induce a delay.
+For local area networks, which we define as computers which are connected to the same router via network cables in this context, we have chosen a packet delay of 2 milliseconds.
+For internet-based connections, we have chosen a packet delay of 20 milliseconds.
+
+Obviously, these delays are somewhat arbitrary as different networks have different latencies.
+Especially on connections via the internet, the delay can vary greatly based on location of both parties, quality of service and other factors.
+But as benchmarking results will show, these fixed delays are already able to show patterns in how the framework behaves.
+
+In order to test these different conditions the network emulation framework NetEm, which is part of the Linux kernel, has been utilized \cite{hemminger2005network}.
+NetEm is a framework developed by Hemminger in 2005 in order to benchmark applications under different networking conditions.
+It provides the means to modify how the traffic control engine in the Linux kernel behaves by providing the ability to put artificial packet delays, packet drops and more characteristics on single networking interfaces.
+
+In order to execute following benchmarks, all benchmarks connect via the loopback interface to a counterpart on the same host.
+The loopack interface has then been prepared to handle a certain scenario by putting a delay of 0, 2 or 20 milliseconds on the loopback interface.
+Like this, the tests become reproducible by not being reliant on external networking conditions and can be re-executed an arbitrary amount of time.
 
 \medskip
 
