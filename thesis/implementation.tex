@@ -759,24 +759,105 @@ Appendix \ref{sec:appendix-connection-establishment} contains both client and se
             \addlegendentry{20ms latency}
         \end{axis}
     \end{tikzpicture}
-    \caption{Connection latency}
+    \caption{Connection establishment latency}
+    \label{fig:connection-establishment}
 \end{figure}
+
+We can see that the computational overhead induced by encryption and exchange of the messages is near-negligible as without latency, we do not even reach 1ms of required time.
+So the graph for same-host communication seems uninteresting as no distinct features can be seen.
+In fact, though, there is a $5\%$ decrease in time required to do the initiation for block lengths of 64 bytes to block lengths of 256 bytes.
+Each message sent in the key exchange contains exactly 134 bytes, which surmounts to a total of 138 bytes including the package length and excluding encryption, which is not used in this step.
+As such, a block length of 256 bytes is the optimum block length of the block lengths exercised, as it is the first one able to fit all data in one message.
+
+Interestingly there is another increase in performance of around $4\%$ between block lengths of 256 bytes and 512 bytes, which cannot be explained by message splitting as both block lengths are sufficient.
+In fact, one would rather expect a decrease in performance as there is additional overhead required to send additional padding.
+As repeated benchmarks have resulted in the same results, it is unlikely that this is caused by measurement anomalies, even though we operate in microsecond-ranges.
+Up to now, we are unable to explain this behavior.
+
+For the other two graphs with 2 and 20 milliseconds of packet delay, the results are as one would expect.
+There is a harsh decrease of connection establishment time as soon as we exceed the size of messages sent.
+This improve in efficiency can be seen especially for 20ms of latency, as we effectively cut the blocks required in half and each block induces some latency.
+
+For both graphs with latency one can easily see that we have a connection establishment latency of the number of blocks sent multiplicated by the latency plus the latency induced by the initial connection to the server.
+Exceeding the sent message's size, this can be summarized by the formula $t = 4 \times l + c$, where $t$ is the time required for the complete connection establishment protocol, $l$ is the latency and $c$ is a sub-millisecond constant for calculations regarding key derival.
+
+For slow connections with a packet delay of up to 250ms we would still be able to perform connection establishment in around one second.
+Consedering that connection establishments are only performed at most three times for a service invocation (that is querying the service, creating a session and start the session), this should be sufficient.
 
 \subsubsection{Input latency}
 
-\begin{figure}[h]
+The last benchmark done aims to determine how the framework performs for interactive processes.
+The scenario is simple: given a user connected to a service forwarding its input to another server, how long does it take until an input event issued by the user to arrive at that server and be processed by the display server?
+
+The current implementation has a service providing input forwarding by using the Synergy protocol (see section \ref{sec:synergy-service} for more details on the implementation).
+So we want to perform benchmarks on how long it does take to forward input events via Synergy, ideally in different scenarios.
+We need a way to measure when a certain event is generated and when it arrives at the server.
+
+The X protocol is developed with no real security built in.
+While usually considered as a detriment to the X protocol as it becomes impossible to separate graphical applications and inputs from each other, it is of great benefit for us as we are able to utilize it to do these measurements.
+The idea is to create two framebuffers separated from each other, connect these framebuffers via Synergy, hook them up to receive events and then determine how long it does take when an event is generated in the first framebuffer to arrive in the second framebuffer
+
+The concrete implementation instantiates two X virtual frame buffers (Xvfb), which do not render to hardware but instead to virtual memory.
+We then connect these virtual framebuffers either directly by a Synergy client and server, or via the service framework tunneling Synergy's data.
+
+As the setup is complete, we want to be able to get timing information for generated and received events.
+For this, we have written a simple program which basically connects to both Xvfbs and tells these displays that it wishes to receive all input events generated and then monitors both sockets to the display for incoming events, calculating the delay between the event's generation and receive.
+
+One problem experienced is that in order to receive all events, we usually have to grab the input devices.
+As they often are already grabbed by e.g. a window manager or other X clients, we are unable to do so.
+To circumvent this problem, we instead use the XInput2 extension to the X protocol to receive all input events without the requirement to first grab devices and as such monitor all events without interfering with other X clients.
+
+The program also spawns another thread which has the task to generate input events.
+Instead of manually generating events by e.g. clicking the mouse (which becomes hard to do in virtual framebuffers), we use the XTest extension of the X protocol to generate a fixed amount of input events.
+On the receiving side, we now wait for all these input events to arrive and then stop the testing sequence.
+
+While testing it has been experienced that single X events may get dropped, leading us to block on receiving the missing events.
+A workaround employed by us is to generate a fixed amount of events, but waiting only on the first $x$ events to arrive and calculate the delay based on these events only.
+One more problem is that we do not match events with each other, that is we only monitor \emph{if} there are events arriving and not if these events are really the ones we have just generated.
+As we use virtual framebuffers, though, the likelihood that stray X events are generated in these is low if no other X clients are attached to them.
+
+Furthermore we have note that timings are very vague as with network connections, multiple virtual X servers and event generation there are a lot of variables, so we need to keep in mind that deviations are very likely.
+
+See appendix \ref{sec:appendix-input-latency} for bare results, figure \ref{fig:input-latency} shows the graphs resulting from the measurements.
+The horizontal axis displays the block lengths in a logarithmic scale in bytes, starting at 64 bytes and going up to 4096 bytes.
+The vertical axis displays the input delay in milliseconds, which is the total amount required to receive 1000 repeated clicks.
+The graphs represent measurements under different network conditions.
+
+One added detail are the three horizontal bars, where each of these bars corresponds to one latency based on its style.
+These bars mark the timings for input delay when the Synergy service and client are connected to each other without tunneling data through our service framework and should act as a reference.
+
+\begin{figure}[t]
     \centering
     \begin{tikzpicture}
         \begin{axis}[ylabel=Input delay (in ms),xmode=log,ymax=1600,xlabel={Block length (logarithmic scale, in bytes)},xmax=7500]
             \pgfplotsinvokeforeach {0, 2, 20} {
                 \addplot table [forget plot,x=pkglen,y=delay, col sep=comma,discard if not={latency}{#1}] {data/input.csv};
                 \addlegendentry {#1ms latency}
-                \addplot+[mark=none,xcomb,dashed] table [x expr=7500,y=delay, col sep=comma,discard if not={pkglen}{0},discard if not={latency}{#1}] {data/input.csv};
+                \addplot+[mark=none,xcomb] table [x expr=7500,y=delay, col sep=comma,discard if not={pkglen}{0},discard if not={latency}{#1}] {data/input.csv};
             }
         \end{axis}
     \end{tikzpicture}
     \caption{Input latency}
+    \label{fig:input-latency}
 \end{figure}
+
+% grep '^0' docs/thesis/data/input.csv | awk '{ split ($0, v, ","); if (NR == 1) { ref=v[3] } else { sum += v[3] } } END { print (sum / (NR - 1)) / ref }'
+
+In the scenario of same-host communication, our framework performs very close to the plain Synergy solution.
+But with increasing latency, the framework deviates more and starts to perform much noticably worse.
+While we only perform around $1\%$ worse than the reference value at 0ms and 2ms of latency, this increases to more than $5\%$ worse at 20ms of latency.
+The divergence is expected to grow worse for higher latencies.
+
+One more thing that can be seen for higher latencies is that there is a significant increase in input delay after satisfying the maximum transmission unit at block lengths of 1500 bytes.
+While this cannot be observed, for low latencies, this stands out for 20ms of latency.
+Input events do not carry a lot of information, as usually events can be expressed by a few bytes.
+So an application sending input events will usually only send very small packages and thus we get a high pentaly for sending blocks of a bigger size.
+
+It is clear that input forwarding applications do not have to optimize for throughput, but instead for latency, which is achieved by keeping messages small.
+This may hint that we need the ability for services to adapt the network channel used to send messages of optimal sizes.
+It is already possible to tune block lengths at runtime, but currently no protocol exists to notify a client or server of a change in block lengths.
+Currently, service implementations would need to change to block lengths on the basis that it knows the remote side will change its format, too.
+But after all, we might want to provide a more generic solution to this problem which might even be able to train the network link by observing latency and tune parameters accordingly.
 
 \subsection{Development process}
 
