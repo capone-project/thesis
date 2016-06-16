@@ -1,74 +1,121 @@
 \section{Benchmarking results}
 
+\clearpage
 \subsection{Throughput}
 \label{sec:appendix-throughput}
 
-\begin{sidewaystable}
+\begin{table}[H]
     \centering
     \footnotesize
-
-    \begin{tabular}{|c|c|c|c|}
+    \begin{tabular}{|c|c|c|}
         \hline
-        \bfseries Blocklen (bytes) & \bfseries Messagelen (bytes)  & \bfseries Plain throughput (s/MB) & \bfseries Encrypted throughput (s/MB)
-
+        \bfseries Block length (bytes) & \bfseries Message length (bytes) & \bfseries Throughput (unencrypted, MB/s)
         \csvreader[head to column names]{data/bench.csv}{}
-        {\\\hline \pkglen & \datalen & \tpplain & \tpenc }
+        {\\\hline \pkglen & \datalen & \tpplain }
         \\\hline
     \end{tabular}
+    \caption{Benchmarking results sending unencrypted messages without latency}
+\end{table}
 
-    \caption{Benchmarking results sending messages without latency}
-    \label{tab:benchmarking-sending-0ms}
-\end{sidewaystable}
-
-\begin{sidewaystable}
+\begin{table}[H]
     \centering
     \footnotesize
-
-    \begin{tabular}{|c|c|c|c|}
+    \begin{tabular}{|c|c|c|}
         \hline
-        \bfseries Blocklen (bytes) & \bfseries Messagelen (bytes)  & \bfseries Plain throughput (s/MB) & \bfseries Encrypted throughput (s/MB)
+        \bfseries Block length (bytes) & \bfseries Message length (bytes) & \bfseries Throughput (encrypted, MB/s)
+        \csvreader[head to column names]{data/bench.csv}{}
+        {\\\hline \pkglen & \datalen & \tpenc }
+        \\\hline
+    \end{tabular}
+    \caption{Benchmarking results sending encrypted messages without latency}
+\end{table}
 
+\begin{table}[H]
+    \centering
+    \footnotesize
+    \begin{tabular}{|c|c|c|}
+        \hline
+        \bfseries Blocklen (bytes) & \bfseries Messagelen (bytes) & \bfseries Throughput (unencrypted, MB/s)
         \csvreader[head to column names]{data/bench-2ms.csv}{}
-        {\\\hline \pkglen & \datalen & \tpplain & \tpenc }
+        {\\\hline \pkglen & \datalen & \tpplain }
         \\\hline
     \end{tabular}
+    \caption{Benchmarking results sending unencrypted messages with 2ms latency}
+\end{table}
 
-    \caption{Benchmarking results sending messages with 2ms latency}
-    \label{tab:benchmarking-sending-2ms}
-\end{sidewaystable}
-
-\begin{sidewaystable}
+\begin{table}[H]
     \centering
     \footnotesize
+    \begin{tabular}{|c|c|c|}
+        \hline
+        \bfseries Blocklen (bytes) & \bfseries Messagelen (bytes) & \bfseries Throughput (encrypted, MB/s)
+        \csvreader[head to column names]{data/bench-2ms.csv}{}
+        {\\\hline \pkglen & \datalen & \tpenc }
+        \\\hline
+    \end{tabular}
+    \caption{Benchmarking results sending encrypted messages with 2ms latency}
+\end{table}
 
+\begin{table}[H]
+    \centering
+    \footnotesize
     \begin{tabular}{|c|c|c|c|}
         \hline
-        \bfseries Blocklen (bytes) & \bfseries Messagelen (bytes)  & \bfseries Plain throughput (s/MB) & \bfseries Encrypted throughput (s/MB)
-
+        \bfseries Blocklen (bytes) & \bfseries Messagelen (bytes)  & \bfseries Throughput (unencrypted, MB/s)
         \csvreader[head to column names]{data/bench.csv}{}
-        {\\\hline \pkglen & \datalen & \tpplain & \tpenc }
+        {\\\hline \pkglen & \datalen & \tpplain }
         \\\hline
     \end{tabular}
+    \caption{Benchmarking results sending unencrypted messages with 20ms latency}
+\end{table}
 
-    \caption{Benchmarking results sending messages with 20ms latency}
-    \label{tab:benchmarking-sending-20ms}
-\end{sidewaystable}
-
-\subsection{Latency}
-
-\begin{table}
+\begin{table}[H]
     \centering
     \footnotesize
+    \begin{tabular}{|c|c|c|}
+        \hline
+        \bfseries Blocklen (bytes) & \bfseries Messagelen (bytes)  & \bfseries Throughput (encrypted, MB/s)
+        \csvreader[head to column names]{data/bench.csv}{}
+        {\\\hline \pkglen & \datalen & \tpenc }
+        \\\hline
+    \end{tabular}
+    \caption{Benchmarking results sending messages with 20ms latency}
+\end{table}
 
+\clearpage
+
+\subsection{Connection establishment latency}
+\label{sec:appendix-connection-establishment}
+
+\begin{table}[H]
+    \centering
+    \footnotesize
     \begin{tabular}{|c|c|c|c|}
         \hline
-        \bfseries Blocklen (bytes) & \bfseries Latency (in ms) & \bfseries Client time (in ms) & \bfseries Server time (in ms)
-
+        \bfseries Block length (bytes) & \bfseries Latency (in ms) & \bfseries Client time (in ms) & \bfseries Server time (in ms)
         \csvreader[head to column names]{data/latency.csv}{}
         {\\\hline \pkglen & \latency & \connect & \await }
         \\\hline
     \end{tabular}
-    \caption{Traffic shaping scenarios}
+    \caption{Benchmarking results for connection establishment latency}
+\end{table}
+
+\clearpage
+
+\subsection{Input latency}
+\label{sec:appendix-input-latency}
+
+\begin{table}[H]
+    \centering
+    \footnotesize
+    \begin{tabular}{|c|c|c|}
+        \hline
+        \bfseries Block length (bytes) & \bfseries Latency (in ms) & \bfseries Delay (in ms)
+        \csvreader[head to column names]{data/input.csv}{}
+        {\\\hline \pkglen & \latency & \delay }
+        \\\hline
+    \end{tabular}
+    \caption{Benchmarking results for input delay}
 \end{table}
 
 % vim: ft=tex tw=0
