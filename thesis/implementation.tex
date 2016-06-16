@@ -456,7 +456,41 @@ This is precise enough in order to make observations as we usually operate in th
 To increase reproducability on multi-core systems, both threads are fixed to a CPU core.
 This tries to minimize scheduling problems and interference with other programs.
 
-% TODO: describe latency framework
+\medskip
+
+All benchmarks were done with three different network settings in mind to actually show how the framework behaves in different use cases.
+These three settings involve same-host, local network and usage via the internet.
+
+How networks perform is dependend on various parameters.
+The most important ones include bandwith, packet delay, packet loss, packet duplication and packet reordering.
+These factors together determine how well networks perform under different loads.
+
+Packet loss, duplication and reordering are not tested in any benchmark as all operations except device discovery are done via the Transmission Control Protocol (TCP).
+The TCP stack already handles all these conditions transparently, so by testing these parameters we would in fact be benchmarking how well the TCP protocol behaves.
+Another reason is that these parameters can only be emulated via statistical distributions.
+In order to have reproducible results, we would have to greatly increase the scope of how long the framework is benchmarked to average out the effects of each of these parameters.
+
+Bandwith is not respected, as well.
+For the throughput benchmark, we obviously do not want to limit the available bandwith as we want to determine how much data we are able to process in a fixed amount of time and as such cannot restrict available bandwith.
+The other two tests on connection establishment and input latency are not limited by bandwith and as such it would be of no use to consider bandwith in here and thus complicate the benchmarking setup.
+
+The last parameter remaining is packet delay, that is how long does it take for a packet emitted from one host to arrive at another host.
+The different network scenarios all have different package delay characteristics.
+While same-host communication should be near-instant, that is all data sent is only delayed by the time the operating system requires to process data in the TCP/IP stack and by the framework, local area networks and the internet both induce a delay.
+For local area networks, which we define as computers which are connected to the same router via network cables in this context, we have chosen a packet delay of 2 milliseconds.
+For internet-based connections, we have chosen a packet delay of 20 milliseconds.
+
+Obviously, these delays are somewhat arbitrary as different networks have different latencies.
+Especially on connections via the internet, the delay can vary greatly based on location of both parties, quality of service and other factors.
+But as benchmarking results will show, these fixed delays are already able to show patterns in how the framework behaves.
+
+In order to test these different conditions the network emulation framework NetEm, which is part of the Linux kernel, has been utilized \cite{hemminger2005network}.
+NetEm is a framework developed by Hemminger in 2005 in order to benchmark applications under different networking conditions.
+It provides the means to modify how the traffic control engine in the Linux kernel behaves by providing the ability to put artificial packet delays, packet drops and more characteristics on single networking interfaces.
+
+In order to execute following benchmarks, all benchmarks connect via the loopback interface to a counterpart on the same host.
+The loopack interface has then been prepared to handle a certain scenario by putting a delay of 0, 2 or 20 milliseconds on the loopback interface.
+Like this, the tests become reproducible by not being reliant on external networking conditions and can be re-executed an arbitrary amount of time.
 
 \medskip
 
@@ -691,9 +725,27 @@ It may be desirable to make the block length configurable per service.
 Services usually know their communication patterns and can thus optimize for the respective scenario they require.
 Currently no such feature exists, but the block length is trivially changable at compile time and as such it would a small feat to make block lengths configurable at runtime.
 
-\subsubsection{Connection latency}
+\subsubsection{Connection establishment latency}
 
-\begin{figure}[h]
+The second benchmark involves connection establishment latency.
+When a client connects to servers, the first thing that is always performed is negotiation of an ephemeral key, which requires a total of three messages being exchanged between all parties.
+In this benchmark, we want to determine how the complete sequence of key negotiation performs under different networking settings and how this is influenced by different block lengths.
+
+To test the connection establishment process, we wrote a simple benchmarking utility.
+The utility consists of a client and a server thread, where the client repeatedly connects to the server, initiates the key exchange protocol and then disconnects again.
+The whole process is repeated 1000 times in order to increase the timing's validity.
+
+See figure \ref{fig:connection-establishment} for the results visualized as a graph and appendix \ref{sec:appendix-connection-establishment} for the bare timings.
+The horizontal axis displays the block length in bytes, that is what is size of the fixed-size blocks used to split messages by.
+The block length is measured in a logrithmic scale ranging from 64 bytes up to 4096 bytes.
+The vertical axis displays the overall time required for the complete connection establishment process in milliseconds.
+Each of the three graphs represents a networking condition with a different latency.
+
+Displayed is only the time required for the client to connect and initiate the algorithm, as the server has to perform the same steps without the initial connection establishment and only sends one of the three messages.
+So timings on the client side result in more interesting measurements.
+Appendix \ref{sec:appendix-connection-establishment} contains both client and server timings, though.
+
+\begin{figure}[t]
     \centering
     \begin{tikzpicture}
         \begin{axis}[ylabel=Connection time (in ms),xmode=log,xlabel={Block length (logarithmic scale, in bytes)}]
@@ -707,10 +759,105 @@ Currently no such feature exists, but the block length is trivially changable at
             \addlegendentry{20ms latency}
         \end{axis}
     \end{tikzpicture}
-    \caption{Connection latency}
+    \caption{Connection establishment latency}
+    \label{fig:connection-establishment}
 \end{figure}
 
+We can see that the computational overhead induced by encryption and exchange of the messages is near-negligible as without latency, we do not even reach 1ms of required time.
+So the graph for same-host communication seems uninteresting as no distinct features can be seen.
+In fact, though, there is a $5\%$ decrease in time required to do the initiation for block lengths of 64 bytes to block lengths of 256 bytes.
+Each message sent in the key exchange contains exactly 134 bytes, which surmounts to a total of 138 bytes including the package length and excluding encryption, which is not used in this step.
+As such, a block length of 256 bytes is the optimum block length of the block lengths exercised, as it is the first one able to fit all data in one message.
+
+Interestingly there is another increase in performance of around $4\%$ between block lengths of 256 bytes and 512 bytes, which cannot be explained by message splitting as both block lengths are sufficient.
+In fact, one would rather expect a decrease in performance as there is additional overhead required to send additional padding.
+As repeated benchmarks have resulted in the same results, it is unlikely that this is caused by measurement anomalies, even though we operate in microsecond-ranges.
+Up to now, we are unable to explain this behavior.
+
+For the other two graphs with 2 and 20 milliseconds of packet delay, the results are as one would expect.
+There is a harsh decrease of connection establishment time as soon as we exceed the size of messages sent.
+This improve in efficiency can be seen especially for 20ms of latency, as we effectively cut the blocks required in half and each block induces some latency.
+
+For both graphs with latency one can easily see that we have a connection establishment latency of the number of blocks sent multiplicated by the latency plus the latency induced by the initial connection to the server.
+Exceeding the sent message's size, this can be summarized by the formula $t = 4 \times l + c$, where $t$ is the time required for the complete connection establishment protocol, $l$ is the latency and $c$ is a sub-millisecond constant for calculations regarding key derival.
+
+For slow connections with a packet delay of up to 250ms we would still be able to perform connection establishment in around one second.
+Consedering that connection establishments are only performed at most three times for a service invocation (that is querying the service, creating a session and start the session), this should be sufficient.
+
 \subsubsection{Input latency}
+
+The last benchmark done aims to determine how the framework performs for interactive processes.
+The scenario is simple: given a user connected to a service forwarding its input to another server, how long does it take until an input event issued by the user to arrive at that server and be processed by the display server?
+
+The current implementation has a service providing input forwarding by using the Synergy protocol (see section \ref{sec:synergy-service} for more details on the implementation).
+So we want to perform benchmarks on how long it does take to forward input events via Synergy, ideally in different scenarios.
+We need a way to measure when a certain event is generated and when it arrives at the server.
+
+The X protocol is developed with no real security built in.
+While usually considered as a detriment to the X protocol as it becomes impossible to separate graphical applications and inputs from each other, it is of great benefit for us as we are able to utilize it to do these measurements.
+The idea is to create two framebuffers separated from each other, connect these framebuffers via Synergy, hook them up to receive events and then determine how long it does take when an event is generated in the first framebuffer to arrive in the second framebuffer
+
+The concrete implementation instantiates two X virtual frame buffers (Xvfb), which do not render to hardware but instead to virtual memory.
+We then connect these virtual framebuffers either directly by a Synergy client and server, or via the service framework tunneling Synergy's data.
+
+As the setup is complete, we want to be able to get timing information for generated and received events.
+For this, we have written a simple program which basically connects to both Xvfbs and tells these displays that it wishes to receive all input events generated and then monitors both sockets to the display for incoming events, calculating the delay between the event's generation and receive.
+
+One problem experienced is that in order to receive all events, we usually have to grab the input devices.
+As they often are already grabbed by e.g. a window manager or other X clients, we are unable to do so.
+To circumvent this problem, we instead use the XInput2 extension to the X protocol to receive all input events without the requirement to first grab devices and as such monitor all events without interfering with other X clients.
+
+The program also spawns another thread which has the task to generate input events.
+Instead of manually generating events by e.g. clicking the mouse (which becomes hard to do in virtual framebuffers), we use the XTest extension of the X protocol to generate a fixed amount of input events.
+On the receiving side, we now wait for all these input events to arrive and then stop the testing sequence.
+
+While testing it has been experienced that single X events may get dropped, leading us to block on receiving the missing events.
+A workaround employed by us is to generate a fixed amount of events, but waiting only on the first $x$ events to arrive and calculate the delay based on these events only.
+One more problem is that we do not match events with each other, that is we only monitor \emph{if} there are events arriving and not if these events are really the ones we have just generated.
+As we use virtual framebuffers, though, the likelihood that stray X events are generated in these is low if no other X clients are attached to them.
+
+Furthermore we have note that timings are very vague as with network connections, multiple virtual X servers and event generation there are a lot of variables, so we need to keep in mind that deviations are very likely.
+
+See appendix \ref{sec:appendix-input-latency} for bare results, figure \ref{fig:input-latency} shows the graphs resulting from the measurements.
+The horizontal axis displays the block lengths in a logarithmic scale in bytes, starting at 64 bytes and going up to 4096 bytes.
+The vertical axis displays the input delay in milliseconds, which is the total amount required to receive 1000 repeated clicks.
+The graphs represent measurements under different network conditions.
+
+One added detail are the three horizontal bars, where each of these bars corresponds to one latency based on its style.
+These bars mark the timings for input delay when the Synergy service and client are connected to each other without tunneling data through our service framework and should act as a reference.
+
+\begin{figure}[t]
+    \centering
+    \begin{tikzpicture}
+        \begin{axis}[ylabel=Input delay (in ms),xmode=log,ymax=1600,xlabel={Block length (logarithmic scale, in bytes)},xmax=7500]
+            \pgfplotsinvokeforeach {0, 2, 20} {
+                \addplot table [forget plot,x=pkglen,y=delay, col sep=comma,discard if not={latency}{#1}] {data/input.csv};
+                \addlegendentry {#1ms latency}
+                \addplot+[mark=none,xcomb] table [x expr=7500,y=delay, col sep=comma,discard if not={pkglen}{0},discard if not={latency}{#1}] {data/input.csv};
+            }
+        \end{axis}
+    \end{tikzpicture}
+    \caption{Input latency}
+    \label{fig:input-latency}
+\end{figure}
+
+% grep '^0' docs/thesis/data/input.csv | awk '{ split ($0, v, ","); if (NR == 1) { ref=v[3] } else { sum += v[3] } } END { print (sum / (NR - 1)) / ref }'
+
+In the scenario of same-host communication, our framework performs very close to the plain Synergy solution.
+But with increasing latency, the framework deviates more and starts to perform much noticably worse.
+While we only perform around $1\%$ worse than the reference value at 0ms and 2ms of latency, this increases to more than $5\%$ worse at 20ms of latency.
+The divergence is expected to grow worse for higher latencies.
+
+One more thing that can be seen for higher latencies is that there is a significant increase in input delay after satisfying the maximum transmission unit at block lengths of 1500 bytes.
+While this cannot be observed, for low latencies, this stands out for 20ms of latency.
+Input events do not carry a lot of information, as usually events can be expressed by a few bytes.
+So an application sending input events will usually only send very small packages and thus we get a high pentaly for sending blocks of a bigger size.
+
+It is clear that input forwarding applications do not have to optimize for throughput, but instead for latency, which is achieved by keeping messages small.
+This may hint that we need the ability for services to adapt the network channel used to send messages of optimal sizes.
+It is already possible to tune block lengths at runtime, but currently no protocol exists to notify a client or server of a change in block lengths.
+Currently, service implementations would need to change to block lengths on the basis that it knows the remote side will change its format, too.
+But after all, we might want to provide a more generic solution to this problem which might even be able to train the network link by observing latency and tune parameters accordingly.
 
 \subsection{Development process}
 
