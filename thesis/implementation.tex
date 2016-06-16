@@ -27,7 +27,39 @@ There are currently five exemplary services implemented:
         The execution service provides an interface to execute applications on a server.
 \end{description}
 
-We will now take a look at how these services actually work under the hood.
+The current interface how service plugins are instantiated is very simple.
+Each service has a set of functions to retrieve metadata on the service or to handle the connection to a server or from a client.
+The aim of this design is to have services pluggable in the future, that is we want to have a true plugin-based approach.
+
+Currently, all services are statically linked into the server's and client's executable.
+But when a clean interface exists to separate each service from the main executable, we are later able to cut out these services and dynamically link them in as shared object later on, so that they can be linked on-demand.
+This keeps the server lean in such a way that it only implements core functionality while still being extendable.
+
+Being extendable and being able to only link to a certain set of service objects at runtime is of importance for cross-plattform functionality.
+Not every services may be available on all plattforms, e.g. when services link against the X server they might not easily be available on Windows.
+In order to avoid having to handle all plugins conditionally of the build platform in the sourcecode itself, we could easily extend the build system to build only a certain set of services.
+In addition, it would become simpler for third-party developers to create and tie in additional services.
+
+\medskip
+
+To guarantee a working plugin system we have to have a working plugin-interface, though.
+The current service interface consists of the following functions:
+\begin{itemize}
+    \item An init function initializing the plugin
+    \item A function reporting the service's version
+    \item A function reporting parameters the service may be invoked with
+    \item A handler function which handles the server side of a session
+    \item An invoke function which handles the client side of a session
+\end{itemize}
+
+The heart of each plugin is contained in the \lstinline{handler} and \lstinline{invoke} functions.
+When a client wants to execute a service and the service session has been started, the client's executable will execute the \lstinline{invoke} function of the service plugin, receiving the channel and the client's configuration as arguments.
+It will then perform all service-specific actions and communicate with the remote side via the channel, which transparently handles encryption.
+
+The \lstinline{handle} function is the counterpart to \lstinline{invoke}.
+Upon a client connecting to a server and starting a session, the server will execute \lstinline{handle} for the respective plugin, passing in the session with its parameters as well as the channel connected to the client.
+
+It remains to be seen if this interface design is sufficient to handle different use-cases required by different service plugins.
 
 \subsubsection{Invoke service}
 \label{sec:invoke-service}
