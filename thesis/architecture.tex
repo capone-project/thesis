@@ -24,7 +24,7 @@ Let us first define the terms.
 
 We will now take a look at the actual process how a single client will proceed if it wants to invoke a certain set of services (see figure \ref{fig:overview}).
 
-\begin{figure}[H]
+\begin{figure}[t]
     \centering
 
     \begin{tikzpicture}[
@@ -762,5 +762,26 @@ Starting the session is done with a SessionInitiationMessage, which contains onl
 
 Due to the two-phase capability based structure we are able to implement several use cases without compromising security of the user giving access to third parties, given the actual service is implemented in a secure way.
 We will detail these building blocks in the next section.
+
+\subsubsection{Termination}
+
+In most cases, sessions will be invoked right after they are created by the session creator.
+Sometimes, though, sessions will be created but not directly invoked after creation.
+Assuming session creator and invoker are the same, this is no problem: the creator will simply throw away the session identifier and thus never use the capability associated with it.
+In certain scenarios, this is not desirable, though.
+First, users may wish to explicitly delete sessions they have just created as they know they are never going to invoke the session or because the creator specified parameters which, on second though, he deems to contain sensitive information he at least wants to remove from the server right now.
+
+One solution to this problem would be to simply invoke the session and then immediately terminate it again.
+As sessions are immediately removed from the pool of established sessions after starting the session, it will be discarded from the service without actually using the session's service.
+But imagine a session creator has just created a new session where he himself is not the session's invoker.
+Despite being unclean in its design to simply invoke and immediately disconnect from the service, in this case it would be impossible for the session creator to invoke the capability at all, as he is not the invoker.
+
+The implementation of this use-case is realized by another end-point which has been added to the protocol through which one is able to terminate sessions and the associated capabilities.
+A client may initiate a new connection with a service, telling the service it wants to invoke the session-termination end-point, and then send a termination message to the server.
+The termination message contains the session identifier and the invoker of the session that is to be terminated.
+It is necessary to also specify an invoker as the server currently has no guarantees about session identifier being unique on a global level but only in combination with the invoker's identity.
+
+The server will now search all established sessions if there is any session matching the session creator, which has to match the termination requester's identity, as well as the session identifier and session invoker specified in the termination message.
+If such a session is found, it will immediately be removed and the capability is rendered invalid.
 
 % vim: ft=tex tw=0
