@@ -861,7 +861,7 @@ These bars mark the timings for input delay when the Synergy service and client 
 \begin{figure}[t]
     \centering
     \begin{tikzpicture}
-        \begin{axis}[ylabel=Input delay (in ms),xmode=log,ymax=1600,xlabel={Block length (logarithmic scale, in bytes)},xmax=7500]
+        \begin{axis}[ylabel=Input delay (in ms),xmode=log,ymax=1450,xlabel={Block length (logarithmic scale, in bytes)},xmax=7500]
             \pgfplotsinvokeforeach {0, 2, 20} {
                 \addplot table [forget plot,x=pkglen,y=delay, col sep=comma,discard if not={latency}{#1}] {data/input.csv};
                 \addlegendentry {#1ms latency}
@@ -876,20 +876,23 @@ These bars mark the timings for input delay when the Synergy service and client 
 % grep '^0' docs/thesis/data/input.csv | awk '{ split ($0, v, ","); if (NR == 1) { ref=v[3] } else { sum += v[3] } } END { print (sum / (NR - 1)) / ref }'
 
 In the scenario of same-host communication, our framework performs very close to the plain Synergy solution.
-But with increasing latency, the framework deviates more and starts to perform much noticably worse.
-While we only perform around $1\%$ worse than the reference value at 0ms and 2ms of latency, this increases to more than $5\%$ worse at 20ms of latency.
+But as latency raises, using the service framework puts an increasing penalty on input latency.
+While we cannot observe a statistically significant difference between using the service and plain Synergy on same-host communication, we perform around $1\%$ worse than the reference value at 2ms of latency, which increases to around $6\%$ worse at 20ms of latency compared to the reference value.
 The divergence is expected to grow worse for higher latencies.
 
-One more thing that can be seen for higher latencies is that there is a significant increase in input delay after satisfying the maximum transmission unit at block lengths of 1500 bytes.
-While this cannot be observed, for low latencies, this stands out for 20ms of latency.
-Input events do not carry a lot of information, as usually events can be expressed by a few bytes.
-So an application sending input events will usually only send very small packages and thus we get a high pentaly for sending blocks of a bigger size.
+Interestingly, block lengths do not have any impact for these benchmarks.
+In more constrained environments where bandwidth is limited this changes so that with increasing block lengths, the input delay will increase the more input events are sent.
+E.g. assuming a maximum bandwidth of 100kbit/s, input events would be limited to a maximum of 25 events when we have a block length of 4096.
+While enough for simple clicks or key strokes, mouse movement will be impacted.
 
-It is clear that input forwarding applications do not have to optimize for throughput, but instead for latency, which is achieved by keeping messages small.
-This may hint that we need the ability for services to adapt the network channel used to send messages of optimal sizes.
-It is already possible to tune block lengths at runtime, but currently no protocol exists to notify a client or server of a change in block lengths.
-Currently, service implementations would need to change to block lengths on the basis that it knows the remote side will change its format, too.
-But after all, we might want to provide a more generic solution to this problem which might even be able to train the network link by observing latency and tune parameters accordingly.
+This observation makes a case for small block lengths for interactive services.
+But as small block lengths have an impact on services which require high throughput instead of low latency we have a direct contradiction.
+One obvious solution is to adjust block lengths for different services.
+While it is already possible to adjust block lengths for a single communication channel, no service currently does this but instead they currently use the default configuration of 512 bytes.
+
+It would be trivial to adjust block lengths when a service starts handling a session's channel when both client and server simply set block lengths based on what service type is invoked.
+More complicated solutions could have some kind of link negotiation between client and server where both parties could settle for a common block length.
+A link negotiation would also enable to accomodate for different networking settings, where there is a training phase where both parties test the connection and afterwards settle on a block length based on gained knowledge and the service type that is to be used.
 
 \subsection{Development process}
 
