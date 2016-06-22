@@ -1,30 +1,36 @@
 \section{Introduction}
 
-In recent years it has become obvious that the power of global adversaries which are able to attack the information technologies infrastructure in significant ways is much greater than many have thought.
-The most important sources indicating the vast capabilities of foreign intelligence services like the NSA or GCHQ are documents leaked by Edward Snowden, starting in 2013 (SOURCE).
-Those documents draw a picture of a global surveillance network built primarily by the National Security Agency which is able to intercept, collect and analyze a significant portion of the global communications network.
+\begin{quote}
+    The most profound technologies are those that disappear.
+    They weave themselves into the fabric of everyday life until they are indistinguishable from it. \cite{weiser1991computer}
+\end{quote}
 
-But besides acting on the layer of informations flowing through cables, these agencies quite regularly act on the physical layer, as well.
-The agencies have the ability to intercept hardware ordered by certain individuals and modify it such that it is possible to monitor these devices withouth the target knowing.
-This may include tampering with device firmware such that certain programs may collect and dispatch ongoing events in the hardware system or attaching additional devices like microchips to the device.
-Nowadays it is next to impossible to detect those modifications when the individual is not aware that he might be spied upon.
+The above quote is how Mark Weiser introduces his paper on how he imagines the computer of the 21st century.
+The computer is about to disappear, become our go-to technology for many different things without even noticing that we are acutally using a computer.
+Nowadays many see this paper as a vision for how computing should work: integrate all everyday-objects like fridges, watches or even light bulbs with computers and orchestrate them all together using a simple interface.
+This is how the Internet of Things is envisioned.
 
-The latter scenario makes clear an important design flaw in modern personal computing systems.
-That is, many devices enjoy unrestrained access to the complete architecture, including main memory and other system busses, making it trivial for hardware to monitor what is going on in a system.
-As such, we do have to trust every connected hardware device like e.g. graphics cards to not include hostile components and thus compromise our system.
+But are we even close to this vision?
+Every month, there are new devices announced which are able to communicate via the internet and be remote-controlled by people.
+But with most devices, there is a recurring theme: these devices are insecure, have no real authentication or even encryption.
 
-Despite the security aspect there is also the aspect of malfunctioning devices.
-When device firmware is being buggy it is possible that the malfunctioning device may corrupt the system's state and thus lead to the system malbehaving or crashing.
-\\\\
-In this thesis we will develop a countermeasure to the ability of hardware devices having access to the full system.
-Instead of directly connecting untrusted hardware devices to the busses, we will develop a protocol such that we are able to connect devices via a networking interface with the system.
-As such the only interface that is used to connect to systems is the networking interface card.
+But we do not even have to look as far as ``Internet of Things''-enabled devices.
+In his seminal paper, Mark Weiser goes on to talk about how devices seamlessly integrate with each other.
+But as of today, we are not even able to easily handle interconnectivity for the most basic of tasks: just try to transfer a simple file from a computer with one operating system to another computer with a different operating systems or display a graphical application on the screen of a colleague.
+So when even those simple tasks are not trivial to do, one can argue that we are far away from the Internet of Things as imagined by Mark Weiser.
 
-As such we are now able to build a minimal system with only the most important devices like the CPU, main memory and the networking interface card.
-Every other extension to the system will then communicate via a device-type specific protocols that may be verified on the host system.
+The aim of this thesis is to develop a protocol which enables more seamless integration between devices.
+Given a set of devices, each device shall be able to host a set of services each providing a certain functionality.
+Other devices shall be able to bind to these services and use their provided functionality.
+But most importantly, we want the binding process to be as hassle-free as possible for the user.
 
-In order to get a working system we require a service that has to handle events when new devices are connected or disconnected to the system.
-This matchmaking service will have to determine if the connected device is supported and associate the respective drivers to the device.
-Furthermore there might be several security concerns which will need to be handled by the matchmaker.
+Given that smart phones are as ubiquitous as they are today, they become a natural match in guiding this process:
+a user should be able to simply connect his home server with the display at work by pressing a button on his smart phone, where the complete setup following the button press is done by the service framework.
+
+One of the most important aspects is to have the framework do its work in a way such that every action is fully authenticated and encrypted.
+No entity shall be able to talk to any service for which he has no access rights and no adversary shall be able to gain knowledge about what an entity and the services its connect to are transmitting.
+
+In order to fulfill these requirements, we develop a protocol based on public keys and capabilities.
+The permission to interact with a service is granted when an entity with a certain public key possesses the capability to access that service.
 
 % vim: ft=tex tw=0
