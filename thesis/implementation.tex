@@ -35,9 +35,9 @@ Currently, all services are statically linked into the server's and client's exe
 But when a clean interface exists to separate each service from the main executable, we are later able to cut out these services and dynamically link them in as shared object later on, so that they can be linked on-demand.
 This keeps the server lean in such a way that it only implements core functionality while still being extendable.
 
-Being extendable and being able to only link to a certain set of service objects at runtime is of importance for cross-plattform functionality.
-Not every services may be available on all plattforms, e.g. when services link against the X server they might not easily be available on Windows.
-In order to avoid having to handle all plugins conditionally of the build platform in the sourcecode itself, we could easily extend the build system to build only a certain set of services.
+Being extendable and being able to only link to a certain set of service objects at runtime is of importance for cross-platform functionality.
+Not every services may be available on all platform, e.g. when services link against the X server they might not easily be available on Windows.
+In order to avoid having to handle all plugins conditionally of the build platform in the source code itself, we could easily extend the build system to build only a certain set of services.
 In addition, it would become simpler for third-party developers to create and tie in additional services.
 
 \medskip
@@ -135,7 +135,7 @@ The following functions are used in the diagram:
 \end{figure}
 
 On first sight, the order of session establishment may seem a bit puzzling, as the Service session is created before the Invoker session is being created.
-But actually this results out of the protocol's design: no entity is able to create a session in in name of another entity when it does not know about the other entity's long term signature key.
+But actually this results out of the protocol's design: no entity is able to create a session in name of another entity when it does not know about the other entity's long term signature key.
 As the Client wants to create a session which can be started by the Invoker, he will have to create a new capability which he owns but which the Invoker may use.
 
 This use case is exactly why capabilities differentiate between their owners and their invokers:
@@ -154,7 +154,7 @@ When the Invoker session has been created, Client starts it, causing the Invoker
 \subsubsection{Capability service}
 \label{sec:capability-service}
 
-The capability service solves the use case wher an entity desires the ability to invoke a service in the name of another service.
+The capability service solves the use case where an entity desires the ability to invoke a service in the name of another service.
 That is it is the direct contrary to the invoke service, which can be used to push a capability to an invoker, in that the capability service pulls a capability from another entity.
 
 Ideally, the capability service would not be required at all but instead, a requester would just directly ask another entity for permissions to execute a certain service.
@@ -167,7 +167,7 @@ In fact the service does nothing more than allow entities to register themselves
 So it can be regarded as some kind of proxy service.
 
 There are four participating entities which we will now define.
-As before, we will subsequently refer to these entities by uppercasing the first letter.
+As before, we will subsequently refer to these entities by upper-casing the first letter.
 \begin{description}
     \item[Client]\hfill\\
         The Client wishes to connect to the Service in the name of Registrant.
@@ -294,7 +294,7 @@ Currently, though, this specific use-case is a bit limited by the actual impleme
 In many cases, as stated before, this may not work due to firewalls or inaccessibility of the Service from the Registrant's network.
 To solve this problem, one can envision that the session establishment should be tunneled through the Capability Service, as well, instead of directly trying to connect to the Service.
 The connection between Service and Registrant would obviously still be encrypted so the Capability Service is not able to listen on anything these services are talking.
-In such a design, the Capability Service would completely proxy all traffic between Registrant, Client and Service withouth the Registrant talking to the Service or Client directly at all.
+In such a design, the Capability Service would completely proxy all traffic between Registrant, Client and Service without the Registrant talking to the Service or Client directly at all.
 
 \subsubsection{Execution service}
 \label{sec:exec-service}
@@ -319,7 +319,7 @@ Xvfb is a technology where framebuffers are created which are not actually rende
 These virtual framebuffers can then be attached to by an Xpra client which will subsequently receive graphic updates and render these to the display.
 
 Xpra was chosen as the display technology as it is very flexible in how it works.
-Besides having cross-plattform support for Windows, Linux and OS X, it is also capabable of driving the communication between server and client with different encodings.
+Besides having cross-platform support for Windows, Linux and OS X, it is also capable of driving the communication between server and client with different encodings.
 While it usually uses Portable Network Graphics (PNG) as encoding, it is also able to use the video codec H264 as encoding.
 As such it is not only suitable to remotely display typical office desktops with text applications, but it is also able to stream graphically heavy applications like video players.
 
@@ -426,7 +426,7 @@ As soon as the Xpra server accepts the connection, he will forward data between 
 \label{sec:synergy-service}
 
 The Synergy service is an implementation of a mouse and keyboard sharing application.
-It provides cross-plattform support for Windows, Linux and OS X.
+It provides cross-platform support for Windows, Linux and OS X.
 
 The service actually works nearly the same as the Xpra service and thus is not described in detail.
 On client-side, the Synergy server is started which will handle capturing and forwarding mouse and keyboard input.
@@ -493,8 +493,8 @@ This tries to minimize scheduling problems and interference with other programs.
 All benchmarks were done with three different network settings in mind to actually show how the framework behaves in different use cases.
 These three settings involve same-host, local network and usage via the internet.
 
-How networks perform is dependend on various parameters.
-The most important ones include bandwith, packet delay, packet loss, packet duplication and packet reordering.
+How networks perform is dependent on various parameters.
+The most important ones include bandwidth, packet delay, packet loss, packet duplication and packet reordering.
 These factors together determine how well networks perform under different loads.
 
 Packet loss, duplication and reordering are not tested in any benchmark as all operations except device discovery are done via the Transmission Control Protocol (TCP).
@@ -502,9 +502,9 @@ The TCP stack already handles all these conditions transparently, so by testing 
 Another reason is that these parameters can only be emulated via statistical distributions.
 In order to have reproducible results, we would have to greatly increase the scope of how long the framework is benchmarked to average out the effects of each of these parameters.
 
-Bandwith is not respected, as well.
-For the throughput benchmark, we obviously do not want to limit the available bandwith as we want to determine how much data we are able to process in a fixed amount of time and as such cannot restrict available bandwith.
-The other two tests on connection establishment and input latency are not limited by bandwith and as such it would be of no use to consider bandwith in here and thus complicate the benchmarking setup.
+Bandwidth is not respected, as well.
+For the throughput benchmark, we obviously do not want to limit the available bandwidth as we want to determine how much data we are able to process in a fixed amount of time and as such cannot restrict available bandwidth.
+The other two tests on connection establishment and input latency are not limited by bandwidth and as such it would be of no use to consider bandwidth in here and thus complicate the benchmarking setup.
 
 The last parameter remaining is packet delay, that is how long does it take for a packet emitted from one host to arrive at another host.
 The different network scenarios all have different package delay characteristics.
@@ -512,7 +512,7 @@ While same-host communication should be near-instant, that is all data sent is o
 For local area networks, which we define as computers which are connected to the same router via network cables in this context, we have chosen a packet delay of 2 milliseconds.
 For internet-based connections, we have chosen a packet delay of 20 milliseconds.
 
-Obviously, these delays are somewhat arbitrary as different networks have different latencies.
+Obviously, these delays are somewhat arbitrary as different networks have different latency.
 Especially on connections via the internet, the delay can vary greatly based on location of both parties, quality of service and other factors.
 But as benchmarking results will show, these fixed delays are already able to show patterns in how the framework behaves.
 
@@ -521,12 +521,12 @@ NetEm is a framework developed by Hemminger in 2005 in order to benchmark applic
 It provides the means to modify how the traffic control engine in the Linux kernel behaves by providing the ability to put artificial packet delays, packet drops and more characteristics on single networking interfaces.
 
 In order to execute following benchmarks, all benchmarks connect via the loopback interface to a counterpart on the same host.
-The loopack interface has then been prepared to handle a certain scenario by putting a delay of 0, 2 or 20 milliseconds on the loopback interface.
+The loopback interface has then been prepared to handle a certain scenario by putting a delay of 0, 2 or 20 milliseconds on the loopback interface.
 Like this, the tests become reproducible by not being reliant on external networking conditions and can be re-executed an arbitrary amount of time.
 
 \medskip
 
-All tests have been executed on a Linux 4.6.0 host with an Intel\textregistered Core\texttrademark i5-6600K with 6MB of of cache and a clock rate of 3.50GHz.
+All tests have been executed on a Linux 4.6.0 host with an Intel\textregistered Core\texttrademark i5-6600K with 6MB of cache and a clock rate of 3.50GHz.
 The benchmarking utilities and all dependencies have been compiled with GCC 5.3.0 with optimizations enabled.
 
 \subsubsection{Throughput}
@@ -542,7 +542,7 @@ Furthermore, we will also ignore UDP-based channels as they are only used in the
 
 We have to distinguish two different usage patterns when transmitting data.
 The first pattern is transmitting many small messages between two parties.
-This hapens a lot when transmitting control messages based on the protocol, which are usually in the range of a few bytes up to a maximum of a few hundred bytes, or for tunneled data for interactive services, e.g. input services.
+This happens a lot when transmitting control messages based on the protocol, which are usually in the range of a few bytes up to a maximum of a few hundred bytes, or for tunneled data for interactive services, e.g. input services.
 The second pattern is when doing bulk data transfer for services, e.g. when transferring big files or when streaming videos.
 
 Our goal is to maximize throughput for bulk transfers while keeping overhead low for small messages.
@@ -701,18 +701,18 @@ See appendix \ref{sec:appendix-throughput} for bare results.
 The fours graphs display measurements for the different message sizes of 256 bytes, 1 kilobyte, 100 kilobytes and 10 megabytes.
 Each of the figures has three different graphs representing the different scenarios for transfer of data on the same host and in LAN respectively WAN.
 The x axis represents different block lengths in bytes used to split outgoing messages.
-Please note that a logirithmic scale is used for block lengths.
+Please note that a logarithmic scale is used for block lengths.
 The y axis represents the throughput achieved in megabytes per second averaged over the 1GB of data sent.
 A higher value is better.
 
-Additional constant dotted lines have been added to represent target throughput for ethernet (blue dashed line, 120MB/s) and internet (orange densely dotted line, 10MB/s).connections .
+Additional constant dotted lines have been added to represent target throughput for Ethernet (blue dashed line, 120MB/s) and internet (orange densely dotted line, 10MB/s).connections .
 These aim to put an estimated maximum achievable throughput which aids at better comprehending the chosen block length.
 
 \medskip
 
 Let us first discuss graphs \ref{fig:block-length-benchmark-256b} and \ref{fig:block-length-benchmark-1kb} as examples for transferring small messages to a remote host.
 
-What stands out is that there throughput caps out at block lengts of 512 bytes for 256 byte messages and at block lengths of 1500 bytes for 1024 byte messages, respectively.
+What stands out is that there throughput caps out at block lengths of 512 bytes for 256 byte messages and at block lengths of 1500 bytes for 1024 byte messages, respectively.
 The reason for this is obvious: these are the smallest block lengths where the whole message fits into.
 Regard that for a message of length $l$, the smallest block length that is big enough to fit is $l + 16 + 4$.
 With smaller block lengths we have to send multiple blocks to transmit the whole message and with bigger messages we have to encrypt additional padding.
@@ -726,14 +726,14 @@ Let us take a look at graphs \ref{fig:block-length-benchmark-100kb} and \ref{fig
 The effect of latency on throughput is very interesting for these graphs - while throughput constantly increases when there is no latency at all, it caps out at 200MB/s for 2ms of latency and at 50MB/s for 20ms of latency.
 
 For 2ms of latency the cap is at around a block length of 1500 bytes.
-The value of 1500 was included in the benchmarks as this is a typical size of the maximum transmission unit (MTU) for ethernet connections.
-The MTU is the size of the largest amount of data that can be sent in a single ethernet frame without requirement to split the frame into multiple frames.
-With this information, we have a possible explanation as to why throuput caps out at around 1500 bytes and decreases afterwards for 2ms of latency, while it steadily increases for 0ms of latency.
+The value of 1500 was included in the benchmarks as this is a typical size of the maximum transmission unit (MTU) for Ethernet connections.
+The MTU is the size of the largest amount of data that can be sent in a single Ethernet frame without requirement to split the frame into multiple frames.
+With this information, we have a possible explanation as to why throughput caps out at around 1500 bytes and decreases afterwards for 2ms of latency, while it steadily increases for 0ms of latency.
 Sending two frames with latency will obviously have an impact on throughput, while it does not have a real impact when there is no latency.
 
 \medskip
 
-These benchmarks do not pay attention to maximum bandwith available in LAN or WAN settings.
+These benchmarks do not pay attention to maximum bandwidth available in LAN or WAN settings.
 Usually, we cannot achieve more than around 100 megabytes per second in Gigabit Ethernet settings and around 10 megabytes per second in WAN settings.
 We should honor this limitation when determining an optimal block length.
 
@@ -742,7 +742,7 @@ For bulk transfer we start to hit the target in all scenarios when using a block
 
 \medskip
 
-Let us subsume our findings from thesn benchmarks:
+Let us subsume our findings from these benchmarks:
 \begin{itemize}
     \item the optimum block length for short messages is the minimum block length able to fit in the complete message
     \item increasing block lengths will penalize short messages due to encryption overhead
@@ -755,7 +755,7 @@ It is the smallest block length able to achieve all target throughputs except fo
 
 It may be desirable to make the block length configurable per service.
 Services usually know their communication patterns and can thus optimize for the respective scenario they require.
-Currently no such feature exists, but the block length is trivially changable at compile time and as such it would a small feat to make block lengths configurable at runtime.
+Currently no such feature exists, but the block length is trivially changeable at compile time and as such it would a small feat to make block lengths configurable at runtime.
 
 \subsubsection{Connection establishment latency}
 
@@ -769,7 +769,7 @@ The whole process is repeated 1000 times in order to increase the timing's valid
 
 See figure \ref{fig:connection-establishment} for the results visualized as a graph and appendix \ref{sec:appendix-connection-establishment} for the bare timings.
 The horizontal axis displays the block length in bytes, that is what is size of the fixed-size blocks used to split messages by.
-The block length is measured in a logrithmic scale ranging from 64 bytes up to 4096 bytes.
+The block length is measured in a logarithmic scale ranging from 64 bytes up to 4096 bytes.
 The vertical axis displays the overall time required for the complete connection establishment process in milliseconds.
 Each of the three graphs represents a networking condition with a different latency.
 
@@ -814,7 +814,7 @@ For both graphs with latency one can easily see that we have a connection establ
 Exceeding the sent message's size, this can be summarized by the formula $t = 4 \times l + c$, where $t$ is the time required for the complete connection establishment protocol, $l$ is the latency and $c$ is a sub-millisecond constant for calculations regarding key derival.
 
 For slow connections with a packet delay of up to 250ms we would still be able to perform connection establishment in around one second.
-Consedering that connection establishments are only performed at most three times for a service invocation (that is querying the service, creating a session and start the session), this should be sufficient.
+Considering that connection establishments are only performed at most three times for a service invocation (that is querying the service, creating a session and start the session), this should be sufficient.
 
 \subsubsection{Input latency}
 
@@ -892,7 +892,7 @@ While it is already possible to adjust block lengths for a single communication 
 
 It would be trivial to adjust block lengths when a service starts handling a session's channel when both client and server simply set block lengths based on what service type is invoked.
 More complicated solutions could have some kind of link negotiation between client and server where both parties could settle for a common block length.
-A link negotiation would also enable to accomodate for different networking settings, where there is a training phase where both parties test the connection and afterwards settle on a block length based on gained knowledge and the service type that is to be used.
+A link negotiation would also enable to accommodate for different networking settings, where there is a training phase where both parties test the connection and afterwards settle on a block length based on gained knowledge and the service type that is to be used.
 
 \subsection{Development process}
 
@@ -955,12 +955,12 @@ Currently, there are two CI services have been registered:
 \end{itemize}
 
 The project uses the Git source control management system \cite{git} and GitHub as its hosting platform \cite{github}.
-In order to have a clean development process and a main branch which is always potentially releasable, that is it always builds and unit tests pass on all plattforms, a development process is specified making heavy use of branches.
+In order to have a clean development process and a main branch which is always potentially releasable, that is it always builds and unit tests pass on all platforms, a development process is specified making heavy use of branches.
 Every unit of development, e.g. a new feature, bugfixing or refactoring, is done in a separate branch which is then pushed to the main repository where it is picked up by the CI services.
-As soon as all CI services have determined that the changes do not break the build on any plattform and that all unit tests pass, the branch can be merged into the mainline.
+As soon as all CI services have determined that the changes do not break the build on any platform and that all unit tests pass, the branch can be merged into the mainline.
 
 As the C programming language requires manual resource management it is important to verify that the executables have no resource leaks and do not try to access resources that are not available anymore.
-Most importantly, this involves checking for invalid memory dereferences, buffer overflows and memory leaks which are commonly used in attempts to exploit applciations.
+Most importantly, this involves checking for invalid memory dereferences, buffer overflows and memory leaks which are commonly used in attempts to exploit applications.
 
 To work against this threat, special CI jobs exist which utilize the address and undefined behavior sanitizers of the GNU compiler collection (GCC) \cite{gcc}.
 Executables compiled with these features enabled instrument the application in a specific way in order to analyze the application at run-time for invalid address references or for code relying on undefined behavior.
