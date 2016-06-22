@@ -2,7 +2,7 @@
 \label{sec:architecture}
 
 We will now take a look at the high-level architecture of the whole application stack.
-That is we will cover the initial process of a client dicsovering available servers in a local network, querying found servers and then connecting to a specific service.
+That is we will cover the initial process of a client discovering available servers in a local network, querying found servers and then connecting to a specific service.
 Let us first define the terms.
 
 \begin{description}
@@ -83,8 +83,8 @@ One of these servers is her own computer running the executable she wants to con
 Alice compares the remaining server's identities to the one Bob gave her to find the server sharing the display.
 As she trusts Bob, she also trusts that the identity given to her is actually valid and that the attached server is of benign nature.
 She now spotted the server on the list and recognizes that it indeed exposes a display service, which she now queries for further details.
-The server announces that the service is actually backed by the xpra service, which is a specific implementation used for graphics forwarding.
-As Alice is already running her local application inside an xpra instance, everything is fine and she proceeds.
+The server announces that the service is actually backed by the Xpra service, which is a specific implementation used for graphics forwarding.
+As Alice is already running her local application inside an Xpra instance, everything is fine and she proceeds.
 
 Now comes the time of actually connecting to the service.
 Alice establishes a connection to the newly discovered display service and creates a new session.
@@ -98,7 +98,7 @@ The locally running application is now forwarded to the display until the sessio
 
 Summarizing the above, the following steps are required to connect to a service:
 \begin{enumerate}
-    \item Discover services in the local subnet by broadcasting messages
+    \item Discover services in the local network by broadcasting messages
     \item Query a specific service on a server for its details
     \item Establish a session with a set of parameters and specify a session owner
     \item Let the owner connect to and thus start the session
@@ -138,7 +138,7 @@ On the other hand, the adversary is still able to observe actual package lengths
 In the case of UDP being used as a transport layer this is trivial:
 An adversary can simply inspect package headers and thus extract the actual package length, as data is in the general case sent in a single package.
 In the case of TCP where no actual package length is encoded in the TCP header this is a little bit more involved but in many cases still feasible as client and server are likely to exchange single messages by turn.
-So by substracting the prefixed package length and its message authentication code from the total bytes sent in one turn we are able to gain knowledge of the actual message length with a high probability.
+So by subtracting the prefixed package length and its message authentication code from the total bytes sent in one turn we are able to gain knowledge of the actual message length with a high probability.
 
 Due to this we are effectively giving the adversary an decryption oracle as he is able to correlate package lengths and their encrypted representations.
 Furthermore it becomes much easier for an adversary to analyze traffic by inspecting actual package lengths.
@@ -218,7 +218,7 @@ Finally, we concatenate the blocks to obtain the complete package.
 
 \subsubsection{Cryptography}
 
-All connections except the initial service discovery are authenitcated and encrypted to keep information safe.
+All connections except the initial service discovery are authenticated and encrypted to keep information safe.
 Encryption is done via secret-key authenticated encryption with an encryption key shared between both parties.
 The key is an ephemeral key generated in an authenticated way via Diffie-Hellman key exchange when establishing the connection (see section \ref{sec:connection-establishment} for more details on the actual key exchange).
 
@@ -296,13 +296,13 @@ He then proceeds to send an initial message containing his public verification k
 
 Upon receiving the initial message, the service verifies that the concatenated keys have indeed been signed by the announced client's public verification key.
 This step verifies that the received message has at one point been in fact generated and signed by an entity which possesses the key $vrfy_C$.
-If the verification is successfull, we continue and generate our own ephemeral keypair $(enc_S, dec_S) = \text{GenerateKeypair}()$.
+If the verification is successful, we continue and generate our own ephemeral key pair $(enc_S, dec_S) = \text{GenerateKeypair}()$.
 
 The service now sends a signature of the generated ephemeral keys of both client and service as well as both keys in plain text.
 Back on the client side we can now verify that we are indeed talking to the correct identity, as the signature now contains not only the remote's newly generated ephemeral public key, but also our own randomly generated public key.
-Due to this it is safe to assume that the service indeed posseses the private signature key belonging to the public signature key we know.
+Due to this it is safe to assume that the service indeed possesses the private signature key belonging to the public signature key we know.
 
-At this point of time we have verified that we are indeed talking to an entity possessing $vrfy_S$, but the server does not yet know that he is indeet talking to a client possessing $vrfy_C$, as the initial message could have been recorded and replayed by an adversary.
+At this point of time we have verified that we are indeed talking to an entity possessing $vrfy_S$, but the server does not yet know that he is indeed talking to a client possessing $vrfy_C$, as the initial message could have been recorded and replayed by an adversary.
 To fix the situation we now perform the same step of signing both public ephemeral keys and sending them to the server again, who may now verify whom he is talking to.
 
 When both parties are verified to each other we can now calculate the symmetric key which is used for subsequent communication.
@@ -375,8 +375,8 @@ The output is then concatenated with both parties' public keys' and hashed, resu
 \subsubsection{Discovery}
 \label{sec:discovery}
 
-Device discovery is the process of discovering previously unknown services in a certain subnet.
-That is given a client and a certain amount of services that all reside in the subnet we want to get to know all the services that are present without previously knowing where they are.
+Device discovery is the process of discovering previously unknown services in a certain network.
+That is given a client and a certain amount of services that all reside in the same network we want to get to know all the services that are present without previously knowing where they are.
 
 Let us consider the two obvious solutions coming to mind, that is client- and service-driven approaches.
 \begin{itemize}
@@ -398,7 +398,7 @@ Just how important this distinction is gets particularly clear when we consider 
 Assume Alice starts up her mobile phone and intents to discover a certain service she expects to be available in the local network.
 Given the approach where services periodically announce their availability, Alice might have to wait the whole time span between two announcements if she just missed the previous one.
 Depending on how the announcement interval was chosen this may be a long time.
-The worst case scenario is when Alice becomes too uncomfortable waiting for the first availability announment to arrive, instead simply dropping her intent and aborting discovery.
+The worst case scenario is when Alice becomes too uncomfortable waiting for the first availability announcement to arrive, instead simply dropping her intent and aborting discovery.
 
 When we actively probe the subnet for available services instead the response times will in the mean case be much less than with the other approach.
 That is the delay of services popping up is only based on latency and processing time of both service and client.
@@ -410,7 +410,7 @@ Without further information we are not able to verify that the other side is in 
 Even though we can verify that a server we connect to has the identity it claims by establishing the connection in an authenticated way, we cannot assume anything about the claimed identity if we do not know anything about it through other channels.
 
 The situation can be improved by relying on said other channels to first gain information about the service we want to connect to.
-Through e.g. a physical sidechannel we may be able to retrieve additional data about a service and thus increase our confidence that we are in fact talking to the service we intended.
+Through e.g. a physical side-channel we may be able to retrieve additional data about a service and thus increase our confidence that we are in fact talking to the service we intended.
 As described by McCune et al. \cite{mccune2005seeing}, this physical side channel can be something as simple as a QR code that is present on a certain machine which is to be scanned by a client which has the intent to connect.
 This QR code may contain data like the public signature key of the machine so that we can compare discovered server's public signatures with the one we just scanned.
 Like this, we are able to increase the trust level of the service.
@@ -423,7 +423,7 @@ As soon as we have obtained data through this side channel we are able to verify
 Another way to increase confidence in discovered services may be through solutions like CryptID \cite{malchow2015cryptid}.
 CryptID aims to provide a secure naming services based on published public keys and distributed hash tables (DHT).
 A user is able to search an index which is backed by the DHT for keywords to obtain information about registered identities matching the query.
-Every identity is represented by a CryptID, which is in fact a public signature key and thus verifyable.
+Every identity is represented by a CryptID, which is in fact a public signature key and thus verifiable.
 This CryptID can then be resolved to a network address, such that we are able to verify the mapping between the identity and its address.\\
 
 We do not try to solve the problem of key distribution in this thesis.
@@ -431,7 +431,7 @@ Instead, we assume that participants of the service network have means through w
 What we still do have to solve is getting to know local clients, for example in public environments where people do not actually care that much who is actually providing a certain service.
 This may be the case when users want to share insensitive data with a public service which is to be viewed by others, but other scenarios will certainly exist.
 
-In order to be able to solve both use cases, that is discoery of previously unknown services and discovery of services whose identity is known through other means, the actual device discovery implemented has two modes.
+In order to be able to solve both use cases, that is discovery of previously unknown services and discovery of services whose identity is known through other means, the actual device discovery implemented has two modes.
 \begin{description}
     \item[Undirected service discovery]\hfill\\
         Undirected service discovery solves the use case where we want to discover unknown services.
@@ -470,7 +470,7 @@ This may require switching between multiple message interface formats.
 He will then assemble a response message containing its own version, name, provided services and its public key.
 
 It is possible for a single server to announce multiple services.
-Those services may be distinguished by the port they are listenging at.
+Those services may be distinguished by the port they are listening at.
 Instead of announcing multiple service types at a single port, which would then require multiplexing requests to their respective service and thus introduce additional complexity, each service has its own port which will later be used to connect to that service.
 
 Each service announced has a name, category and port.
@@ -480,7 +480,7 @@ Each service announced has a name, category and port.
         Its aim is to help users easily distinguish services that are available in the local network based on their identifiers.
         Obviously, these names should not be taken as the sole identifier for services, though, as they are trivially malleable.
     \item[Category]\hfill\\
-        The category is used as a distringuisher such that users are able to filter out services that do not serve their purpose.
+        The category is used as a distinguisher such that users are able to filter out services that do not serve their purpose.
         Assuming a user Alice wants to have connect to a service providing input devices, she may easily filter the list of local services by restricting them to the category ``Input'', only.
     \item[Port]\hfill\\
         The port specifies where clients need to connect to to interact with these services.
@@ -511,7 +511,7 @@ The client's address is assembled by taking the originator address from the UDP 
     \label{fig:undirected-service-discovery}
 \end{figure}
 
-In contrast to the undirected service discovery the directed service discovery provides a way to obtain information about a server's servicse in an authenticated way.
+In contrast to the undirected service discovery the directed service discovery provides a way to obtain information about a server's services in an authenticated way.
 As we have previously obtained the public signature key of the server we want to talk to, we are already able to establish authenticated and encrypted connections.
 
 So instead of exchanging one package for the Discover and Announce messages, we want to instead exchange multiple messages with each other to perform an authenticated hand shake as demonstrated in section \ref{sec:connection-establishment}.
@@ -550,13 +550,13 @@ Now that we have discovered servers at our location and know basic information a
 Currently we only know about the server's location, their identity and name, category and port of its services.
 While this is key data for a user who wants to connect, it does not provide enough detail to actually know what the service provides, if it suits our needs and how to connect.
 
-To get to know these specifica we can connect to a specific service on a server and ask about what it actually provides.
+To get to know these specifics we can connect to a specific service on a server and ask about what it actually provides.
 It would certainly be possible to provide such information in the service discovery which precedes this step, but the protocol has been explicitly designed to hand over as little information as is required in the device discovery.
 This serves two purposes:
 \begin{itemize}
     \item Device discovery is usually centered around transmitting single UDP packages.
         That is, we explicitly do not want to handle more complex communication between client and server, which may be required to implement more sophisticated exchanges between client and server.
-        Furthermore, we want to keep UDP packages as small as possible to not overload the subnet whene there are lots of servers present trying to announce their availability to one or multiple clients which want to discover servers.
+        Furthermore, we want to keep UDP packages as small as possible to not overload the subnet where there are lots of servers present trying to announce their availability to one or multiple clients which want to discover servers.
     \item Details about certain services provided on a server may contain sensitive information.
         One kind of possibly sensitive information is the location, which might be confidential in certain setups.
         In some cases even the actual service provided may be confidential.
