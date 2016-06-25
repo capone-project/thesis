@@ -67,7 +67,60 @@ These pairs attached to the subjects of the matrix are named capabilities.
 The other way to look at the matrix is by having a set of (subject,rights) pairs associated to the columns, which is called an access control list (ACL) \cite{tanenbaum2014modern}.
 Both approaches result in a different set of characteristica for the system which we will now evaluate for our use case.
 
-% Distributed capabilities
-% Why don't we cryptographically protect capabilities?
+\bigskip
+
+\cite{dennis1966programming}
+
+Capabilities have been envisioned in 1966 by Dennis and van Horn \cite{dennis1966programming} in the context of multiprogrammed computations.
+They provide a means of protecting system resources such as memory segments, input-output-devices or directories.
+Each process owns a capability list (C-list), detailing which resources a process may access and what operations the process is allowed to perform on the described resource.
+A benefit over conventional access control like ACLs is that processes have fine-grained control over these possessed capabilities in that they may share them with other processes if so desired.
+
+In the 1970s, Wilkes, Needham et al. developed the first capability-using hardware with the Cambridge CAP Computer \cite{wilkes1979cambridge}.
+In contrast to previous systems, which used base-limit registers to guard memory segments from unauthorized access, the CAP system used so-called capability registers.
+In these capability registers, a process is able to store a capability describing a certain memory segment.
+Attached to the capability is a special a bit-pattern used for authenticating the capability to the operating sysetm.
+
+The bit-pattern stored inside the capability is required to be unforgable by user-space processes.
+Only the operating system kernel may issue valid capabilities which are subsequently presented by the process wishing to access a specific memory segment.
+On access of memory, hardware checks the processes capability registers to verify that it has the right to access it.
+So obviously, these capabilities must be constructed in a way such that they are unforgable by all processes except by the operating system kernel itself, lest the system becomes insecure.
+
+The CAP computer also manages peripherals through these capabilities by mapping them to special memory segments.
+So when a process wants to access a peripheral device, it has to possess a capability for the segment corresponding to this device.
+If the process is now allowed to access this segment, the operating systems grants it access to the peripheral device.
+Like this, all resources are protected by the use of capabilities.
+
+The implementation of the CAP capability system requires support by the operating system and hardware, though.
+Capability systems usually need some kind of reference monitor, verifying access of resources via passed capabilities, watching how capabilities are passed between processes via passed capabilities and monitoring how capabilities are passed between processes
+In distributed systems, though, these capabilities were not fit for user.
+
+This restriction lead to the development of distributed capabilities.
+The easy solution of just requiring every system to use capabilities which are then relayed through a network interface simply does not work, as adversarial users may simply run a modified kernel or operating system which circumvents capabilities in any way.
+Also, there is shared hardware between distributed computers which is able to verify all memory access, so new solutions were developed.
+
+In 1981, Donelley tries to lift this limitation and make capbilities fit for use in distributed environments \cite{donnelley1981managing}.
+He defines the \emph{Distributed Domain Management Problem}, which consists of three parts:
+\begin{enumerate}
+    \item authorization by the service process
+    \item communication of access between any pair of proceses
+    \item validation by the service process
+\end{enumerate}
+Donelley then proceeds to lay out four mechanisms for how to protect capabilities and their accompanying benefits and detriments.
+
+% TODO: details these mechanisms?
+
+One of the first systems using capabilities for protection in distributed systems was the Amoeba operating system developed by Tanenbaum, Mullender et al. in 1986 \cite{tanenbaum1986using,mullender1990amoeba}.
+Each service has a secret port $G$, called the get-port, and a corresponding public put-port $G$.
+The put-port is computed by a one-way function $P = F(G)$ having the property that computing $P$ is efficient, but computing $G$ given $F$ is not feasible.
+Clients willing to access the service can now send data to $P$, which may only be occupied by services who now the secret get-port $G$.
+
+Amoeba relies on the assumption that every message sent via the network is transformed by this function $F$ and that it is impossible to circumvent, as otherwise an adversary may simply listen on the known public port $P$ without going through transformation of the $F$ function.
+The authors mention two possiblities on how to achieve this: the clients either use a special trusted kernel which is able to perform the transformation, or the gateway to the local network will perform this transformation.
+This fact alone makes Amoeba unusable in the age of the Internet, where it is impossible to control the heterogenous computing devices connected to it.
+
+% ACL: more centralized approach
+%      easier maintainable by administrators
+%      tracability
 
 % vim: ft=tex tw=0
