@@ -1,3 +1,73 @@
 \section{Discussion}
 
+\subsection{Access control}
+
+As one of the goals of the developed protocol is to be completely authenticated it is obvious that we have to perform some kind of access control to guard access to different services.
+That is given a client with an identity connecting to a specific service, the service somehow needs to determine if the identity is acutally allowed to perform the desired action.
+
+To discuss how access control is implemented, let us first explore how access control may be implemented in a theoretical view.
+One of the easiest modes on how to perform access control is by using an access control matrix \cite{lampson1974protection,tanenbaum2014modern}.
+The rows contain identities of users taking part in the protocol while columns represent different end-points a service exposes to the network.
+In general, the rows are called \emph{subjects} while the columns are called \emph{objects}
+Each entry in the matrix now determines which actions the client specified by the row is allowed to perform on the service's endpoint.
+
+Each service provides two persistent end-points as well as an unbound number of ephemeral end-points.
+The two persistent end-points provide the interface to query a service, that is obtain additional information on the service's specifica, and to request a new session within a service.
+All sessions have their own set of permissions, as a session requested by Alice shouldn't be executable by Bob who just created another session.
+As such, sessions can be treated as additional end-points and are thus added to the matrix as objects.
+
+On each of these objects, subjects can perform a set of different actions, which currently only contain \emph{execute} and \emph{revoke}.
+The \emph{execute} right allows a client to perform the action associated with that object.
+This means executing a query for the query end-point, requesting sessions for the request end-point and executing the functionality provided by a session for sessions.
+The \emph{revoke} right allows a client to remove rights for other subjects for the object the revoke right has been granted.
+
+Table \ref{tab:access-control-matrix} provides an example for a typical access control matrix as it may be present for the developed protocol.
+We assume three parties take part in the protocol, namely Alice, Bob and Carol, where each of these participants has his own long-term signature key pair.
+The right to execute the given end-point is represented by the letter \emph{E} while the right to revoke permissions is represented by the latter \emph{R}.
+
+The service is initially configured to only grant Alice the right to execute respectively revoke rights on the query and request end-points.
+In an initial step, she requests a new session for Bob, which adds a column for the new object \emph{Session 1} to the access control matrix.
+As Alice requested the session, she gains the permission to revoke permissions on the newly created object.
+But given that the session is not created for Alice herself but instead for invocation by Bob, Alice has no right to execute the session, which is instead added to Bob.
+
+The second step performed is that Alice grant Carol the right to query and request session on the service.
+Carol now creates a new session herselves, which adds a newly created \emph{Session 2} to the matrix, granting Carol the right to revoke and execute the new object.
+
+\begin{table}
+    \centering
+    \begin{tabular}{|c|c|c|c|c|}
+        \hline
+              & \bfseries Query & \bfseries Request & \bfseries Session 1 & \bfseries Session 2\\
+        \hline
+        \bfseries Alice & RE    & RE      & R         &\\
+        \hline
+        \bfseries Bob   &       &         & E         &\\
+        \hline
+        \bfseries Carol & E     & E       &           & RE\\
+        \hline
+    \end{tabular}
+
+    \caption{Exemplary access control matrix}
+    \label{tab:access-control-matrix}
+\end{table}
+
+One thing missing from the exemplary access control matrix is that services themselves may also take part in the protocol.
+That is given two services \emph{A} and \emph{B}, A may use functionality provided by service B.
+So in order to have a complete view of permissions, one would also add services instead of users only to the subjects.
+
+The matrix only describes end-points for a single service.
+In real-world scenarios the matrix would usually be much bigger by extending the columns by end-points provided by other services, as well.
+Note that in this case, all end-points are namespaced to the service they belong to, e.g. the query end-point from service A is not the same as the query end-point from service B, so they may have different permissions.
+
+% TODO: discuss adding rights
+
+There are two commonly used distinct models how one can implement this matrix.
+The first model is describing the table by its rows, that is each subject has assigned to it a set of (object,rights) pairs determining which objects may be accessed.
+These pairs attached to the subjects of the matrix are named capabilities.
+The other way to look at the matrix is by having a set of (subject,rights) pairs associated to the columns, which is called an access control list (ACL) \cite{tanenbaum2014modern}.
+Both approaches result in a different set of characteristica for the system which we will now evaluate for our use case.
+
+% Distributed capabilities
+% Why don't we cryptographically protect capabilities?
+
 % vim: ft=tex tw=0
