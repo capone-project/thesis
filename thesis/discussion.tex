@@ -67,7 +67,7 @@ These pairs attached to the subjects of the matrix are named capabilities.
 The other way to look at the matrix is by having a set of (subject,rights) pairs associated to the columns, which is called an access control list (ACL) \cite{tanenbaum2014modern}.
 Both approaches result in a different set of characteristica for the system which we will now evaluate for our use case.
 
-\bigskip
+\subsubsection{Capabilities}
 
 \cite{dennis1966programming}
 
@@ -121,7 +121,14 @@ This fact alone makes Amoeba unusable in the age of the Internet, where it is im
 
 % TODO: capabilities based on encryption
 
+\subsubsection{Access control lists}
+
+% ACL: more centralized approach
+%      easier maintainable by administrators
+%      tracability
+
 \subsubsection{Comparison to Kerberos}
+\label{sec:kerberos}
 
 Another system based on capabilities is the Kerberos protocol developed by Neuman et al. \cite{neuman1994kerberos,neuman2005rfc}, which provides a solution for network authentication based on capabilities.
 Kerberos is the default method used for authentication in the Windows operating system and has implementations for Linux, BSD and Mac OS X.
