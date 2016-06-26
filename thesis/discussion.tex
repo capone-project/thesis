@@ -248,8 +248,28 @@ For our protocol, no such mechanism is required.
 The first hurdle is that sessions cannot be invoked by any other identity than the owner of the long-term signature key pair for whom the session has been created.
 If such a key pair has been compromised, it is possible to revoke sessions by either the session creator (e.g. the policy client of the CS) or the session's invoker.
 
-% ACL: more centralized approach
-%      easier maintainable by administrators
-%      tracability
+\subsubsection{Mobile client}
+
+The protocol is designed to be usable by mobile clients, as well.
+E.g. given a scenario that a user wants to display the graphical interface of an executable running at his trusted home server on a local display, he may simply start up the mobile client which has previously been paired with the home server to connect these services with one another.
+
+One problem with mobile clients is that they are inherently less safe than servers located at ones home or in datacenters.
+It is much easier to loose or have stolen a mobile phone or tablet than to loose a full desktop computer.
+Even when the device has full disk encryption enabled, unlocking the contents is usually only a 4-digit pincode away.
+Due to this consideration, many a user does not want to store highly sensitive data like his long-term signature key on the device.
+
+Fortunately, the protocol allows for the scenario where the mobile client is not required to know the actual long-term signature key but still connect to service requiring this key, required the user has access to a trusted server.
+The setup required is similar to the setup presented in section \ref{sec:kerberos} on Kerberos.
+Given the long-term signature key of the mobile client, which is distinct from the user's actual long-term signature key, he sets up a capability server on his home server.
+Connected to the capability server is a simple policy client which grants all session requests from the mobile client's public signature key.
+The policy client has access to the actual key pair and will use it for requesting the desired sessions.
+
+So whenever the mobile client wishes access to a service in the name of his actual long-term signature key, he will simply request the capability service to request a new session with his actual key.
+The policy client will accept the request when it is the mobile client's key, create a new session for the required service and forward the session to the mobile client.
+The mobile client may now use the session.
+
+Like this, only a single instance is required to know the actual key.
+This instance shall obviously be protected so that no person has access to it and may extract the key.
+Still, loss of the key is much harder than loss when the key is distributed to several clients, including mobile clients.
 
 % vim: ft=tex tw=0
