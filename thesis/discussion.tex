@@ -119,6 +119,135 @@ Amoeba relies on the assumption that every message sent via the network is trans
 The authors mention two possiblities on how to achieve this: the clients either use a special trusted kernel which is able to perform the transformation, or the gateway to the local network will perform this transformation.
 This fact alone makes Amoeba unusable in the age of the Internet, where it is impossible to control the heterogenous computing devices connected to it.
 
+% TODO: capabilities based on encryption
+
+\subsubsection{Comparison to Kerberos}
+
+Another system based on capabilities is the Kerberos protocol developed by Neuman et al. \cite{neuman1994kerberos,neuman2005rfc}, which provides a solution for network authentication based on capabilities.
+Kerberos is the default method used for authentication in the Windows operating system and has implementations for Linux, BSD and Mac OS X.
+
+Kerberos is built on a central authentication server (AS).
+Whenever a client wants to connect to a service (S), it will get retrieve a ticket from the AS which the client can then present to S to authenticate itself to S.
+See figure \ref{fig:kerberos-authentication} for the process of retrieving a ticket and authenticating to a service.
+
+The initial step is for the client C to send a message to the AS, communicating that it wants to authenticatie to the server S.
+This message contains a claimed identity, the identity of the server it wants to connect to and an expiry time until when the ticket shall be valid.
+The AS will verify that C is allowed to connect to V and if so, will create a new session key which may be used to verify and encrypt traffic between C and V.
+
+AS will now send a two-part message to the client:
+Part one contains the session key as well as the expiry time and nonce chosen by the client, encrypted with a secret (in general a password) known to the client only.
+The second part contains the ticket encrypted with a key shared between AS and S.
+The ticket is used to verify that the client has been authorized by the AS and contains the session key shared between client and service, as well as the identity of the client.
+As the key with which the ticket has been encrypted shall only be known by AS and S, the client would not be able to generate it by his own and should thus be sufficient to verify that the client has been authorized.
+
+\begin{figure}[t]
+    \centering
+
+    \begin{subfigure}{0.45\textwidth}
+        \begin{tikzpicture}[
+                participant/.style={draw,circle,minimum size=3em},
+                call/.style={draw, -triangle 45}
+            ]
+            \node[participant] (c) {C};
+            \node[participant,right=3.0cm of c] (s) {S};
+            \node[participant,above=1.0cm of c,xshift=2.0cm]  (as) {AS};
+
+            \draw[call] (c.55) -- node[above left] {1} (as.215);
+            \draw[call] (as.235) -- node[below right] {2} (c.35);
+            \draw[call] (c.0) -- node[below] {3} (s.180);
+        \end{tikzpicture}
+        \subcaption{Kerberos authentication}
+        \label{fig:kerberos-authentication}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}{0.45\textwidth}
+        \begin{tikzpicture}[
+                participant/.style={draw,circle,minimum size=3em},
+                call/.style={draw, -triangle 45}
+            ]
+            \node[participant] (c) {C};
+            \node[participant,right=3.0cm of c] (s) {S};
+            \node[participant,above=1.0cm of c,xshift=2.0cm]  (cs) {CS};
+            \node[participant,above=1.0cm of s] (p) {P};
+
+            \draw[call] (c.55) -- node[above left] {1} (cs.215);
+            \draw[call] (cs.10) -- node[above] {2} (p.170);
+            \draw[call] (p.280) -- node[right] {3} (s.80);
+            \draw[call] (s.100) -- node[left] {4} (p.260);
+            \draw[call] (p.190) -- node[below] {5} (cs.350);
+            \draw[call] (cs.235) -- node[below right] {6} (c.35);
+            \draw[call] (c.0) -- node[below] {7} (s.180);
+        \end{tikzpicture}
+        \subcaption{Protocol authentication}
+        \label{fig:protocol-authentication}
+    \end{subfigure}
+
+    \caption{Authentication}
+    \label{fig:authentication}
+\end{figure}
+
+The generated ticket is a kind of capability in that it allows a client to access a service without further requests to the authentication server.
+The receiving server will simply check the ticket's cryptographically protected content and can thus verify that it is actually a valid ticket.
+As it also contains information on the client, services will always know to whom the ticket has been issued.
+But note that in theory, clients may pass on tickets to other entities as the connection step to the service does not include another verification of the client's identity.
+
+We can directly compare the basic Kerberos authentication protocol with the developed session protocol.
+To simulate the scenario of a central authentication server, we can set up a capability service.
+With a capability service, a client may ask the capability service to create a new session with another service in the name of the capability service.
+See section \ref{sec:capability-service} for more information on how the capability service is implemented.
+
+The setup is such that we have a domain-wide capability service which is well-known to all clients of the domain and accessible by all clients to request permissions to connect to a service.
+On the other hand, only a certain client is allowed to connect to the capability service in order to implement the policy.
+This client will register with the capability service and subsequently receives all requests by clients wishing to gain access to a specific service.
+This policy client may either have an internal list of clients that are allowed to connect to certain services or, for example in corporate environments, connect to an Active Domain Directory Service to determine the control policies.
+
+Let us now consider figure \ref{fig:protocol-authentication} to see how our protocol compares to the Kerberos protocol.
+When an actual client C wants to connect to a service S, he will first make a request with the capability service CS.
+This request contains to whom C wants to connect to (S), and how the connection shall look like (as the parameters with which C onnects to S later on are passed on to CS).
+CS will now forward this request to the policy-implementing client P.
+Based upon the the identities of C and S, as well as based upon the connection parameters, P may now decide if the connection is a legitimate one and if so, request a new session with S.
+This new session may be revoked by P and executed by C, only.
+The session information is now passed back to C via CS, where C may now connect to S.
+
+On first sight, our protocol requires much more communication between parties than the Kerberos protocol.
+We note though that the policy-implementing client P can easily remain on the same local server as the capability service CS, and as such the overhead will reduce to a call on the same host.
+The authentication server in the Kerberos protocol will usually have to perform lookups himself in order to determine wether C is allowed to connect.
+Theoretically, it would be possible to have the CS implement the policy directly, without requiring to call out to P.
+This specialized service would reduce the indirection via P and reduce the calls required to 5 instead of 7 calls.
+
+One weakness of the Kerberos protocol as compared to our protocol is that the AS generates the session keys which are later on used to communicate between client and server.
+If the AS is not fully trusted by clients (which it is assumed to be in the Kerberos protocol), it may easily compromise the connection between C and S.
+In our protocol there is no way for the CS to eavesdrop on the connection between C and S at any time, as all encryption is done via an ephemeral encryption key that is generated anew on each connection.
+
+\bigskip
+
+Kerberos also has the notion of ticket-granting tickets.
+That is when a client initially connects to an AS, he will typically not request a ticket for single usage but instead a ticket which grants the client the ability to request further ticktes without the requirement to re-authenticate himselves with the user's secret.
+This ticket-granting ticket (TGT) can subsequently be presented to a ticket-granting service (TGS) whenever the client wishes to connect to a service.
+The TGS will verify the TGT is actually valid and output a new ticket for use with the desired service.
+
+Currently, this is not possible for our protocol as upon each connection, the client has to perform the initial handshake which requires him to have access to the long-term signature key pair representing his identity.
+Considering the key pair is currently unprotected, there is no need to insert the password again, which is an obvious shortcoming and should be fixed by encrypting the key pair.
+As soon as the key is encrypted, there may be a solution similar to the Secure SHell (SSH) where an agent caches the key pair in memory upon first decryption so the user is not required to re-input his passphrase on each connection.
+Considering the TGT still requires communication with the TGS to get new tickets, our implementation would not perform much worse when requesting sessions with the CS.
+
+The mechanism of TGTs requires further thought about revokability of tickets.
+In Kerberos, each ticket has an expiry date after which it becomes invalid.
+This expiry date is chosen by the client and put into the ticket by the AS, which requires loosely-synchronized network times.
+By default, this expiry time is set to 5 minutes for simple tickets and to 8 hours for ticket-granting tickets.
+
+For simple tickets there is no mechanism for invalidating this ticket.
+This limitation results from the fact that these tickets are implemented as capabilities where no further communication with the AS is required in order to accept a ticket presented by connecting clients.
+To solve this problem, the AS would be required to tell every service accepting tickets issued by the AS to invalidate a compromised ticket.
+So in fact stolen tickets will be a security threat for at most 5 minutes.
+
+For TGTs, where the expiry date is set to 8 hours, this would be unacceptable.
+To counteract the scenario of a stolen TGT, the TGS has a hot-list of tickets that have been compromised and will thus be rejected.
+
+For our protocol, no such mechanism is required.
+The first hurdle is that sessions cannot be invoked by any other identity than the owner of the long-term signature key pair for whom the session has been created.
+If such a key pair has been compromised, it is possible to revoke sessions by either the session creator (e.g. the policy client of the CS) or the session's invoker.
+
 % ACL: more centralized approach
 %      easier maintainable by administrators
 %      tracability
