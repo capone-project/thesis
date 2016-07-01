@@ -272,17 +272,52 @@ Like this, ancestry is explicitly recorded in the capability and $C1$ as well as
 The actual system is implemented as a hybrid approach of capabiliies and access control lists, where the so-called object storage stores all objects and the internal capabilities and the access control server stores the propagation trees.
 The hybrid approach solves the problem of revocation, which has been previously hard to solve in a satisfying way, by having centralized information on issued capabilities.
 
+% TODO: capabilities based on encryption
+
 But unfortunately, the scheme also looses some of the benefits of capability systems, notably easy refinement of a capabilities access rights as well as the ability to simply pass on capabilities.
 Also, in order to verify the capabilities it is not sufficient to hold the capability itself, only, but ICAP also requires to retrieve the internal capability in order to successfully verify.
-After all, benefits over a simple access control list scheme are not obvious anymore.
 
-% TODO: capabilities based on encryption
+\bigskip
+
+The actual implementation is based upon ICAP, that is we have an internal capability list associated to objects with external capability referencing these capabilities with a set of associated rights.
+Currently this does not provide much benefit over a typical access control list despite being able to save some memory, as each session only has a tiny amount of data associated.
+We have still chosen to go with this scheme in order to keep the system flexible for future use.
+
+The most interesting use case is that of being able to pass on capabilities to other identities the requirement to talk to a server.
+This can be achieved for example by building up a signature chain:
+When a user requests a capability for a session, he can add a new entry to the capability detailing to whom he is giving the capability by generating a cryptographic signature over the capabilities data as well as the other's identity.
+Due to timing constraints, it was not possible to implement this, though.
+
+\bigskip
+
+In general it was observed that it is rather hard to design a purely capability based system.
+As has been acknowledged in multiple papers, capabilities still have some problems which are hard to fix \cite{gong1989secure,shapiro1999eros}.
+One of the biggest problems with capabilities is that it is hard to manage them in a centralized way.
+
+As capabilities are attached to the subjects rather than the objects, it is usualyl hard to impossible to determine who currently has access to which objects.
+The result is that one cannot simply revoke access rights to a certain object for one user without having some kind of additional access control for certain cases.
+
+Without realizing it initially, the initial implementation of capabilities was more of a hybrid approach between capabilities and access control lists, where each session had associated a capability and each caller having the ability to invoke it when providing this capability.
+The situation has been greatly improved by the actual split of internal and external capabilities as proposed in \cite{gong1989secure}.
+
+Unfortunately, though, we have still found no clean solution to making the complete system capability based.
+While established sessions are now controlled by capabilities only, there are still problems when trying to use capabilities for the query and request end-points (see sections \ref{sec:query} and \ref{sec:session-initiation}) discussed in the following section.
 
 \subsubsection{Access control lists}
 
-% ACL: more centralized approach
-%      easier maintainable by administrators
-%      tracability
+The \emph{query} and \emph{request} end-points are not managed through capabilities but instead through access control lists.
+This results from the the fact that is actually hard to administer capabilities in a centralized way \cite{shapiro1999eros}.
+But in fact these two end-points require centralized management in that right from the start, these end-points shall be accessible to either only a selected number of identities or to all connecting users.
+
+In the case of only a select number being allowed to connect, the service is initially passed a whitelist of identities which are able to either query the service or request new sessions.
+It becomes burdensome to implement this with capabilities, though, as we either have to employ a hybrid scheme of capabilities granted on the case of an access control list or by stretching the way capabilities work.
+
+As such, the current implementation does not use capabilities but plain access control lists attached to both end-points.
+The access control lists contains, for each user who is allowed to connect, an entry with the user's long-term public signature key.
+Upon executing these end-points, the ACL is checked with the authenticated identity of the connected user, where access is granted when the user has an entry in the ACL.
+
+So while we unfortunately employ both kinds of access control in the protocol, they are cleanly separated on the objects they actually handle.
+For future iterations it is still debatable if the protocol should instead employ straight ACLs or capabilities for all objects, though.
 
 \subsubsection{Comparison to Kerberos}
 \label{sec:kerberos}
