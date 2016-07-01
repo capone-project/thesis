@@ -1,0 +1,474 @@
+\section{Discussion}
+
+\subsection{Key exchange}
+
+The initial step of every direct connections between client and server is the key exchange where a shared secret is generated which will subsequently be used to encrypt all communication.
+As the protocol is designed to be usable in a decentralized environment, no central key distribution center exists which aids in this process.
+Instead, all keys shall be derived using the long-term signature keys of both client and server in order to derive the key.
+The shared secret that is generated should have the property that it is not derivable by external parties while being able to determine that the key can only be derived with the party that we intend to communicate with.
+Our implementation only consideres key exchange between two participants, as there are never more than two parties directly communicating with each other inside the same session.
+
+When exchanging a key between two parties, one can distinguish between \emph{key transport} and \emph{key agreement} protocols \cite{menezes1996handbook}.
+Key transport protocols involve one party creating a secret which is then shared with a second party.
+Key agreement protocols derive a key by using information contributed by both parties such that no party can force a desired key.
+This key is usually called a \emph{session key}.
+
+In our protocol, we have chosen to perform the initial key exchange via an key agreement protocol based on long-term signature keys.
+Each identity has a key pair, where the public key is assumed to be known to other parties wishing to share a secret.
+As all actions are heavily bound to these keys in that all access control is based on the public long-term signature key of associated entities, we have a strong requirement for authentication.
+So the initial connection establishment performs a form of authenticated key agreement (AK).
+
+In order to guarantee authenticity as well as confirmation of the remote party, two properties need to be fulfilled \cite{law2003efficient}.
+Implicit key authentication is given when one participant of the protocol can be assured that no other entity than the intended recipient is able to get to know a specific secret.
+Key confirmation is given when one participant of the protocol can be assured that the other participant actually \emph{has} knowledge on a specific secret.
+Authenticated key agreement which meets both criteria is called an \emph{authenticated key agreement with key confirmation} (AKC).
+
+There exist five properties that are commonly cited when analysing AK or AKC protocols \cite{menezes1996handbook,blake1997key,law2003efficient}:
+\begin{enumerate}
+    \item \emph{known-key security}
+        If session keys have been compromised, the adversary is not able to impact secrecy of the protocol.
+    \item \emph{(perfect) forward secrecy}
+        If a long-term signature key gets compromised, the adversary is not able to impact secrecy of previous session keys.
+    \item \emph{key-compromise impersonation}
+        If a long-term signature key of an entity has been compromised, the adversary is not able to impersonate other entities towards the entity whom the key has been stolen from.
+    \item \emph{unknown key-share}
+        An adversary is not able to coerce an entity A to share a new secret key with another entity B without knowledge of entity A.
+    \item \emph{key control}
+        No entity is able to force the session key to a pre-determined secret.
+\end{enumerate}
+There exist several protocols which fulfill all these criteria.
+
+Blake-Wilson et al. proposes multiple protocols for AK as well as AKC \cite{blake1997key}.
+All these schemes are based upon the Diffie-Hellman problem \cite{diffie1976new}.
+They assume an adversary who is able control communication between all entities, being able to ask entities at any time to reveal their long-term signature keys.
+In their model, a AK or AKC model is secure if no adversary is able to learn anything about a session key held between two uncompromised entities (that is an entity whose long-term signature key has not been revealed).
+
+Even given this powerful adversary, Blake-Wilson is able to come up with a provably secure scheme for AK and AKC, assuming the underlying cryptographic primitives are secure.
+Two protocols are of further interest to this thesis, as they describe an AKC protocol based on public-key cryptography.
+Unfortunately, though, these protocols require a long-term established secret between both parties, which makes it unsuitable for highly distributed scenarios.
+
+In \cite{canetti2001analysis}, Canetty and Krawczyk propose the SIG-DH protocol, an AKC protocol usable with any digital signature scheme.
+It is essentially a three-pass protocol based upon the Diffie-Hellman problem and public key signatures with added key confirmation.
+
+The protocol is proven to be secure in a model where the adversary is granted the ability to reveal ephemeral secret keys of both parties
+This is a somewhat smaller guarantee than has been made in \cite{blake1997key} where the adversary is granted not access to the ephemeral secret keys, but instead to long-term signature keys of participants.
+
+In \cite{lamacchia2007stronger}, LaMacchia et al. have shown a weakness in the SIG-DH protocol when using a non-deterministic signature scheme:
+\begin{quote}
+    For randomized signature schemes such as ElGamal, Schnorr, DSA and QG there exists an efficient algorithm which given a public key, a legitimately computed signature of any message (under the corresponding secret key) and random coins used by a signer, computes the secret key.
+\end{quote}
+So an adversary may attack SIG-DH by initiating a new session between two parties and recording public keys as well as the signatures generated, revealing the random coins used to generate them.
+Like this the attacker is able to determine the party's long-term signature key.
+
+Despite the fact that the protocol is vulnerable for non-deterministic signature schemes, SIG-DH is the protocol used for AKC.
+The signature scheme used is Ed25519 developed by Bernstein et al. \cite{bernstein2012high}, which is a deterministic signature scheme and thus the protocol is not vulnerable to aforementioned attack.
+
+\bigskip
+
+The AKC protocol handles the process of key derival in an authorized way.
+What it does not solve though is the problem of attaining access to the actual long-term public signature keys themselves.
+That is given two entities who are previously unknown to each other, we want them to exchange their long-term public signature keys in a secure way.
+While this is explicitly \emph{not} in scope for this thesis, let us discuss the subject a bit.
+All following schemes are just examples of how the problem may be solved without actually judging these schemes one by one.
+
+When two parties previously whose identity is previously unknown to each other, it is trivial for an adversary to intercept all communication and pretend to be the other identity, as both parties have no way to actually verify whom they are talking to.
+As such, it is obvious that some kind of side-channel needs to exist in order to help the case.
+
+In the case of two actual users who mutually trust each other, this side-channel becomes trivial in that they may physically exchange their long-term signature keys.
+Extending this scheme, we arrive at structures like the Web of Trust, like it is used e.g. for GnuPG.
+Given an entity S a users wants to connect to and which is currently unknown to himself, the user will connect to known users whom he trusts and asks them to retrieve the identity for S.
+This process can be repeated such that finally a ``web'' of interconnected entities emerges, with vertices representing the entities and edges representing \emph{if} two entities know each other.
+Usually, these edges may also be weighted with a trust level.
+
+The Web of Trust is usually employed for decentralized systems only.
+In the case where centralized establishments are available, e.g. in a corporate network, it would be possible to establish directory services which map between a user's query and actual identities.
+As it is easy to share keys for a single service in centralized environments, this would solve the problem of key exchange as long as the directory service itself is trusted by the user.
+One example is the authentication server in the Kerberos protocol, which is discussed later in section \ref{sec:kerberos}.
+
+Another solution on the network layer might be CryptID \cite{malchow2015cryptid}.
+The project's aim is to build a secure service similar to the Dynamic Naming System.
+Instead of being based upon IP addresses, the protocol is built upon long-term signature keys.
+Each identity being searchable within CryptID has an associated key where only he knows the secret key.
+These keys are managed in a distributed hash table (DHT) together with additional metadata.
+
+Now when a user wants to execute a certain service in the current local network, he may ask the DHT to retrieve all public keys matching the user specified criteria.
+The returned public keys of these entities can be directly resolved by CryptID to a network address.
+As such, we gain immediate access to the pair of network address as well as the service's identity, if it is registered with the CryptID service.
+
+Other side channels might also depend on the services themselves.
+For example services providing a graphical display may also use the display to present additional information to users.
+This has been researched in e.g. \cite{mccune2005seeing,saxena2006secure}, where data is displayed via QR codes scannable by mobile phones to improve security.
+
+\subsection{Access control}
+
+As one of the goals of the developed protocol is to be completely authenticated it is obvious that we have to perform some kind of access control to guard access to different services.
+That is given a client with an identity connecting to a specific service, the service somehow needs to determine if the identity is acutally allowed to perform the desired action.
+
+To discuss how access control is implemented, let us first explore how access control may be implemented in a theoretical view.
+One of the easiest modes on how to perform access control is by using an access control matrix \cite{lampson1974protection,tanenbaum2014modern}.
+The rows contain identities of users taking part in the protocol while columns represent different end-points a service exposes to the network.
+In general, the rows are called \emph{subjects} while the columns are called \emph{objects}
+Each entry in the matrix now determines which actions the client specified by the row is allowed to perform on the service's endpoint.
+
+Each service provides two persistent end-points as well as an unbound number of ephemeral end-points.
+The two persistent end-points provide the interface to query a service, that is obtain additional information on the service's specifica, and to request a new session within a service.
+All sessions have their own set of permissions, as a session requested by Alice shouldn't be executable by Bob who just created another session.
+As such, sessions can be treated as additional end-points and are thus added to the matrix as objects.
+
+On each of these objects, subjects can perform a set of different actions, which currently only contain \emph{execute} and \emph{revoke}.
+The \emph{execute} right allows a client to perform the action associated with that object.
+This means executing a query for the query end-point, requesting sessions for the request end-point and executing the functionality provided by a session for sessions.
+The \emph{revoke} right allows a client to remove rights for other subjects for the object the revoke right has been granted.
+
+Table \ref{tab:access-control-matrix} provides an example for a typical access control matrix as it may be present for the developed protocol.
+We assume three parties take part in the protocol, namely Alice, Bob and Carol, where each of these participants has his own long-term signature key pair.
+The right to execute the given end-point is represented by the letter \emph{E} while the right to revoke permissions is represented by the latter \emph{R}.
+
+The service is initially configured to only grant Alice the right to execute respectively revoke rights on the query and request end-points.
+In an initial step, she requests a new session for Bob, which adds a column for the new object \emph{Session 1} to the access control matrix.
+As Alice requested the session, she gains the permission to revoke permissions on the newly created object.
+But given that the session is not created for Alice herself but instead for invocation by Bob, Alice has no right to execute the session, which is instead added to Bob.
+
+The second step performed is that Alice grant Carol the right to query and request session on the service.
+Carol now creates a new session herselves, which adds a newly created \emph{Session 2} to the matrix, granting Carol the right to revoke and execute the new object.
+
+\begin{table}
+    \centering
+    \begin{tabular}{|c|c|c|c|c|}
+        \hline
+              & \bfseries Query & \bfseries Request & \bfseries Session 1 & \bfseries Session 2\\
+        \hline
+        \bfseries Alice & RE    & RE      & R         &\\
+        \hline
+        \bfseries Bob   &       &         & E         &\\
+        \hline
+        \bfseries Carol & E     & E       &           & RE\\
+        \hline
+    \end{tabular}
+
+    \caption{Exemplary access control matrix}
+    \label{tab:access-control-matrix}
+\end{table}
+
+One thing missing from the exemplary access control matrix is that services themselves may also take part in the protocol.
+That is given two services \emph{A} and \emph{B}, A may use functionality provided by service B.
+So in order to have a complete view of permissions, one would also add services instead of users only to the subjects.
+
+The matrix only describes end-points for a single service.
+In real-world scenarios the matrix would usually be much bigger by extending the columns by end-points provided by other services, as well.
+Note that in this case, all end-points are namespaced to the service they belong to, e.g. the query end-point from service A is not the same as the query end-point from service B, so they may have different permissions.
+
+% TODO: discuss adding rights
+
+There are two commonly used distinct models how one can implement this matrix.
+The first model is describing the table by its rows, that is each subject has assigned to it a set of (object,rights) pairs determining which objects may be accessed.
+These pairs attached to the subjects of the matrix are named capabilities.
+The other way to look at the matrix is by having a set of (subject,rights) pairs associated to the columns, which is called an access control list (ACL) \cite{tanenbaum2014modern}.
+Both approaches result in a different set of characteristica for the system which we will now evaluate for our use case.
+
+\subsubsection{Capabilities}
+
+\cite{dennis1966programming}
+
+Capabilities have been envisioned in 1966 by Dennis and van Horn \cite{dennis1966programming} in the context of multiprogrammed computations.
+They provide a means of protecting system resources such as memory segments, input-output-devices or directories.
+Each process owns a capability list (C-list), detailing which resources a process may access and what operations the process is allowed to perform on the described resource.
+A benefit over conventional access control like ACLs is that processes have fine-grained control over these possessed capabilities in that they may share them with other processes if so desired.
+
+In the 1970s, Wilkes, Needham et al. developed the first capability-using hardware with the Cambridge CAP Computer \cite{wilkes1979cambridge}.
+In contrast to previous systems, which used base-limit registers to guard memory segments from unauthorized access, the CAP system used so-called capability registers.
+In these capability registers, a process is able to store a capability describing a certain memory segment.
+Attached to the capability is a special a bit-pattern used for authenticating the capability to the operating sysetm.
+
+The bit-pattern stored inside the capability is required to be unforgable by user-space processes.
+Only the operating system kernel may issue valid capabilities which are subsequently presented by the process wishing to access a specific memory segment.
+On access of memory, hardware checks the processes capability registers to verify that it has the right to access it.
+So obviously, these capabilities must be constructed in a way such that they are unforgable by all processes except by the operating system kernel itself, lest the system becomes insecure.
+
+The CAP computer also manages peripherals through these capabilities by mapping them to special memory segments.
+So when a process wants to access a peripheral device, it has to possess a capability for the segment corresponding to this device.
+If the process is now allowed to access this segment, the operating systems grants it access to the peripheral device.
+Like this, all resources are protected by the use of capabilities.
+
+The implementation of the CAP capability system requires support by the operating system and hardware, though.
+Capability systems usually need some kind of reference monitor, verifying access of resources via passed capabilities, watching how capabilities are passed between processes via passed capabilities and monitoring how capabilities are passed between processes
+In distributed systems, though, these capabilities were not fit for user.
+
+This restriction lead to the development of distributed capabilities.
+The easy solution of just requiring every system to use capabilities which are then relayed through a network interface simply does not work, as adversarial users may simply run a modified kernel or operating system which circumvents capabilities in any way.
+Also, there is shared hardware between distributed computers which is able to verify all memory access, so new solutions were developed.
+
+In 1981, Donelley tries to lift this limitation and make capbilities fit for use in distributed environments \cite{donnelley1981managing}.
+He defines the \emph{Distributed Domain Management Problem}, which consists of three parts:
+\begin{enumerate}
+    \item authorization by the service process
+    \item communication of access between any pair of proceses
+    \item validation by the service process
+\end{enumerate}
+Donelley then proceeds to lay out four mechanisms for how to protect capabilities and their accompanying benefits and detriments.
+
+% TODO: details these mechanisms?
+
+One of the first systems using capabilities for protection in distributed systems was the Amoeba operating system developed by Tanenbaum, Mullender et al. in 1986 \cite{tanenbaum1986using,mullender1990amoeba}.
+Each service has a secret port $G$, called the get-port, and a corresponding public put-port $G$.
+The put-port is computed by a one-way function $P = F(G)$ having the property that computing $P$ is efficient, but computing $G$ given $F$ is not feasible.
+Clients willing to access the service can now send data to $P$, which may only be occupied by services who now the secret get-port $G$.
+
+Amoeba relies on the assumption that every message sent via the network is transformed by this function $F$ and that it is impossible to circumvent, as otherwise an adversary may simply listen on the known public port $P$ without going through transformation of the $F$ function.
+The authors mention two possiblities on how to achieve this: the clients either use a special trusted kernel which is able to perform the transformation, or the gateway to the local network will perform this transformation.
+This fact alone makes Amoeba unusable in the age of the Internet, where it is impossible to control the heterogenous computing devices connected to it.
+
+A common failure of distributed capability systems is the problem of passing on capabilities to other entities.
+E.g. assuming that Alice got a capability to excert an action on a specific service and shares this capability with Bob, it is impossible in classical capability systems to restrict this passing-on of the capability without the use of a reference monitor.
+This observation has also been made by Shapiro et al. when constructing the EROS capability system:
+\begin{quote}
+    The prinicpal failing of capabilities is difficulty of administration.
+    In the absence of a reference monitor, there is no direct way to say ``Fred may not use this object.'' \cite{shapiro1999eros}
+\end{quote}
+
+In \cite{gong1989secure}, Gong tries to lift this shortcoming by introducing the use of identities into capabilities.
+The ICAP architecture devised by Gong implements capabilities by the use of one-way functions.
+
+Whenever a new object is created, ICAP creates a new internal capability
+\begin{align*}
+    (Object, Random0)
+\end{align*}
+consisting of a reference to the object as well as a field with random bits.
+As soon as a client $C1$ gets granted access to the object, a new external capability
+\begin{align*}
+    (Object, Rights, Random1)
+\end{align*}
+is created, where $Random1$ is calculated by the one way function
+\begin{align*}
+    Random1 = f(C1, Object, Rights, Random0)
+\end{align*}.
+That is, the new capability implicitly includes knowledge on the user as well as a reference to the internal capability.
+This capability can only be generated by the system as no other process is able to come up with the secret $Random0$.
+Assuming that the system has a secure way of identifying users, this capability can only be used by $C1$, as otherwise the verification process will not be able to come up with $Random1$ again when verifying the capability and the propagation of capabilities is restricted.
+
+To still be able to pass on capabilities, users will have to make explicit calls to the service distributing capabilities, stating which other user shall be able to use the capability.
+Given the capability issued to $C1$ above, $C1$ may pass the capability to $C2$ by invoking the service, which will create a new capability 
+\begin{align*}
+    (Object, Rights, Random2)
+\end{align*}
+by executing the same one-way function with the entity of $C2$:
+\begin{align*}
+    Random2 = f(C2, Object, Rights, Random0)
+\end{align*}
+
+It is now easy for ICAP to revoke the issued capability by simply removing the internal capability $(Object, Random0)$.
+In order to allow users to revoke capabilities they issued to another user, capabilities may also include the hierarchy of ancestors.
+E.g. to create a capability
+\begin{align*}
+    (Object, Rights, C1, C2, C3, Random3)
+\end{align*},
+the system may invoke the one-time function with
+\begin{align*}
+    Random3 = f(C1, C2, C3, Object, Rights, Random0)
+\end{align*}.
+In ICAP, this structure is called a propagation tree.
+Like this, ancestry is explicitly recorded in the capability and $C1$ as well as $C2$ may revoke the capability.
+
+The actual system is implemented as a hybrid approach of capabiliies and access control lists, where the so-called object storage stores all objects and the internal capabilities and the access control server stores the propagation trees.
+The hybrid approach solves the problem of revocation, which has been previously hard to solve in a satisfying way, by having centralized information on issued capabilities.
+
+% TODO: capabilities based on encryption
+
+But unfortunately, the scheme also looses some of the benefits of capability systems, notably easy refinement of a capabilities access rights as well as the ability to simply pass on capabilities.
+Also, in order to verify the capabilities it is not sufficient to hold the capability itself, only, but ICAP also requires to retrieve the internal capability in order to successfully verify.
+
+\bigskip
+
+The actual implementation is based upon ICAP, that is we have an internal capability list associated to objects with external capability referencing these capabilities with a set of associated rights.
+Currently this does not provide much benefit over a typical access control list despite being able to save some memory, as each session only has a tiny amount of data associated.
+We have still chosen to go with this scheme in order to keep the system flexible for future use.
+
+The most interesting use case is that of being able to pass on capabilities to other identities the requirement to talk to a server.
+This can be achieved for example by building up a signature chain:
+When a user requests a capability for a session, he can add a new entry to the capability detailing to whom he is giving the capability by generating a cryptographic signature over the capabilities data as well as the other's identity.
+Due to timing constraints, it was not possible to implement this, though.
+
+\bigskip
+
+In general it was observed that it is rather hard to design a purely capability based system.
+As has been acknowledged in multiple papers, capabilities still have some problems which are hard to fix \cite{gong1989secure,shapiro1999eros}.
+One of the biggest problems with capabilities is that it is hard to manage them in a centralized way.
+
+As capabilities are attached to the subjects rather than the objects, it is usualyl hard to impossible to determine who currently has access to which objects.
+The result is that one cannot simply revoke access rights to a certain object for one user without having some kind of additional access control for certain cases.
+
+Without realizing it initially, the initial implementation of capabilities was more of a hybrid approach between capabilities and access control lists, where each session had associated a capability and each caller having the ability to invoke it when providing this capability.
+The situation has been greatly improved by the actual split of internal and external capabilities as proposed in \cite{gong1989secure}.
+
+Unfortunately, though, we have still found no clean solution to making the complete system capability based.
+While established sessions are now controlled by capabilities only, there are still problems when trying to use capabilities for the query and request end-points (see sections \ref{sec:query} and \ref{sec:session-initiation}) discussed in the following section.
+
+\subsubsection{Access control lists}
+
+The \emph{query} and \emph{request} end-points are not managed through capabilities but instead through access control lists.
+This results from the the fact that is actually hard to administer capabilities in a centralized way \cite{shapiro1999eros}.
+But in fact these two end-points require centralized management in that right from the start, these end-points shall be accessible to either only a selected number of identities or to all connecting users.
+
+In the case of only a select number being allowed to connect, the service is initially passed a whitelist of identities which are able to either query the service or request new sessions.
+It becomes burdensome to implement this with capabilities, though, as we either have to employ a hybrid scheme of capabilities granted on the case of an access control list or by stretching the way capabilities work.
+
+As such, the current implementation does not use capabilities but plain access control lists attached to both end-points.
+The access control lists contains, for each user who is allowed to connect, an entry with the user's long-term public signature key.
+Upon executing these end-points, the ACL is checked with the authenticated identity of the connected user, where access is granted when the user has an entry in the ACL.
+
+So while we unfortunately employ both kinds of access control in the protocol, they are cleanly separated on the objects they actually handle.
+For future iterations it is still debatable if the protocol should instead employ straight ACLs or capabilities for all objects, though.
+
+\subsubsection{Comparison to Kerberos}
+\label{sec:kerberos}
+
+Another system based on capabilities is the Kerberos protocol developed by Neuman et al. \cite{neuman1994kerberos,neuman2005rfc}, which provides a solution for network authentication based on capabilities.
+Kerberos is the default method used for authentication in the Windows operating system and has implementations for Linux, BSD and Mac OS X.
+
+Kerberos is built on a central authentication server (AS).
+Whenever a client wants to connect to a service (S), it will get retrieve a ticket from the AS which the client can then present to S to authenticate itself to S.
+See figure \ref{fig:kerberos-authentication} for the process of retrieving a ticket and authenticating to a service.
+
+The initial step is for the client C to send a message to the AS, communicating that it wants to authenticatie to the server S.
+This message contains a claimed identity, the identity of the server it wants to connect to and an expiry time until when the ticket shall be valid.
+The AS will verify that C is allowed to connect to V and if so, will create a new session key which may be used to verify and encrypt traffic between C and V.
+
+AS will now send a two-part message to the client:
+Part one contains the session key as well as the expiry time and nonce chosen by the client, encrypted with a secret (in general a password) known to the client only.
+The second part contains the ticket encrypted with a key shared between AS and S.
+The ticket is used to verify that the client has been authorized by the AS and contains the session key shared between client and service, as well as the identity of the client.
+As the key with which the ticket has been encrypted shall only be known by AS and S, the client would not be able to generate it by his own and should thus be sufficient to verify that the client has been authorized.
+
+\begin{figure}[t]
+    \centering
+
+    \begin{subfigure}{0.45\textwidth}
+        \begin{tikzpicture}[
+                participant/.style={draw,circle,minimum size=3em},
+                call/.style={draw, -triangle 45}
+            ]
+            \node[participant] (c) {C};
+            \node[participant,right=3.0cm of c] (s) {S};
+            \node[participant,above=1.0cm of c,xshift=2.0cm]  (as) {AS};
+
+            \draw[call] (c.55) -- node[above left] {1} (as.215);
+            \draw[call] (as.235) -- node[below right] {2} (c.35);
+            \draw[call] (c.0) -- node[below] {3} (s.180);
+        \end{tikzpicture}
+        \subcaption{Kerberos authentication}
+        \label{fig:kerberos-authentication}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}{0.45\textwidth}
+        \begin{tikzpicture}[
+                participant/.style={draw,circle,minimum size=3em},
+                call/.style={draw, -triangle 45}
+            ]
+            \node[participant] (c) {C};
+            \node[participant,right=3.0cm of c] (s) {S};
+            \node[participant,above=1.0cm of c,xshift=2.0cm]  (cs) {CS};
+            \node[participant,above=1.0cm of s] (p) {P};
+
+            \draw[call] (c.55) -- node[above left] {1} (cs.215);
+            \draw[call] (cs.10) -- node[above] {2} (p.170);
+            \draw[call] (p.280) -- node[right] {3} (s.80);
+            \draw[call] (s.100) -- node[left] {4} (p.260);
+            \draw[call] (p.190) -- node[below] {5} (cs.350);
+            \draw[call] (cs.235) -- node[below right] {6} (c.35);
+            \draw[call] (c.0) -- node[below] {7} (s.180);
+        \end{tikzpicture}
+        \subcaption{Protocol authentication}
+        \label{fig:protocol-authentication}
+    \end{subfigure}
+
+    \caption{Authentication}
+    \label{fig:authentication}
+\end{figure}
+
+The generated ticket is a kind of capability in that it allows a client to access a service without further requests to the authentication server.
+The receiving server will simply check the ticket's cryptographically protected content and can thus verify that it is actually a valid ticket.
+As it also contains information on the client, services will always know to whom the ticket has been issued.
+But note that in theory, clients may pass on tickets to other entities as the connection step to the service does not include another verification of the client's identity.
+
+We can directly compare the basic Kerberos authentication protocol with the developed session protocol.
+To simulate the scenario of a central authentication server, we can set up a capability service.
+With a capability service, a client may ask the capability service to create a new session with another service in the name of the capability service.
+See section \ref{sec:capability-service} for more information on how the capability service is implemented.
+
+The setup is such that we have a domain-wide capability service which is well-known to all clients of the domain and accessible by all clients to request permissions to connect to a service.
+On the other hand, only a certain client is allowed to connect to the capability service in order to implement the policy.
+This client will register with the capability service and subsequently receives all requests by clients wishing to gain access to a specific service.
+This policy client may either have an internal list of clients that are allowed to connect to certain services or, for example in corporate environments, connect to an Active Domain Directory Service to determine the control policies.
+
+Let us now consider figure \ref{fig:protocol-authentication} to see how our protocol compares to the Kerberos protocol.
+When an actual client C wants to connect to a service S, he will first make a request with the capability service CS.
+This request contains to whom C wants to connect to (S), and how the connection shall look like (as the parameters with which C onnects to S later on are passed on to CS).
+CS will now forward this request to the policy-implementing client P.
+Based upon the the identities of C and S, as well as based upon the connection parameters, P may now decide if the connection is a legitimate one and if so, request a new session with S.
+This new session may be revoked by P and executed by C, only.
+The session information is now passed back to C via CS, where C may now connect to S.
+
+On first sight, our protocol requires much more communication between parties than the Kerberos protocol.
+We note though that the policy-implementing client P can easily remain on the same local server as the capability service CS, and as such the overhead will reduce to a call on the same host.
+The authentication server in the Kerberos protocol will usually have to perform lookups himself in order to determine wether C is allowed to connect.
+Theoretically, it would be possible to have the CS implement the policy directly, without requiring to call out to P.
+This specialized service would reduce the indirection via P and reduce the calls required to 5 instead of 7 calls.
+
+One weakness of the Kerberos protocol as compared to our protocol is that the AS generates the session keys which are later on used to communicate between client and server.
+If the AS is not fully trusted by clients (which it is assumed to be in the Kerberos protocol), it may easily compromise the connection between C and S.
+In our protocol there is no way for the CS to eavesdrop on the connection between C and S at any time, as all encryption is done via an ephemeral encryption key that is generated anew on each connection.
+
+\bigskip
+
+Kerberos also has the notion of ticket-granting tickets.
+That is when a client initially connects to an AS, he will typically not request a ticket for single usage but instead a ticket which grants the client the ability to request further ticktes without the requirement to re-authenticate himselves with the user's secret.
+This ticket-granting ticket (TGT) can subsequently be presented to a ticket-granting service (TGS) whenever the client wishes to connect to a service.
+The TGS will verify the TGT is actually valid and output a new ticket for use with the desired service.
+
+Currently, this is not possible for our protocol as upon each connection, the client has to perform the initial handshake which requires him to have access to the long-term signature key pair representing his identity.
+Considering the key pair is currently unprotected, there is no need to insert the password again, which is an obvious shortcoming and should be fixed by encrypting the key pair.
+As soon as the key is encrypted, there may be a solution similar to the Secure SHell (SSH) where an agent caches the key pair in memory upon first decryption so the user is not required to re-input his passphrase on each connection.
+Considering the TGT still requires communication with the TGS to get new tickets, our implementation would not perform much worse when requesting sessions with the CS.
+
+The mechanism of TGTs requires further thought about revokability of tickets.
+In Kerberos, each ticket has an expiry date after which it becomes invalid.
+This expiry date is chosen by the client and put into the ticket by the AS, which requires loosely-synchronized network times.
+By default, this expiry time is set to 5 minutes for simple tickets and to 8 hours for ticket-granting tickets.
+
+For simple tickets there is no mechanism for invalidating this ticket.
+This limitation results from the fact that these tickets are implemented as capabilities where no further communication with the AS is required in order to accept a ticket presented by connecting clients.
+To solve this problem, the AS would be required to tell every service accepting tickets issued by the AS to invalidate a compromised ticket.
+So in fact stolen tickets will be a security threat for at most 5 minutes.
+
+For TGTs, where the expiry date is set to 8 hours, this would be unacceptable.
+To counteract the scenario of a stolen TGT, the TGS has a hot-list of tickets that have been compromised and will thus be rejected.
+
+For our protocol, no such mechanism is required.
+The first hurdle is that sessions cannot be invoked by any other identity than the owner of the long-term signature key pair for whom the session has been created.
+If such a key pair has been compromised, it is possible to revoke sessions by either the session creator (e.g. the policy client of the CS) or the session's invoker.
+
+\subsubsection{Mobile client}
+
+The protocol is designed to be usable by mobile clients, as well.
+E.g. given a scenario that a user wants to display the graphical interface of an executable running at his trusted home server on a local display, he may simply start up the mobile client which has previously been paired with the home server to connect these services with one another.
+
+One problem with mobile clients is that they are inherently less safe than servers located at ones home or in datacenters.
+It is much easier to loose or have stolen a mobile phone or tablet than to loose a full desktop computer.
+Even when the device has full disk encryption enabled, unlocking the contents is usually only a 4-digit pincode away.
+Due to this consideration, many a user does not want to store highly sensitive data like his long-term signature key on the device.
+
+Fortunately, the protocol allows for the scenario where the mobile client is not required to know the actual long-term signature key but still connect to service requiring this key, required the user has access to a trusted server.
+The setup required is similar to the setup presented in section \ref{sec:kerberos} on Kerberos.
+Given the long-term signature key of the mobile client, which is distinct from the user's actual long-term signature key, he sets up a capability server on his home server.
+Connected to the capability server is a simple policy client which grants all session requests from the mobile client's public signature key.
+The policy client has access to the actual key pair and will use it for requesting the desired sessions.
+
+So whenever the mobile client wishes access to a service in the name of his actual long-term signature key, he will simply request the capability service to request a new session with his actual key.
+The policy client will accept the request when it is the mobile client's key, create a new session for the required service and forward the session to the mobile client.
+The mobile client may now use the session.
+
+Like this, only a single instance is required to know the actual key.
+This instance shall obviously be protected so that no person has access to it and may extract the key.
+Still, loss of the key is much harder than loss when the key is distributed to several clients, including mobile clients.
+
+% vim: ft=tex tw=0
