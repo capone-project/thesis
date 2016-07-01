@@ -1,5 +1,68 @@
 \section{Discussion}
 
+\subsection{Key exchange}
+
+The initial step of every direct connections between client and server is the key exchange where a shared secret is generated which will subsequently be used to encrypt all communication.
+As the protocol is designed to be usable in a decentralized environment, no central key distribution center exists which aids in this process.
+Instead, all keys shall be derived using the long-term signature keys of both client and server in order to derive the key.
+The shared secret that is generated should have the property that it is not derivable by external parties while being able to determine that the key can only be derived with the party that we intend to communicate with.
+Our implementation only consideres key exchange between two participants, as there are never more than two parties directly communicating with each other inside the same session.
+
+When exchanging a key between two parties, one can distinguish between \emph{key transport} and \emph{key agreement} protocols \cite{menezes1996handbook}.
+Key transport protocols involve one party creating a secret which is then shared with a second party.
+Key agreement protocols derive a key by using information contributed by both parties such that no party can force a desired key.
+This key is usually called a \emph{session key}.
+
+In our protocol, we have chosen to perform the initial key exchange via an key agreement protocol based on long-term signature keys.
+Each identity has a key pair, where the public key is assumed to be known to other parties wishing to share a secret.
+As all actions are heavily bound to these keys in that all access control is based on the public long-term signature key of associated entities, we have a strong requirement for authentication.
+So the initial connection establishment performs a form of authenticated key agreement (AK).
+
+In order to guarantee authenticity as well as confirmation of the remote party, two properties need to be fulfilled \cite{law2003efficient}.
+Implicit key authentication is given when one participant of the protocol can be assured that no other entity than the intended recipient is able to get to know a specific secret.
+Key confirmation is given when one participant of the protocol can be assured that the other participant actually \emph{has} knowledge on a specific secret.
+Authenticated key agreement which meets both criteria is called an \emph{authenticated key agreement with key confirmation} (AKC).
+
+There exist five properties that are commonly cited when analysing AK or AKC protocols \cite{menezes1996handbook,blake1997key,law2003efficient}:
+\begin{enumerate}
+    \item \emph{known-key security}
+        If session keys have been compromised, the adversary is not able to impact secrecy of the protocol.
+    \item \emph{(perfect) forward secrecy}
+        If a long-term signature key gets compromised, the adversary is not able to impact secrecy of previous session keys.
+    \item \emph{key-compromise impersonation}
+        If a long-term signature key of an entity has been compromised, the adversary is not able to impersonate other entities towards the entity whom the key has been stolen from.
+    \item \emph{unknown key-share}
+        An adversary is not able to coerce an entity A to share a new secret key with another entity B without knowledge of entity A.
+    \item \emph{key control}
+        No entity is able to force the session key to a pre-determined secret.
+\end{enumerate}
+There exist several protocols which fulfill all these criteria.
+
+Blake-Wilson et al. proposes multiple protocols for AK as well as AKC \cite{blake1997key}.
+All these schemes are based upon the Diffie-Hellman problem \cite{diffie1976new}.
+They assume an adversary who is able control communication between all entities, being able to ask entities at any time to reveal their long-term signature keys.
+In their model, a AK or AKC model is secure if no adversary is able to learn anything about a session key held between two uncompromised entities (that is an entity whose long-term signature key has not been revealed).
+
+Even given this powerful adversary, Blake-Wilson is able to come up with a provably secure scheme for AK and AKC, assuming the underlying cryptographic primitives are secure.
+Two protocols are of further interest to this thesis, as they describe an AKC protocol based on public-key cryptography.
+Unfortunately, though, these protocols require a long-term established secret between both parties, which makes it unsuitable for highly distributed scenarios.
+
+In \cite{canetti2001analysis}, Canetty and Krawczyk propose the SIG-DH protocol, an AKC protocol usable with any digital signature scheme.
+It is essentially a three-pass protocol based upon the Diffie-Hellman problem and public key signatures with added key confirmation.
+
+The protocol is proven to be secure in a model where the adversary is granted the ability to reveal ephemeral secret keys of both parties
+This is a somewhat smaller guarantee than has been made in \cite{blake1997key} where the adversary is granted not access to the ephemeral secret keys, but instead to long-term signature keys of participants.
+
+In \cite{lamacchia2007stronger}, LaMacchia et al. have shown a weakness in the SIG-DH protocol when using a non-deterministic signature scheme:
+\begin{quote}
+    For randomized signature schemes such as ElGamal, Schnorr, DSA and QG there exists an efficient algorithm which given a public key, a legitimately computed signature of any message (under the corresponding secret key) and random coins used by a signer, computes the secret key.
+\end{quote}
+So an adversary may attack SIG-DH by initiating a new session between two parties and recording public keys as well as the signatures generated, revealing the random coins used to generate them.
+Like this the attacker is able to determine the party's long-term signature key.
+
+Despite the fact that the protocol is vulnerable for non-deterministic signature schemes, SIG-DH is the protocol used for AKC.
+The signature scheme used is Ed25519 developed by Bernstein et al. \cite{bernstein2012high}, which is a deterministic signature scheme and thus the protocol is not vulnerable to aforementioned attack.
+
 \subsection{Access control}
 
 As one of the goals of the developed protocol is to be completely authenticated it is obvious that we have to perform some kind of access control to guard access to different services.
