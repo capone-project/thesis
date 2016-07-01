@@ -63,6 +63,42 @@ Like this the attacker is able to determine the party's long-term signature key.
 Despite the fact that the protocol is vulnerable for non-deterministic signature schemes, SIG-DH is the protocol used for AKC.
 The signature scheme used is Ed25519 developed by Bernstein et al. \cite{bernstein2012high}, which is a deterministic signature scheme and thus the protocol is not vulnerable to aforementioned attack.
 
+\bigskip
+
+The AKC protocol handles the process of key derival in an authorized way.
+What it does not solve though is the problem of attaining access to the actual long-term public signature keys themselves.
+That is given two entities who are previously unknown to each other, we want them to exchange their long-term public signature keys in a secure way.
+While this is explicitly \emph{not} in scope for this thesis, let us discuss the subject a bit.
+All following schemes are just examples of how the problem may be solved without actually judging these schemes one by one.
+
+When two parties previously whose identity is previously unknown to each other, it is trivial for an adversary to intercept all communication and pretend to be the other identity, as both parties have no way to actually verify whom they are talking to.
+As such, it is obvious that some kind of side-channel needs to exist in order to help the case.
+
+In the case of two actual users who mutually trust each other, this side-channel becomes trivial in that they may physically exchange their long-term signature keys.
+Extending this scheme, we arrive at structures like the Web of Trust, like it is used e.g. for GnuPG.
+Given an entity S a users wants to connect to and which is currently unknown to himself, the user will connect to known users whom he trusts and asks them to retrieve the identity for S.
+This process can be repeated such that finally a ``web'' of interconnected entities emerges, with vertices representing the entities and edges representing \emph{if} two entities know each other.
+Usually, these edges may also be weighted with a trust level.
+
+The Web of Trust is usually employed for decentralized systems only.
+In the case where centralized establishments are available, e.g. in a corporate network, it would be possible to establish directory services which map between a user's query and actual identities.
+As it is easy to share keys for a single service in centralized environments, this would solve the problem of key exchange as long as the directory service itself is trusted by the user.
+One example is the authentication server in the Kerberos protocol, which is discussed later in section \ref{sec:kerberos}.
+
+Another solution on the network layer might be CryptID \cite{malchow2015cryptid}.
+The project's aim is to build a secure service similar to the Dynamic Naming System.
+Instead of being based upon IP addresses, the protocol is built upon long-term signature keys.
+Each identity being searchable within CryptID has an associated key where only he knows the secret key.
+These keys are managed in a distributed hash table (DHT) together with additional metadata.
+
+Now when a user wants to execute a certain service in the current local network, he may ask the DHT to retrieve all public keys matching the user specified criteria.
+The returned public keys of these entities can be directly resolved by CryptID to a network address.
+As such, we gain immediate access to the pair of network address as well as the service's identity, if it is registered with the CryptID service.
+
+Other side channels might also depend on the services themselves.
+For example services providing a graphical display may also use the display to present additional information to users.
+This has been researched in e.g. \cite{mccune2005seeing,saxena2006secure}, where data is displayed via QR codes scannable by mobile phones to improve security.
+
 \subsection{Access control}
 
 As one of the goals of the developed protocol is to be completely authenticated it is obvious that we have to perform some kind of access control to guard access to different services.
