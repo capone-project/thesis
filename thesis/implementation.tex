@@ -1,5 +1,13 @@
 \section{Implementation}
 
+In this chapter we will now dicuss how the architecture discussed in the previous section is actually implemented.
+The application is split into two parts, the Android app as well as the framework used to implement the complete server component as well as a command-line driven client.
+While the app is written in Java, the main programming language used to program for the Android operating system, the other part is completely written in C.
+
+In this chapter, we will only cover the implementation of the C part containing the core logic.
+The Android-specific part is mostly uninteresting, as most of the code is related to handling the user interface with only a small amount of code related to the actual protocol implementation.
+As the complete protocol including the client part has also been implemented in C, no gains are expected in describing the Android application itself other than getting knowledge on the Android ecosystem in a whole.
+
 \subsection{Services}
 \label{sec:services}
 
