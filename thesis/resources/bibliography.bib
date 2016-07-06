@@ -7,15 +7,9 @@
     organization={IEEE}
 }
 
-@inproceedings{hemminger2005network,
-    title="{Network emulation with NetEm}",
-    author={Hemminger, Stephen},
-    year={2005},
-    organization={Open Source Development Labs}
-}
-
 @misc{appveyor,
     title={AppVeyor},
+    key={AppVeyor},
     howpublished={\url{https://ci.appveyor.com/project/pks-t/sd}}
 }
 
@@ -59,13 +53,14 @@
     publisher={Springer}
 }
 
-@book{bershad1995extensibility,
+@inproceedings{bershad1995extensibility,
     title={Extensibility safety and performance in the SPIN operating system},
     author={Bershad, Brian N and Savage, Stefan and Pardyak, Przemyslaw and Sirer, Emin G{\"u}n and Fiuczynski, Marc E and Becker, David and Chambers, Craig and Eggers, Susan},
+    booktitle={ACM SIGOPS Operating Systems Review},
     volume={29},
-    number={5},
+    pages={267--283},
     year={1995},
-    publisher={ACM}
+    organization={ACM}
 }
 
 @article{birrell1984implementing,
@@ -99,6 +94,7 @@
 
 @misc{coverity,
     title="{Coverity Scan}",
+    key={Coverity},
     howpublished={\url{https://scan.coverity.com/projects/pks-t-sd}}
 }
 
@@ -159,6 +155,7 @@
 
 @misc{gcc,
     title={GNU Compiler Collection},
+    key={GCC},
     howpublished={\url{https://gcc.gnu.org/}}
 }
 
@@ -171,12 +168,14 @@
 }
 
 @misc{git,
-    title={Git SCM},
+    title="{Git SCM}",
+    key={Git},
     howpublished={\url{https://git-scm.org}}
 }
 
 @misc{github,
-    title={GitHub},
+    title="{GitHub}",
+    key={GitHub},
     howpublished={\url{https://github.com/pks-t/sd}}
 }
 
@@ -187,6 +186,13 @@
     pages={56--63},
     year={1989},
     organization={IEEE}
+}
+
+@inproceedings{hemminger2005network,
+    author = {Hemminger, Stephen},
+    booktitle = {Linux Conf Au},
+    title = "{Network Emulation with NetEm}",
+    year = {2005}
 }
 
 @inproceedings{humphreys1999distributed,
@@ -217,8 +223,10 @@
 }
 
 @techreport{iso-c90,
-    organization = {ISO-IEC},
     title = "{Programming Languages --- {C}, {ISO/IEC} 9899:1990 International Standard}",
+    organization = {ISO-IEC},
+    author={ISO and Standard, IEC},
+    institution = {International Organization for Standardization},
     year = {1990}
 }
 
@@ -303,12 +311,6 @@
     publisher={IEEE}
 }
 
-@article{myers1999implementation,
-  title={An implementation architecture to support single-display groupware},
-  author={Myers, Brad},
-  year={1999}
-}
-
 @article{needham1978using,
     title={Using encryption for authentication in large networks of computers},
     author={Needham, Roger M and Schroeder, Michael D},
@@ -329,12 +331,6 @@
     pages={33--38},
     year={1994},
     publisher={IEEE}
-}
-
-@article{neuman2005kerberos,
-    title={The Kerberos network authentication service (V5)},
-    author={Neuman, Clifford and Hartman, Sam and Yu, Tom and Raeburn, Kenneth},
-    year={2005}
 }
 
 @article{neuman2005rfc,
@@ -360,12 +356,6 @@
     pages={1--9},
     year={1990},
     organization={London, UK}
-}
-
-@article{pike1991minimalist,
-    title={A Minimalist Global User Interface},
-    author={Pike, Rob},
-    year={1991}
 }
 
 @article{pike1997inferno,
@@ -417,7 +407,6 @@
     title={EROS: a fast capability system},
     author={Shapiro, Jonathan S and Smith, Jonathan M and Farber, David J},
     volume={33},
-    number={5},
     year={1999},
     publisher={ACM}
 }
@@ -441,12 +430,12 @@
 }
 
 @inproceedings{stewart1999single,
-  title={Single display groupware: a model for co-present collaboration},
-  author={Stewart, Jason and Bederson, Benjamin B and Druin, Allison},
-  booktitle={Proceedings of the SIGCHI conference on Human Factors in Computing Systems},
-  pages={286--293},
-  year={1999},
-  organization={ACM}
+    title={Single display groupware: a model for co-present collaboration},
+    author={Stewart, Jason and Bederson, Benjamin B and Druin, Allison},
+    booktitle={Proceedings of the SIGCHI conference on Human Factors in Computing Systems},
+    pages={286--293},
+    year={1999},
+    organization={ACM}
 }
 
 @inproceedings{tanenbaum1986using,
@@ -472,8 +461,9 @@
 }
 
 @misc{travis,
-  title = "{Travis CI}",
-  howpublished = {\url{https://travis-ci.org/pks-t/sd}}
+    title = "{Travis CI}",
+    key = {Travis},
+    howpublished = {\url{https://travis-ci.org/pks-t/sd}}
 }
 
 @article{varda2008protocol,
