@@ -1,5 +1,68 @@
 \section{Discussion}
 
+\subsection{Super servers}
+
+The functionality developed in this thesis is commonly referred to as a \emph{super server}.
+A super server is a program which orchestrates communication with multiple service implementations on a single computer, e.g. handling a daemon for the FTP protocol as well as another daemon providing time via NTP.
+
+Super servers have initially been designed with the overarching goal of resource conservation in mind.
+Instead of starting up all service daemons at system boot time, only the super server daemon in started up at system boot.
+It will then bind to configured ports and listen for incoming connections.
+As soon as a client connects then, the actual service executable will be started on demand and given access to the client's socket.
+
+The first super server has been the so-called \emph{internet daemon} inetd, which has been initially released with 4.3BSD in 1986 \cite{inetd}.
+inetd is set up by writing a simple configuration file specifying all services that should be supervised by the daemon.
+Each service can be configured by providing multiple parameters, like socket type, protocol, which user it shall execute as as well as the actual command that shall be executed when a connection is received.
+
+The initial implementation only provided this basic functionality.
+Most importantly, there was no mechanism for access control as well as no rate limiting available.
+To fix these shortcomings, Panagiotis Tsirigotis started work on the \emph{extended internet daemon} xinetd in 1992 \cite{xinetd}, which in contrast to inetd also contains basic rate limiting as well as access control.
+
+Rate limiting may be configured via three different parameters: overall rate of connections received, rate of connections received for a single service as well as connections received from a specific IP address.
+These parameters may all be configured independently of each other to throttle overall resource usage or to throttle single clients.
+
+The access control mechanisms employed are rather simplistic.
+Rather than providing authentication by a user's identity, all authentication is solved by inspecting IP addresses.
+That is for each service, one can define white- as well as blacklists detailing which IP address or range of IP addresses may access the service and which may not.
+So in order to guarantee working access control, network administrators need to make sure that clients have fixed IP addresses as otherwise it is easily possible to access services by simply changing a computers IP address.
+
+Another implementation for a super server is \emph{ucspi-tcp} by D.J. Bernstein \cite{ucspi-tcp}.
+ucspi-tcp has been developed in the early 1990s, as well, with an initial alpha being released in 1996.
+It was intended as a replacement for the inetd daemon, trying to solve several problems encountered with it.
+
+The main grieves of Bernstein was that inetd was unreliable under higher loads.
+Most importantly, inetd simply cut off service when it received too many connections in a short amount of time.
+Furthermore, it did also happily consume all resources of the system when many services are started at the same time.
+To help those cases, ucspi-tcp went down the same route as xinetd by introducing rate limiting.
+
+One additional feature implemented by ucspi-tcp was authentication via the IDENT protocol.
+ucspi-tcp might require authentication of users by having them sign in to user accounts local to the machine the executable runs on.
+This has also been employed later on by inetd and xinetd.
+
+\bigskip
+
+Comparing the above implementations of super servers to our implementation, there are three observations to be made:
+
+\emph{First}, it is of importance to correctly handle the case of resource limitation.
+As it seems, a big grief with initial implementations from inetd were that it was not possible to have proper rate limiting and thus protect the server that it runs on.
+The current implementation in this thesis does not provide any means of rate limiting connections.
+Due to timing constraints, it was not possible to implement this feature.
+
+\emph{Second}, none of the listed implementations is ``secure by default'':
+In contrast to our approach where all connections between client and service are tunneled through an encrypted channel, these super servers simply start up the service and let it subsequently perform its protocol, relying on security measurements of the protocol's implementation.
+
+This probably results from the fact that the initial scenario for which these solutions have been developed is to tackle resource scarcity problems on the server side.
+Security has not been a consideration up front.
+
+\emph{Third}, authentication, if available at all, is either based on IP addresses or centrally managed user accounts.
+The first case of authentication through IP addresses seems at best unfortunate.
+Considering our adversary's capabilities of reading and injecting messages at will, this obviously does not suffice to efficiently protect a service.
+
+Using centrally managed user accounts is roughly equivalent to managing user's public keys on a server.
+In contrast to user accounts, though, our approach based on capabilities allows more flexibility by granting other users the ability to execute services for which they normally would not have the rights to do so, if the capability is created by another known identity.
+
+We conclude that currently existing solutions for super servers are not able to address our use case of a secure-by-default implementation of a super server.
+
 \subsection{Key exchange}
 
 The initial step of every direct connections between client and server is the key exchange where a shared secret is generated which will subsequently be used to encrypt all communication.
