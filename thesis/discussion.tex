@@ -63,6 +63,82 @@ In contrast to user accounts, though, our approach based on capabilities allows 
 
 We conclude that currently existing solutions for super servers are not able to address our use case of a secure-by-default implementation of a super server.
 
+\subsection{Service discovery}
+
+The thesis does include a mechanism to discover services using a custom protocol based on Google Protobuf.
+The actual implementation is a very simple one, only providing peer-to-peer service discovery in the local network:
+Given a client which wants to discover all services present in the local network, it will simply send a query to the broadcast address and await announces by available servers.
+
+The service discovery part of this thesis is only provided to get a fully-working proof of concept, providing all steps required to achieve the goal of connecting distributed resources.
+As such, the main focus is \emph{not} on the service discovery protocol and the complete discovery process may be exchanged in favor of a different, already established protocol.
+Nevertheless, we will investigate some of the implications and requirements based on our use case.
+
+There exist many different protocols used for device discovery, where they usually serve a special intent which is stated by the actual field of application.
+E.g. service discovery in enterprises where centralized infrastructure exists will usually be implemented in a different way to a completely distributed surrounding.
+In \cite{zhu2005service}, a set of ten aspects has been developed which aim to categorize discovery protocols, where we will now discuss a subset of these aspects.
+
+The \emph{initial communication method} states how a peer will receive knowledge about available services when it wants to connect to a network.
+There are three major cases here with unicast, multicast and broadcast.
+Unicast is usable only when a centralized architecture is given, e.g. in the case of a directory service (DS) which is already known to all peers.
+The peer will connect to the DS and ask it to provide all services having registered with the DS.
+Obviously, unicast solutions are not going to work in our generalized use case of distributed resources, where clients might not have prior knowledge of DS's.
+
+In settings where the network infrastructure is unknown, clients may use either multicast or broadcast to get knowledge of services.
+When using multicast, a client will initially broadcast messages into the network, receiving announcements from available services.
+Based on these announcements, the client will switch to unicast messages directed at these services.
+Broadcast-based protocols instead completely rely on link-layer broadcast messages without any direct connection to services.
+The main benefit of using multicast- over broadcast-based protocols is reduced network bandwidth \cite{zhu2005service,edwards2006discovery}.
+
+Our service discovery implementation uses multicast to support device discovery in distributed networks.
+Initially, it will send a message to the special multicast address 224.0.0.1, which will send messages to all systems on the subnet.
+All listening servers can now respond with a list of services they provide.
+Following initial service discovery, the client may now send unicast messages to these services to either update the list of services they provide or to get further knowledge on one of these services.
+
+When new services connect to the network, there are currently no notifications sent by these services to clients.
+As such, clients have to poll the network when they want to discover newly announced services.
+To lessen the strains on the network, we have employed the multicast convergence algorithm used in the Service Location Protocol (SLP) \cite{guttman1999service}.
+The SLP multicast convergence algorithm simply adds all servers already known to the client to the initial multicast message.
+When a server receives this message, it will check if the client already has knowledge of the server and, if so, will not announce its availability again.
+Like this, only previously unknown servers will announce their availability to the peer.
+
+The \emph{service discovery infrastructure} criterium draws a distinction between systems based on directories and pure peer-to-peer protocols without any sort of directories.
+Directory-based protocols require special nodes which keep track of registered services.
+When a client wants to get to know all services in a scope, it is enough for it to simply discover the directory service and then ask it for all services.
+
+Our protocol uses a simple peer-to-peer system without any sort of directories.
+While this works for small network environments like a home network, this approach is hard to scale up due to the induced network link strain.
+
+Some systems exist which try to handle both scenarios at once by using a hybrid approach, with SLP being one of these systems.
+Optional directory agents might be installed into the network which listen to service announcements and add them to a list of known services.
+When a client now connects to the network, it will initially try to discover if any directory agents are present and, if so, from now on use them to discover services.
+Especially when considering the setting of Intern of Things, where a plethora of devices might be present, this is mode of operation becomes interesting.
+
+Of special interest to us is the support of \emph{discovery scopes}.
+While many protocols, including the proof of concept one employed by us, are only able to handle a scope based on the network topology, some have additional scoping features.
+One of these protocols is the Ninja Service Discovery Service \cite{czerwinski1999architecture} by Czerwinski et al.
+Besides supporting network topology service discovery, they also support context-aware (e.g. all devices in the current room) as well as user role based service discovery.
+
+User role based service discovery becomes of special interest when combined with service privacy, like it is done in the Ninja SDS.
+Given this combination of features, it is possible to restrict announced services based on the peer's identity.
+Like this it becomes possible to provide discovery for services which shall not be publicly known to be available but instead only for peers with a certain clearance level.
+
+User role based access control obviously relies on the availability of information on data authenticating users to the discovery service.
+Due to this fact, this feature is almost only available to directory-based service discovery protocols with centralized infrastructure, as is the case for the Ninja SDS.
+To the best of our knowledge, Universal Plug and Play (UPnP) \cite{miller2001home}, which uses the Simple Service Discovery Protocol (SSDP), is the only widely used protocol which uses a peer-to-peer architecture and at the same time performs authentication and authorization of its peers via access control lists \cite{zhu2005service,edwards2006discovery}.
+Unfortunately, authentication and authorization is only available in the form of extensions of SSDP (e.g.  in \cite{ellison2003device}) and is not widely used.
+Furthermore, no service confidentiality is granted like it is done for Ninja.
+
+\bigskip
+
+The current service discovery implementation is only intended as a proof of concept for this thesis.
+Summarizing our findings, especially support for directories is required when trying to scale up, as well as missing access control.
+
+Instead of reinventing the wheel, one might consider integrating the service architecture into existing solutions.
+Currently, no perfect solution exists which is able to handle peer-to-peer discovery as well as directory discovery while also providing the ability to do authentication, authorization and access control for peers.
+
+One of the most interesting protocols for centralized service discovery is the Ninja SDS, as it provides many security-related features as well as service confidentiality.
+Regarding flexibility, SLP is another interesting protocol which is able perform peer-to-peer discovery, but also to scale up in the presence of directory agents.
+
 \subsection{Key exchange}
 
 The initial step of every direct connections between client and server is the key exchange where a shared secret is generated which will subsequently be used to encrypt all communication.
