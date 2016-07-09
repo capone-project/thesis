@@ -28,25 +28,7 @@ The interface is held very simple in that the function simply receives a pointer
 On the sending side, we now serialize the message and send it by invoking the previously mentioned send and receive functions, which handle message splitting.
 The receiver now deserializes the message into the Protobuf structure and hand it back to the caller.
 
-One implication of this interface is that the receiver needs to know what kind of Protobuf structure he will receive before calling the receive function, as otherwise the channel will be unable to deserialize the incoming structure correctly.
-While this is no problem in most cases, it gets annoying when we consider that some remote procedure calls may return different messages.
-The most important use case for this is the return of errors, where RPCs may either return requested data or an error code.
-
-To fix this, the channel wraps all serialized Protocol buffers inside another Protocol buffer called ChannelMessage (see listing \ref{src:wrapper-protobuf}).
-This ChannelMessage encapsulates all calls via Protobufs and three optional fields.
-If an error occurs on either of both parties, the \lstinline{errcode} and \lstinline{errmsg} fields are set.
-Otherwise, the \lstinline{msg} field is set to the actual Protobuf which is deserialized if no error occured.
-The function receiving Protocol buffers will first check the error fields, and if an error occured report it to the caller without deserializing the contained message.
-
-Obviously, this adds some overhead to all messages exchanged between the parties.
-In fact this struct adds two bytes of additional data for the case when no error occured and only the actual message is transmitted, without any error code or message.
-Considering encrypted messages already have a much bigger overhead of 20 bytes, this is considered acceptable.
-The effect of this has been measured by using the benchmarks discussed in chapter \label{sec:benchmarking}.
-The overhead introduced by wrapping the messages in an additional Protobuf has been determined to be less than $0.5\%$.
-
-\lstinputlisting[caption=Wrapping Protocol buffer,label=src:wrapper-protobuf,firstline=3]{../../source/sd/proto/channel.proto}
-
-Besides handling the encoding of messages and Protobufs, channels also handle encryption.
+Besides handling encoding of messages and Protobufs, channels also handle encryption.
 While they are initially sending messages in plain text only, encryption may be enabled by providing a symmetric key to the channel.
 
 When a new key is provided to the channel, it will initialize nonces contained inside the channel struct to have the value $0$ for the client-side and $1$ for the server side.
