@@ -586,10 +586,101 @@ For our protocol, no such mechanism is required.
 The first hurdle is that sessions cannot be invoked by any other identity than the owner of the long-term signature key pair for whom the session has been created.
 If such a key pair has been compromised, it is possible to revoke sessions by either the session creator (e.g. the policy client of the CS) or the session's invoker.
 
-\subsubsection{Mobile client}
+\subsection{Mobile client}
 
-The protocol is designed to be usable by mobile clients, as well.
-E.g. given a scenario that a user wants to display the graphical interface of an executable running at his trusted home server on a local display, he may simply start up the mobile client which has previously been paired with the home server to connect these services with one another.
+Until now, the mobile client has not been mentioned much at all.
+This results from the fact that the controller itself is mostly uninteresting in that the implementation itself is very specific to the Android platform.
+Most code written only handles interaction with the user interface and has thus no meaning to this thesis.
+Never the less, we will now discuss some of the use cases for the Android controller application and some of its user interface.
+
+The protocol's aim is to be able to orchestrate different services with each other such that these services are composable by users.
+In some environements, this will be done by e.g. the user's work station.
+In several other situations, though, users will not have a work station at hand, but most people nowadays always carry their mobile phones around.
+Now given a scenario that a user wants to display the graphical interface of an executable running at his trusted home server on a local display, he may simply start up the mobile client which has previously been paired with the home server to connect these services with one another.
+
+\begin{figure}
+    \centering
+
+    \begin{subfigure}{0.24\textwidth}
+        \includegraphics[width=\linewidth]{resources/identity.png}
+        \caption{Identity}
+        \label{identity}
+    \end{subfigure}
+    \begin{subfigure}{0.24\textwidth}
+        \includegraphics[width=\linewidth]{resources/discovery-list.png}
+        \caption{Discovery list}
+        \label{discovery-list}
+    \end{subfigure}
+    \begin{subfigure}{0.24\textwidth}
+        \includegraphics[width=\linewidth]{resources/favorites.png}
+        \caption{Favorites list}
+        \label{favorites-list}
+    \end{subfigure}
+    \begin{subfigure}{0.24\textwidth}
+        \includegraphics[width=\linewidth]{resources/services-list.png}
+        \caption{Services list}
+        \label{services-list}
+    \end{subfigure}
+
+    \caption{Android controller views}
+\end{figure}
+
+The current user interface presented to achieve this is rather simple.
+Upon startup, the user gets presented a tabbed layout, where one of these tabs represents the user's favorite servers with which the user has already paired before, and the other tab is used to discover new services.
+The initial step performed by users is to either generate a new key, which is automatically done on first startup of the application, or to import a previously generated key which is already known to other services.
+This is done in the application's identity screen, depicted in figure \ref{identity}, which is accessible via the hamburger menu from the application's initial screen (the three dots in the upper right corner in figure \ref{discovery-list}).
+
+One problem that spans through the complete Android application is the representation of key material.
+Simply displaying the hexadecimal encoding of these keys, like it is currently displayed, is problematic as these strings are not easily recognizable for users.
+Especially in the case where public keys are displayed for servers, it is especially hard to verify a server's identity is really the one we expect a server to have.
+Assuming an adversary hosting a server in the local network, he may try to generate a key pair whose public key has only a small Levenshtein distance.
+
+One paper discussing this issue is \cite{perrig1999hash}.
+They observe that humans are inherently unreliable at comparing keys with each other, as these are only meaningless concatenations of symbols.
+To fix the problem, they propose to instead display \emph{random art} derived from a hash of the public key instead, as humans are more reliable at recognizing previously seen images instead of recognizing random strings.
+One project where random art is used to display keys is OpenSSH \cite{ylonen1996ssh} in the form of ASCII art.
+Given that the application is a proof-of-concept only, no such solution has been implemented yet.
+
+When the user has set up his key pair, he may now want to actually use the application and connect to services.
+When the mobile client has not been previously paired with a server providing a ceratin service the user wants to connect with, he will choose the service discovery tab, upon which the application will start the discovery protocol to detect present servers.
+For each server that is found, a new entry will be added to the list (see figure \ref{discovery-list}).
+Each entry has displayed the server's name, its network address, an excerpt from its public key as well as a favorite-button.
+The favorite button is displayed as a star, which is either displayed in color, indicating that the server has been saved to the user's favorites, or greyed out.
+By tapping the button, users can add or remove the server from the favorites list.
+
+This state helps the user to identify services which he already knows.
+Furthermore, favorite servers may have a different name chosen by the user himself.
+Announce messages from the server include the server's name, which is chosen by the server's administrator.
+When users want to more easily distinguish specific servers, they can change a server's name to a custom name.
+This name will then be displayed in the favorites list, but also in the service discovery list.
+
+When a server has been added to the favorites, it will be displayed in the favorites list (see figure \ref{favorites-list}).
+This list essentially presents the same information as the discovery list for each server, barring the button which allows users to add services to as a favorite.
+Following the user interface pattern of editing list items, a user can long-tap a single list item in order to enable action mode, in which the application's title bar will change to an action bar.
+This action bar currently has two buttons for either removing the entry or renaming it, which is displayed in the screenshot.
+
+The favorites list also has the functionality to add a custom server by tapping the $+$-button.
+The user is then presented a dialog which asks him for a server address, the server's public key as well as customly chosen name for the server.
+So in case it is impossible to detect servers by service discovery, e.g. because the server is not connected to the local network, users can manually add these servers and interact with them, given they have a publicly accessible internet address.
+
+On either selecting a server in the favorite's list or discovery list, all services provided by the server are displayed (see figure \ref{services-list}).
+For each service, we display its name as chosen by the server administrator, the service's category (e.g. ``Display'' or ``Input''), its port as well as an image, representing the service's functionality.
+This image shall guide users to more easily distinguish available services.
+
+When the user now wants to connect of one of these services presented, he will simply tap on the corresponding list item and an interface will be presented which gives access to the service's specific parameters.
+E.g. given a shell service, the user will be presented fields to input an executable as well as its arguments and environment variables.
+Having selected the parameters, he will now click on the ``Invoke'' button and gets presented a window showing the command's output.
+
+Each service type has its own specific layout for presenting parameters.
+One of the more important services for mobile clients is the ``Invoke'' service:
+It allows a mobile client to connect two servers with each other, for example to connect the user's CPU server located in his office with the display in the conference room.
+Upon selecting the Invoke service, he will be asked for a service which should be invoked from the server where the Invoke service is hosted.
+Assuming the Invoke service is hosted on his office's work station, he simply directs it to invoke the display service located at the confercence room and tap ``Invoke'', upon which both servers connect to each other.
+
+In the future, it might also be desirable to have some services which are able to operate with the mobile client itself instead of requiring a second server.
+One of these services might be an input service, where the user is able to steer a display's mouse cursor as well as its keyboard by using the mobile client itself.
+
+\bigskip
 
 One problem with mobile clients is that they are inherently less safe than servers located at ones home or in datacenters.
 It is much easier to loose or have stolen a mobile phone or tablet than to loose a full desktop computer.
