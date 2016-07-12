@@ -716,7 +716,7 @@ Still, loss of the key is much harder than loss when the key is distributed to s
     \centering
 
     \begin{tikzpicture}
-        \node[service,minimum ] (c1) {c1};
+        \node[service] (c1) {c1};
         \node[controller, below right=of c1] (controller) {mp};
         \node[network, fit={(c1) (controller)}, label=above:Corporate network] (d1) {};
         \node[router] at (d1.east) (r1) {};
