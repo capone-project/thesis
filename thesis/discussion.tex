@@ -701,4 +701,36 @@ Like this, only a single instance is required to know the actual key.
 This instance shall obviously be protected so that no person has access to it and may extract the key.
 Still, loss of the key is much harder than loss when the key is distributed to several clients, including mobile clients.
 
+\subsection{Scenarios}
+
+\tikzset{
+    network/.style={draw, cloud, cloud puffs=20, minimum height=3cm, minimum width=3cm},
+    router/.style={draw=black, fill=white, rectangle, minimum height=1cm, minimum width=3mm},
+    service/.style={draw, rectangle},
+    display/.style={draw, ellipse},
+    controller/.style={draw, circle},
+    invocation/.style={draw,-triangle 45}
+}
+
+\begin{figure}
+    \centering
+
+    \begin{tikzpicture}
+        \node[service,minimum ] (c1) {c1};
+        \node[controller, below right=of c1] (controller) {mp};
+        \node[network, fit={(c1) (controller)}, label=above:Corporate network] (d1) {};
+        \node[router] at (d1.east) (r1) {};
+
+        \node[service, right=3cm of d1] (c2) {c2};
+        \node[network, fit={(c2)}, label=above:Home network] (d2) {};
+        \node[router] at (d2.west) (r2) {};
+
+        \draw[invocation] (controller.east) -- ($(r1) - (0,0.2)$) -- node[below] {1.}  ($(c2.west) - (0,0.2)$);
+        \draw[invocation] (controller.west) -- node[below left] {2.} (c1.south);
+        \draw[invocation] (c1.east) -- ($(r1) + (0,0.2)$) -- node [above] {3.} ($(c2.west) + (0,0.2)$);
+    \end{tikzpicture}
+
+    \caption{Scenario 2}
+\end{figure}
+
 % vim: ft=tex tw=0
