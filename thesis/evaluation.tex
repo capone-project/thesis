@@ -1,0 +1,442 @@
+\section{Evaluation}
+\label{sec:evaluation}
+
+In this chapter we will evaluate the fitness of the framework to handle certain scenarios.
+To do so, we have developed a number of benchmarks demonstrating how the low-level protocol and its implementation perform under different circumstances.
+There are three major measurements we are interested in and which directly influence the framework's usability.
+\begin{description}
+    \item[Throughput]\hfill\\
+        How much data are we able to write through a channel in a certain amount of time.
+        This statistics is of particular importance when performing bulk traffic, e.g. when connected to a file service or forwarding the user's desktop to a service.
+    \item[Connection establishment]\hfill\\
+        How long does it take to negotiate a connection with remote party.
+        This is experienced by users which try to connect to a service and determines how long it will take until initial data is transferred between two entities.
+    \item[Input latency]\hfill\\
+        How long does it take until data submitted on either the user's or server's side arrives at the other party.
+        This is of importance for interactive services like input forwarding.
+\end{description}
+
+We will test throughput and connection establishment with the low-level primitives used inside the framework.
+Two small utilities (\lstinline{sd-bench} and \lstinline{sd-latency}) have been implemented to handle these and conduct the tests.
+Both programs open a TCP server socket and then spawn a new thread which connects to the open socket.
+They will then perform the actions specific to the benchmark.
+
+Timings are obtained by invoking the POSIX function \lstinline{clock_gettime} with a monotonic clock.
+Monotonic clocks do not jump in time when certain events happen on the system, e.g. when timezone changes or when \lstinline{adjtime} is called by some kind of NTP implementation.
+On most systems, the \lstinline{clock_gettime} function provides timings in nanosecond resolution.
+
+As timings are inherently inaccurate on computer systems due to interference with other programs, the kernel's scheduler, frequency scaling and more effects we are averaging the timing over repeated invocations of the core functionality that is to be benchmarked.
+Experimentation showed results with errors in the range of $\pm2\%$.
+This is precise enough in order to make observations as we usually operate in the range of multiple orders of magnitude where results are sufficiently distinct.
+
+To increase reproducability on multi-core systems, both threads are fixed to a CPU core.
+This tries to minimize scheduling problems and interference with other programs.
+
+\medskip
+
+All benchmarks were done with three different network settings in mind to actually show how the framework behaves in different use cases.
+These three settings involve same-host, local network and usage via the internet.
+
+How networks perform is dependent on various parameters.
+The most important ones include bandwidth, packet delay, packet loss, packet duplication and packet reordering.
+These factors together determine how well networks perform under different loads.
+
+Packet loss, duplication and reordering are not tested in any benchmark as all operations except device discovery are done via the Transmission Control Protocol (TCP).
+The TCP stack already handles all these conditions transparently, so by testing these parameters we would in fact be benchmarking how well the TCP protocol behaves.
+Another reason is that these parameters can only be emulated via statistical distributions.
+In order to have reproducible results, we would have to greatly increase the scope of how long the framework is benchmarked to average out the effects of each of these parameters.
+
+Bandwidth is not respected, as well.
+For the throughput benchmark, we obviously do not want to limit the available bandwidth as we want to determine how much data we are able to process in a fixed amount of time and as such cannot restrict available bandwidth.
+The other two tests on connection establishment and input latency are not limited by bandwidth and as such it would be of no use to consider bandwidth in here and thus complicate the benchmarking setup.
+
+The last parameter remaining is packet delay, that is how long does it take for a packet emitted from one host to arrive at another host.
+The different network scenarios all have different package delay characteristics.
+While same-host communication should be near-instant, that is all data sent is only delayed by the time the operating system requires to process data in the TCP/IP stack and by the framework, local area networks and the internet both induce a delay.
+For local area networks, which we define as computers which are connected to the same router via network cables in this context, we have chosen a packet delay of 2 milliseconds.
+For internet-based connections, we have chosen a packet delay of 20 milliseconds.
+
+Obviously, these delays are somewhat arbitrary as different networks have different latency.
+Especially on connections via the internet, the delay can vary greatly based on location of both parties, quality of service and other factors.
+But as benchmarking results will show, these fixed delays are already able to show patterns in how the framework behaves.
+
+In order to test these different conditions the network emulation framework NetEm, which is part of the Linux kernel, has been utilized \cite{hemminger2005network}.
+NetEm is a framework developed by Hemminger in 2005 in order to benchmark applications under different networking conditions.
+It provides the means to modify how the traffic control engine in the Linux kernel behaves by providing the ability to put artificial packet delays, packet drops and more characteristics on single networking interfaces.
+
+In order to execute following benchmarks, all benchmarks connect via the loopback interface to a counterpart on the same host.
+The loopback interface has then been prepared to handle a certain scenario by putting a delay of 0, 2 or 20 milliseconds on the loopback interface.
+Like this, the tests become reproducible by not being reliant on external networking conditions and can be re-executed an arbitrary amount of time.
+
+\medskip
+
+All tests have been executed on a Linux 4.6.0 host with an Intel\textregistered Core\texttrademark i5-6600K with 6MB of cache and a clock rate of 3.50GHz.
+The benchmarking utilities and all dependencies have been compiled with GCC 5.3.0 with optimizations enabled.
+
+\subsection{Throughput}
+
+The throughput benchmark aims to measure how much data we can fit through a single connection to a remote host.
+The primitive used for connections in our service stack is called a channel.
+Channels encapsulate the low-level protocol of data streams, including the networking protocol (that is UDP or TCP) knowledge on how to split and re-assemble packages at their boundaries and how to encrypt or decrypt packages on encrypted connections (see section \ref{sec:low-level-protocol}).
+
+As all protocols except the initial undirected service discovery use encrypted connections we will not benchmark unencrypted channels.
+Furthermore, we will also ignore UDP-based channels as they are only used in the undirected service discovery, which does not require high throughput.
+
+\medskip
+
+We have to distinguish two different usage patterns when transmitting data.
+The first pattern is transmitting many small messages between two parties.
+This happens a lot when transmitting control messages based on the protocol, which are usually in the range of a few bytes up to a maximum of a few hundred bytes, or for tunneled data for interactive services, e.g. input services.
+The second pattern is when doing bulk data transfer for services, e.g. when transferring big files or when streaming videos.
+
+Our goal is to maximize throughput for bulk transfers while keeping overhead low for small messages.
+The factor directly influencing this is the message's block length.
+As has been explained in the section on the low-level protocol (see section \ref{sec:low-level-protocol}, packages are split into chunks of a fixed amount of bytes by the transmitter and assembled to form the original message on the receiving side.
+We have to tune the chunk sizes in order to optimize for throughput.
+
+Unfortunately though it is not possible to tune for maximum throughput for small (in the range of up to a few hundreds of bytes) and big messages (starting at a few hundred of kilobytes) at the same time.
+In order to optimize for small messages, we would ideally split messages into one chunk exactly big enough to fit in the complete message.
+But let us assume we have optimized for a message length of 40 bytes.
+As each transferred block has to contain a message authentication code of 16 bytes and that the initial message has to contain a message length of 4 bytes, the optimal block length would be 60 bytes (40 bytes $+$ 16 bytes $+$ 4 bytes $=$ 60 bytes).
+
+When we now try to send a message of e.g. one megabyte (1024 $\cdot$ 1024 $=$ 1048576 bytes)  of data, it becomes obvious that the overhead added by the required metadata gets out of hand.
+The following formula calculates the total required amount of bytes to send assuming a block length of 60 bytes.
+Besides the total length of data to be transmitted, we need to send a message authentication code of 16 bytes for every block and an initial message length of 4 bytes:
+\begin{align*}
+    &\text{datalen} &+ &\text{blockcount} &* &\text{maclen} &+ &\text{messagelen} &= \text{total length}\\
+    \Rightarrow &1048576 &+ & \lceil(1048576 / 40)\rceil &* &16 &+ &4\\
+    \Rightarrow &1048576 &+ & 26215 &* &16 &+ &4\\
+    \Rightarrow &1468020
+\end{align*}
+This amounts to an overhead of $40\%$ to transmit the data.
+When tuning the block length to perform better for bulk transfers, the overhead would drastically decrease.
+Take the following example where we assume a block length of 4 kilobytes (4096 bytes):
+\begin{align*}
+    &1048576 &+ &\lceil(1048576 / 4096)\rceil &* &16 &+ &4\\
+    \Rightarrow &1048576 &+ &256 &* &16 &+ &4\\
+    \Rightarrow &1052676
+\end{align*}
+The overhead decreased to a mere $0.4\%$.
+So bulk transfers obviously have a big benefit when using big block sizes.
+
+But we cannot simply set a huge block size and be done, as now smaller messages are penalized.
+Given our initial assumption of a small message of 40 bytes of data and a block length of 4096 bytes, we now have an overhead of $4096 - 40 - 16 - 4 = 4038$ bytes, that is $98\%$ of the block are unused.
+As network connections tend to be slow, especially when transferring data via an uplink through the internet, this will severely hamper performance for small messages.
+
+But even for networks where sending data is cheap the overhead would bring down throughput as we have to honor that data is encrypted.
+The more data we need to send the longer it takes to encrypt and decrypt the message on both sides.
+
+\medskip
+
+As we can see, we need to make a compromise between either achieving high throughput for small or large messages.
+As such, we have to determine exactly how big the effects we just described are and how they affect throughput.
+To do so, we implemented a simple throughput benchmarking utility which is comprised of two threads sending data to each other.
+The utility transmits 1GB of data to the remote side, where data is split into messages of a user-defined size.
+This procedure is repeated for block lengths between 64 and 4096 bytes.
+
+To simulate different network conditions, we use the previously described mechanisms to target different network latencies.
+We have chosen three different scenarios of 0ms of latency for transfer on the host itself, 2ms of latency for transfer to remote systems on the same local area network and 20ms of latency for transfer to remote systems in the wide area network.
+
+To estimate the effect of block lengths for different scenarios, we have chosen to send messages of four different lengths with 256 bytes, 1 kilobyte, 100 kilobytes and 10 megabytes of data.
+The results can be seen in figure \ref{fig:block-length-benchmarks} visualized as graphs.
+See appendix \ref{sec:appendix-throughput} for bare results.
+
+\begin{figure}
+    \centering
+
+    \begin{subfigure}[t]{0.4\textwidth}
+        \resizebox*{!}{0.9\textwidth}
+        {
+            \begin{tikzpicture}
+                \begin{axis}[ylabel=Throughput (in MB/s),ymax=200,xmode=log,xlabel={Block length (logarithmic scale, in bytes)}]
+                    \addplot table [x=pkglen,y=tpenc, col sep=comma,discard if not={datalen}{256}] {data/bench.csv};
+                    \addlegendentry{0ms latency}
+
+                    \addplot table [x=pkglen,y=tpenc, col sep=comma,discard if not={datalen}{256}] {data/bench-2ms.csv};
+                    \addlegendentry{2ms latency}
+
+                    \addplot table [x=pkglen,y=tpenc, col sep=comma,discard if not={datalen}{256}] {data/bench-20ms.csv};
+                    \addlegendentry{20ms latency}
+
+                    \addplot[mark=none, blue, dashed] coordinates { (64,120) (4096,120) };
+                    \addplot[mark=none, orange, densely dotted] coordinates { (64,10) (4096,10) };
+                \end{axis}
+            \end{tikzpicture}
+        }
+        \caption{256 bytes of data}
+        \label{fig:block-length-benchmark-256b}
+    \end{subfigure}
+    \hspace{2em}
+    \begin{subfigure}[t]{0.4\textwidth}
+        \resizebox*{!}{0.9\textwidth}
+        {
+            \begin{tikzpicture}
+                \begin{axis}[ylabel=Throughput (in MB/s),ymax=400,xmode=log,xlabel={Block length (logarithmic scale, in bytes)}]
+                    \addplot table [x=pkglen,y=tpenc, col sep=comma,discard if not={datalen}{1024}] {data/bench.csv};
+                    \addlegendentry{0ms latency}
+
+                    \addplot table [x=pkglen,y=tpenc, col sep=comma,discard if not={datalen}{1024}] {data/bench-2ms.csv};
+                    \addlegendentry{2ms latency}
+
+                    \addplot table [x=pkglen,y=tpenc, col sep=comma,discard if not={datalen}{1024}] {data/bench-20ms.csv};
+                    \addlegendentry{20ms latency}
+
+                    \addplot[mark=none, blue, dashed] coordinates { (64,120) (4096,120) };
+                    \addplot[mark=none, orange, densely dotted] coordinates { (64,10) (4096,10) };
+                \end{axis}
+            \end{tikzpicture}
+        }
+        \caption{1 kilobyte of data}
+        \label{fig:block-length-benchmark-1kb}
+    \end{subfigure}
+
+    \vspace{1em}
+
+    \begin{subfigure}[t]{0.4\textwidth}
+        \resizebox*{!}{0.9\textwidth}
+        {
+            \begin{tikzpicture}
+                \begin{axis}[ylabel=Throughput (in MB/s),ymax=750,xmode=log,xlabel={Block length (logarithmic scale, in bytes)}]
+                    \addplot table [x=pkglen,y=tpenc, col sep=comma,discard if not={datalen}{102400}] {data/bench.csv};
+                    \addlegendentry{0ms latency}
+
+                    \addplot table [x=pkglen,y=tpenc, col sep=comma,discard if not={datalen}{102400}] {data/bench-2ms.csv};
+                    \addlegendentry{2ms latency}
+
+                    \addplot table [x=pkglen,y=tpenc, col sep=comma,discard if not={datalen}{102400}] {data/bench-20ms.csv};
+                    \addlegendentry{20ms latency}
+
+                    \addplot[mark=none, blue, dashed] coordinates { (64,120) (4096,120) };
+                    \addplot[mark=none, orange, densely dotted] coordinates { (64,10) (4096,10) };
+                \end{axis}
+            \end{tikzpicture}
+        }
+        \caption{100 kilobytes of data}
+        \label{fig:block-length-benchmark-100kb}
+    \end{subfigure}
+    \hspace{2em}
+    \begin{subfigure}[t]{0.4\textwidth}
+        \resizebox*{!}{0.9\textwidth}
+        {
+            \begin{tikzpicture}
+                \begin{axis}[ylabel=Throughput (in MB/s),ymax=750,xmode=log,xlabel={Block length (logarithmic scale, in bytes)}]
+                    \addplot table [x=pkglen,y=tpenc, col sep=comma,discard if not={datalen}{10240000}] {data/bench.csv};
+                    \addlegendentry{0ms latency}
+
+                    \addplot table [x=pkglen,y=tpenc, col sep=comma,discard if not={datalen}{10240000}] {data/bench-2ms.csv};
+                    \addlegendentry{2ms latency}
+
+                    \addplot table [x=pkglen,y=tpenc, col sep=comma,discard if not={datalen}{10240000}] {data/bench-20ms.csv};
+                    \addlegendentry{20ms latency}
+
+                    \addplot[mark=none, blue, dashed] coordinates { (64,120) (4096,120) };
+                    \addplot[mark=none, orange, densely dotted] coordinates { (64,10) (4096,10) };
+                \end{axis}
+            \end{tikzpicture}
+        }
+        \caption{10 megabytes of data}
+        \label{fig:block-length-benchmark-10mb}
+    \end{subfigure}
+
+    \caption{Sending data with different block lengths}
+    \label{fig:block-length-benchmarks}
+\end{figure}
+
+The fours graphs display measurements for the different message sizes of 256 bytes, 1 kilobyte, 100 kilobytes and 10 megabytes.
+Each of the figures has three different graphs representing the different scenarios for transfer of data on the same host and in LAN respectively WAN.
+The x axis represents different block lengths in bytes used to split outgoing messages.
+Please note that a logarithmic scale is used for block lengths.
+The y axis represents the throughput achieved in megabytes per second averaged over the 1GB of data sent.
+A higher value is better.
+
+Additional constant dotted lines have been added to represent target throughput for Ethernet (blue dashed line, 120MB/s) and internet (orange densely dotted line, 10MB/s).connections .
+These aim to put an estimated maximum achievable throughput which aids at better comprehending the chosen block length.
+
+\medskip
+
+Let us first discuss graphs \ref{fig:block-length-benchmark-256b} and \ref{fig:block-length-benchmark-1kb} as examples for transferring small messages to a remote host.
+
+What stands out is that there throughput caps out at block lengths of 512 bytes for 256 byte messages and at block lengths of 1500 bytes for 1024 byte messages, respectively.
+The reason for this is obvious: these are the smallest block lengths where the whole message fits into.
+Regard that for a message of length $l$, the smallest block length that is big enough to fit is $l + 16 + 4$.
+With smaller block lengths we have to send multiple blocks to transmit the whole message and with bigger messages we have to encrypt additional padding.
+So the optimal block length for small messages is the smallest one where the whole message with metadata fits into.
+
+One more interesting thing to observe is that with increasing latency, throughput decreases and features of the graphs seem to diminish.
+While the spike in throughput is easily visible on 0ms and 2ms of latency, it becomes barely recognizable on 20ms of latency.
+The effect of feature-flattening seems to get even more obvious the more data is sent, but this is effect results from a different maximum throughput value.
+
+Let us take a look at graphs \ref{fig:block-length-benchmark-100kb} and \ref{fig:block-length-benchmark-10mb} now for examples of bulk transfer.
+The effect of latency on throughput is very interesting for these graphs - while throughput constantly increases when there is no latency at all, it caps out at 200MB/s for 2ms of latency and at 50MB/s for 20ms of latency.
+
+For 2ms of latency the cap is at around a block length of 1500 bytes.
+The value of 1500 was included in the benchmarks as this is a typical size of the maximum transmission unit (MTU) for Ethernet connections.
+The MTU is the size of the largest amount of data that can be sent in a single Ethernet frame without requirement to split the frame into multiple frames.
+With this information, we have a possible explanation as to why throughput caps out at around 1500 bytes and decreases afterwards for 2ms of latency, while it steadily increases for 0ms of latency.
+Sending two frames with latency will obviously have an impact on throughput, while it does not have a real impact when there is no latency.
+
+\medskip
+
+These benchmarks do not pay attention to maximum bandwidth available in LAN or WAN settings.
+Usually, we cannot achieve more than around 100 megabytes per second in Gigabit Ethernet settings and around 10 megabytes per second in WAN settings.
+We should honor this limitation when determining an optimal block length.
+
+For small packages we are not able to reach the target throughput at for 2ms of latency and fail to meet the target starting at block lengths of 1024 for 20ms of latency when sending 256 byte messages.
+For bulk transfer we start to hit the target in all scenarios when using a block length of 512 bytes.
+
+\medskip
+
+Let us subsume our findings from these benchmarks:
+\begin{itemize}
+    \item the optimum block length for short messages is the minimum block length able to fit in the complete message
+    \item increasing block lengths will penalize short messages due to encryption overhead
+    \item optimizing block length with high latencies is not useful due to throughput being near-flat
+    \item optimal block length should not exceed length of the MTU (e.g. 1500 bytes)
+\end{itemize}
+
+To compromise between throughput for small and bulk traffic we chose a block length of 512 bytes.
+It is the smallest block length able to achieve all target throughputs except for small messages with 2ms of latency, but we do not expect to need high throughput for small messages.
+
+It may be desirable to make the block length configurable per service.
+Services usually know their communication patterns and can thus optimize for the respective scenario they require.
+Currently no such feature exists, but the block length is trivially changeable at compile time and as such it would a small feat to make block lengths configurable at runtime.
+
+\subsection{Connection establishment latency}
+
+The second benchmark involves connection establishment latency.
+When a client connects to servers, the first thing that is always performed is negotiation of an ephemeral key, which requires a total of three messages being exchanged between all parties.
+In this benchmark, we want to determine how the complete sequence of key negotiation performs under different networking settings and how this is influenced by different block lengths.
+
+To test the connection establishment process, we wrote a simple benchmarking utility.
+The utility consists of a client and a server thread, where the client repeatedly connects to the server, initiates the key exchange protocol and then disconnects again.
+The whole process is repeated 1000 times in order to increase the timing's validity.
+
+See figure \ref{fig:connection-establishment} for the results visualized as a graph and appendix \ref{sec:appendix-connection-establishment} for the bare timings.
+The horizontal axis displays the block length in bytes, that is what is size of the fixed-size blocks used to split messages by.
+The block length is measured in a logarithmic scale ranging from 64 bytes up to 4096 bytes.
+The vertical axis displays the overall time required for the complete connection establishment process in milliseconds.
+Each of the three graphs represents a networking condition with a different latency.
+
+Displayed is only the time required for the client to connect and initiate the algorithm, as the server has to perform the same steps without the initial connection establishment and only sends one of the three messages.
+So timings on the client side result in more interesting measurements.
+Appendix \ref{sec:appendix-connection-establishment} contains both client and server timings, though.
+
+\begin{figure}[t]
+    \centering
+    \begin{tikzpicture}
+        \begin{axis}[ylabel=Connection time (in ms),xmode=log,xlabel={Block length (logarithmic scale, in bytes)}]
+            \addplot table [x=pkglen,y=connect, col sep=comma,discard if not={latency}{0}] {data/latency.csv};
+            \addlegendentry{0ms latency}
+
+            \addplot table [x=pkglen,y=connect, col sep=comma,discard if not={latency}{2}] {data/latency.csv};
+            \addlegendentry{2ms latency}
+
+            \addplot table [x=pkglen,y=connect, col sep=comma,discard if not={latency}{20}] {data/latency.csv};
+            \addlegendentry{20ms latency}
+        \end{axis}
+    \end{tikzpicture}
+    \caption{Connection establishment latency}
+    \label{fig:connection-establishment}
+\end{figure}
+
+We can see that the computational overhead induced by encryption and exchange of the messages is near-negligible as without latency, we do not even reach 1ms of required time.
+So the graph for same-host communication seems uninteresting as no distinct features can be seen.
+In fact, though, there is a $5\%$ decrease in time required to do the initiation for block lengths of 64 bytes to block lengths of 256 bytes.
+Each message sent in the key exchange contains exactly 134 bytes, which surmounts to a total of 138 bytes including the package length and excluding encryption, which is not used in this step.
+As such, a block length of 256 bytes is the optimum block length of the block lengths exercised, as it is the first one able to fit all data in one message.
+
+Interestingly there is another increase in performance of around $4\%$ between block lengths of 256 bytes and 512 bytes, which cannot be explained by message splitting as both block lengths are sufficient.
+In fact, one would rather expect a decrease in performance as there is additional overhead required to send additional padding.
+As repeated benchmarks have resulted in the same results, it is unlikely that this is caused by measurement anomalies, even though we operate in microsecond-ranges.
+Up to now, we are unable to explain this behavior.
+
+For the other two graphs with 2 and 20 milliseconds of packet delay, the results are as one would expect.
+There is a harsh decrease of connection establishment time as soon as we exceed the size of messages sent.
+This improve in efficiency can be seen especially for 20ms of latency, as we effectively cut the blocks required in half and each block induces some latency.
+
+For both graphs with latency one can easily see that we have a connection establishment latency of the number of blocks sent multiplicated by the latency plus the latency induced by the initial connection to the server.
+Exceeding the sent message's size, this can be summarized by the formula $t = 4 \times l + c$, where $t$ is the time required for the complete connection establishment protocol, $l$ is the latency and $c$ is a sub-millisecond constant for calculations regarding key derival.
+
+For slow connections with a packet delay of up to 250ms we would still be able to perform connection establishment in around one second.
+Considering that connection establishments are only performed at most three times for a service invocation (that is querying the service, creating a session and start the session), this should be sufficient.
+
+\subsection{Input latency}
+
+The last benchmark done aims to determine how the framework performs for interactive processes.
+The scenario is simple: given a user connected to a service forwarding its input to another server, how long does it take until an input event issued by the user to arrive at that server and be processed by the display server?
+
+The current implementation has a service providing input forwarding by using the Synergy protocol (see section \ref{sec:synergy-service} for more details on the implementation).
+So we want to perform benchmarks on how long it does take to forward input events via Synergy, ideally in different scenarios.
+We need a way to measure when a certain event is generated and when it arrives at the server.
+
+The X protocol is developed with no real security built in.
+While usually considered as a detriment to the X protocol as it becomes impossible to separate graphical applications and inputs from each other, it is of great benefit for us as we are able to utilize it to do these measurements.
+The idea is to create two framebuffers separated from each other, connect these framebuffers via Synergy, hook them up to receive events and then determine how long it does take when an event is generated in the first framebuffer to arrive in the second framebuffer
+
+The concrete implementation instantiates two X virtual frame buffers (Xvfb), which do not render to hardware but instead to virtual memory.
+We then connect these virtual framebuffers either directly by a Synergy client and server, or via the service framework tunneling Synergy's data.
+
+As the setup is complete, we want to be able to get timing information for generated and received events.
+For this, we have written a simple program which basically connects to both Xvfbs and tells these displays that it wishes to receive all input events generated and then monitors both sockets to the display for incoming events, calculating the delay between the event's generation and receive.
+
+One problem experienced is that in order to receive all events, we usually have to grab the input devices.
+As they often are already grabbed by e.g. a window manager or other X clients, we are unable to do so.
+To circumvent this problem, we instead use the XInput2 extension to the X protocol to receive all input events without the requirement to first grab devices and as such monitor all events without interfering with other X clients.
+
+The program also spawns another thread which has the task to generate input events.
+Instead of manually generating events by e.g. clicking the mouse (which becomes hard to do in virtual framebuffers), we use the XTest extension of the X protocol to generate a fixed amount of input events.
+On the receiving side, we now wait for all these input events to arrive and then stop the testing sequence.
+
+While testing it has been experienced that single X events may get dropped, leading us to block on receiving the missing events.
+A workaround employed by us is to generate a fixed amount of events, but waiting only on the first $x$ events to arrive and calculate the delay based on these events only.
+One more problem is that we do not match events with each other, that is we only monitor \emph{if} there are events arriving and not if these events are really the ones we have just generated.
+As we use virtual framebuffers, though, the likelihood that stray X events are generated in these is low if no other X clients are attached to them.
+
+Furthermore we have note that timings are very vague as with network connections, multiple virtual X servers and event generation there are a lot of variables, so we need to keep in mind that deviations are very likely.
+
+See appendix \ref{sec:appendix-input-latency} for bare results, figure \ref{fig:input-latency} shows the graphs resulting from the measurements.
+The horizontal axis displays the block lengths in a logarithmic scale in bytes, starting at 64 bytes and going up to 4096 bytes.
+The vertical axis displays the input delay in milliseconds, which is the total amount required to receive 1000 repeated clicks.
+The graphs represent measurements under different network conditions.
+
+One added detail are the three horizontal bars, where each of these bars corresponds to one latency based on its style.
+These bars mark the timings for input delay when the Synergy service and client are connected to each other without tunneling data through our service framework and should act as a reference.
+
+\begin{figure}[t]
+    \centering
+    \begin{tikzpicture}
+        \begin{axis}[ylabel=Input delay (in ms),xmode=log,ymax=1450,xlabel={Block length (logarithmic scale, in bytes)},xmax=7500]
+            \pgfplotsinvokeforeach {0, 2, 20} {
+                \addplot table [forget plot,x=pkglen,y=delay, col sep=comma,discard if not={latency}{#1}] {data/input.csv};
+                \addlegendentry {#1ms latency}
+                \addplot+[mark=none,xcomb] table [x expr=7500,y=delay, col sep=comma,discard if not={pkglen}{0},discard if not={latency}{#1}] {data/input.csv};
+            }
+        \end{axis}
+    \end{tikzpicture}
+    \caption{Input latency}
+    \label{fig:input-latency}
+\end{figure}
+
+% grep '^0' docs/thesis/data/input.csv | awk '{ split ($0, v, ","); if (NR == 1) { ref=v[3] } else { sum += v[3] } } END { print (sum / (NR - 1)) / ref }'
+
+In the scenario of same-host communication, our framework performs very close to the plain Synergy solution.
+But as latency raises, using the service framework puts an increasing penalty on input latency.
+While we cannot observe a statistically significant difference between using the service and plain Synergy on same-host communication, we perform around $1\%$ worse than the reference value at 2ms of latency, which increases to around $6\%$ worse at 20ms of latency compared to the reference value.
+The divergence is expected to grow worse for higher latencies.
+
+Interestingly, block lengths do not have any impact for these benchmarks.
+In more constrained environments where bandwidth is limited this changes so that with increasing block lengths, the input delay will increase the more input events are sent.
+E.g. assuming a maximum bandwidth of 100kbit/s, input events would be limited to a maximum of 25 events when we have a block length of 4096.
+While enough for simple clicks or key strokes, mouse movement will be impacted.
+
+This observation makes a case for small block lengths for interactive services.
+But as small block lengths have an impact on services which require high throughput instead of low latency we have a direct contradiction.
+One obvious solution is to adjust block lengths for different services.
+While it is already possible to adjust block lengths for a single communication channel, no service currently does this but instead they currently use the default configuration of 512 bytes.
+
+It would be trivial to adjust block lengths when a service starts handling a session's channel when both client and server simply set block lengths based on what service type is invoked.
+More complicated solutions could have some kind of link negotiation between client and server where both parties could settle for a common block length.
+A link negotiation would also enable to accommodate for different networking settings, where there is a training phase where both parties test the connection and afterwards settle on a block length based on gained knowledge and the service type that is to be used.
+
+
+% vim: ft=tex tw=0
