@@ -407,14 +407,38 @@ the system may invoke the one-time function with
 \end{align*}.
 In ICAP, this structure is called a propagation tree.
 Like this, ancestry is explicitly recorded in the capability and $C1$ as well as $C2$ may revoke the capability.
+In ICAP, though, this propagation tree is always stored at the capability server and when capabilities shall be propagated, clients have to first request a new capability with the server.
 
-The actual system is implemented as a hybrid approach of capabiliies and access control lists, where the so-called object storage stores all objects and the internal capabilities and the access control server stores the propagation trees.
-The hybrid approach solves the problem of revocation, which has been previously hard to solve in a satisfying way, by having centralized information on issued capabilities.
+While not implemented right now, we envision a different way of propagating capabilities which is entirely driven by parties already owning a capability without any communication with servers.
+Assume an internal capability $(Object, Random0)$ and an identity $C1$ with capability
+\begin{align*}
+    (Object, Rights1, f(C1, Object, Rights1, Random0))
+\end{align*}.
+To distribute this capability to a third entity $C2$, we will create a new capability
+\begin{align*}
+    (Object, Rights1, C1, f(C2, Object, Rights2, Random1))
+\end{align*}, that is the random is now calculated from $Random1$ part of the initial capability passed to $C2$.
+The server can now verify the capability by calculating
+\begin{align*}
+    Random1 &= f(C1, Object, Rights1, Random0)\\
+    Random2 &= f(C2, Object, Rights2, Random1)
+\end{align*}.
+If $Random2$ matches the capability's random field, it will be deemed valid.
 
-% TODO: capabilities based on encryption
+To distribute the capability to a third party $C3$, $C2$ would create a new capability
+\begin{align*}
+    (Object, Rights1, C1, Rights2, C2, f(C3, Object, Rights3, Random2))
+\end{align*}, e.g. chaining all identities and the respective rights.
+The verification process will need to make sure that for each rights field, all right fields further down in the chain will either be the same set of rights or be a subset of rights.
+If this would not be verified, upon re-creating a new capability an entity might easily extend rights of the entity to whom the new capability is passed on.
 
-But unfortunately, the scheme also looses some of the benefits of capability systems, notably easy refinement of a capabilities access rights as well as the ability to simply pass on capabilities.
-Also, in order to verify the capabilities it is not sufficient to hold the capability itself, only, but ICAP also requires to retrieve the internal capability in order to successfully verify.
+This mechanism of chaining capabilities together allows to still have identity-bound capabilities as all identities go into the one-way function $f$ without any communication with the server.
+While it is still possible to revoke access for the complete chain by simply revoking the internal root-capability, this scheme has no simple way of revocation for specific identities inside the chain.
+To achieve this, it would be required to have additional revocation lists, which we will not discuss now.
+
+As said, capability propagation as proposed is not yet implemented.
+But in fact, this use-case is why the project internally uses capabilities to provide access control instead of access control lists:
+With capabilities, it is still possible to iterate further on the handling of capabilities without actually extending the protocol which is used to request and communicate access rights like it would be required for pure access control lists.
 
 \bigskip
 
