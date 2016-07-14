@@ -1,0 +1,37 @@
+\section{Problem definition}
+
+In this chapter, we will define the actual problem and outline which parts of the overall problem we do not want to solve.
+We will further state our assumptions regarding the security model and abilities of the adversary.
+
+This thesis tries to solve the problem of connecting different resources provided by servers with each other using a single protocol.
+The protocol shall be able to discriminate these resources, be able to configure them when trying to connect with its provider in order to use the resource and then subsequently use the actual resource in a way it is intended to be used.
+Furthermore, it should be possible to steer the complete protocol by use of a third devicee, the controller, which shall able to connect an agent with a service provider without requiring physical access to either of both parties.
+
+The actual architecture should be service-agnostic, that is we do not try to solve the problem of underlying communication protocols used when a service has been started by an agent.
+As such, we want to be indifferent to the actual service protocol that is used, given that the protocol is actually able to talk via the network protocol TCP/IP.
+While some protocols will need to be developed which are specific to this service infrastructure and where their protocol is actually be defined by us, these are only special cases.
+
+As the thesis' title states, we want to solve the problem of connecting \emph{distributed} resources.
+So in fact, we do not want to rely on centrally available computing infrastructure, but instead users should be able to discover services without previous knowledge of the network environment and without having to provide any kind of central servers.
+To achieve the requirement, we also develop a service discovery protocol which can be used to locate services without any third party.
+Nevertheless, the service discovery part is not a focus of this thesis as a multitude of different services exist which already handle service discovery.
+
+A central point to this thesis is to implement the protocol in a secure way.
+We explicitly exclude the implemented service discovery protocol from this requirement, as its purpose is to discover previously unknown services where it is impossible to authenticate the service without any prior knowledge.
+Barring this initial step, all communication between services and their peers shall be fully authenticated and encrypted such that no adversary is able to recover messages exchanged between these parties.
+
+To achieve this goal, the first assumption made is that peers have previously exchanged long-term public signature keys with each other through some kind of side-channel.
+The problem of key exchange is not solved in this thesis.
+
+We further assume that the adversary has the ability to interpose all communication paths.
+He is able to read all traffic between peers, modify or replay messages sent or inject arbitrary messages.
+On the network layer, the adversary is able pretend to be either of these peers.
+So in the end, the adversary has complete control over all network functionality and is able to spoof identities of all participating peers.
+
+The adversary has no access to key material, though.
+That is, he cannot in any way encrypt, decrypt or sign any messages in the name of any peer without previously gaining access to the key material in any way.
+Furthermore, we assume that operators of provided services are honest and did not permit access to the service's long-term signature key pair to the adversary.
+
+The last assumption is that all services and peers have a secure computing environment which is not compromised by the adversary.
+
+% vim: ft=tex tw=0
