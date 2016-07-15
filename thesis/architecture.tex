@@ -309,63 +309,44 @@ When both parties are verified to each other we can now calculate the symmetric 
 For each party, the key is calculated by performing a scalar multiplication between the party's private ephemeral key and the remote's public ephemeral key.
 The output is then concatenated with both parties' public keys' and hashed, resulting in a new secret which is shared between both client and server.
 
-\begin{figure}
+\begin{figure}[t]
     \centering
 
     \begin{sequencediagram}
-        \newthread{c}{Client ($vrfy_C$, $sign_C$)}
-        \newthread[4]{s}{Service ($vrfy_S$, $sign_S$)}
+        \newthread{c}{Client $C$}
+        \newinst[6]{s}{Service $S$}
+
+        \begin{call}{c}{GenerateSid()}{c}{$sid$}
+        \end{call}
+
+        \postlevel
 
         \begin{call}{c}{GenerateKeypair()}{c}{($enc_C$, $dec_C$)}
-            \postlevel
         \end{call}
 
         \postlevel
 
-        \begin{messcall}{c}{$\sigma = \text{Sign}_{sign_C}(vrfy_C \| enc_C), vrfy_C, enc_C$}{s}
-        \end{messcall}
-
-        \begin{call}{s}{Verify$_{vrfy_C}(\sigma, vrfy_C \| enc_C)$}{s}{}
-            \postlevel
-        \end{call}
-
-        \postlevel
+        \begin{messcall}{c}{$C$, $sid$, $enc_c$}{s}
 
         \begin{call}{s}{GenerateKeypair()}{s}{($enc_S$, $dec_S$)}
-            \postlevel
         \end{call}
 
-        \postlevel
-
-        \begin{messcall}{s}{$\sigma = \text{Sign}_{sign_S}(enc_S \| enc_C), enc_S, enc_C$}{c}
+        \begin{messcall}{s}{$S$, $sid$, $enc_s$, $SIG_S(S, sid, enc_s, enc_c, C)$}{c}
         \end{messcall}
 
-        \begin{call}{c}{$\text{Verify}_{vrfy_S}(\sigma, enc_S \| enc_C)$}{c}{}
-            \postlevel
-        \end{call}
-
-        \postlevel
-
-        \begin{messcall}{c}{$\sigma = \text{Sign}_{sign_C}(enc_S || enc_C), enc_S, enc_C$}{s}
+        \begin{messcall}{c}{$C$, $sid$, $SIG_C(C, sid, enc_c, enc_s, S)$}{s}
         \end{messcall}
-
-        \begin{call}{s}{$\text{Verify}_{vrfy_C}(\sigma, enc_S \| enc_C)$}{s}{}
-            \postlevel
-        \end{call}
-
-        \postlevel
 
         \begin{call}{c}{CalculateKey($enc_S$, $dec_C$)}{c}{Key}
-            \postlevel
         \end{call}
 
-        \prelevel
         \prelevel
         \prelevel
 
         \begin{call}{s}{CalculateKey($enc_C$, $dec_S$)}{s}{Key}
-            \postlevel
         \end{call}
+
+        \end{messcall}
     \end{sequencediagram}
 
     \caption{Connection establishment}
