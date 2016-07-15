@@ -189,7 +189,7 @@ Unfortunately, though, these protocols require a long-term established secret be
 In \cite{canetti2001analysis}, Canetty and Krawczyk propose the SIG-DH protocol, an AKC protocol usable with any digital signature scheme.
 It is essentially a three-pass protocol based upon the Diffie-Hellman problem and public key signatures with added key confirmation.
 
-The protocol is proven to be secure in a model where the adversary is granted the ability to reveal ephemeral secret keys of both parties
+The protocol is proven to be secure in a model where the adversary is granted the ability to reveal ephemeral secret keys of both parties.
 This is a somewhat smaller guarantee than has been made in \cite{blake1997key} where the adversary is granted not access to the ephemeral secret keys, but instead to long-term signature keys of participants.
 
 In \cite{lamacchia2007stronger}, LaMacchia et al. have shown a weakness in the SIG-DH protocol when using a non-deterministic signature scheme:
