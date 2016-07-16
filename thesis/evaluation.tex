@@ -29,7 +29,7 @@ As timings are inherently inaccurate on computer systems due to interference wit
 Experimentation showed results with errors in the range of $\pm2\%$.
 This is precise enough in order to make observations as we usually operate in the range of multiple orders of magnitude where results are sufficiently distinct.
 
-To increase reproducability on multi-core systems, both threads are fixed to a CPU core.
+To increase reproducibility on multi-core systems, both threads are fixed to a CPU core.
 This tries to minimize scheduling problems and interference with other programs.
 
 \medskip
@@ -354,7 +354,7 @@ For the other two graphs with 2 and 20 milliseconds of packet delay, the results
 There is a harsh decrease of connection establishment time as soon as we exceed the size of messages sent.
 This improve in efficiency can be seen especially for 20ms of latency, as we effectively cut the blocks required in half and each block induces some latency.
 
-For both graphs with latency one can easily see that we have a connection establishment latency of the number of blocks sent multiplicated by the latency plus the latency induced by the initial connection to the server.
+For both graphs with latency one can easily see that we have a connection establishment latency of the number of blocks sent multiplied by by the latency plus the latency induced by the initial connection to the server.
 Exceeding the sent message's size, this can be summarized by the formula $t = 4 \times l + c$, where $t$ is the time required for the complete connection establishment protocol, $l$ is the latency and $c$ is a sub-millisecond constant for calculations regarding key derival.
 
 For slow connections with a packet delay of up to 250ms we would still be able to perform connection establishment in around one second.

@@ -147,14 +147,14 @@ Furthermore it becomes much easier for an adversary to analyze traffic by inspec
 To fix the problem we send blocks of a fixed length instead of prefixing every package with an encrypted length.
 The initial fixed-length block is prefixed with the overall length of the assembled package.
 If the overall length exceeds the length of the remaining bytes of the first fixed length block, then the complete block is assembled by concatenating the first block excluding its length prefix and all subsequent blocks until the announced length is received.
-The last block is right-padded with zeroes until its length matches the block length.
+The last block is right-padded with zeros until its length matches the block length.
 The package length is only encoded in the first block.
 
 The following example demonstrates the package format for unencrypted packages.
 We assume a fixed length block size of 64 bytes.
 If a party now wishes to transfer a package of 80 bytes the package will get split into two blocks.
 The first block is prefixed with four bytes containing the actual package length and filled with the initial $64 - 4 = 60$ bytes.
-The second package is filled with the remaining $80 - 60 = 20$ bytes and right-padded with $64 - 20 = 44$ zeroes.
+The second package is filled with the remaining $80 - 60 = 20$ bytes and right-padded with $64 - 20 = 44$ zeros.
 Figure \ref{fig:unencrypted-package-format} visualizes the block's contents.
 
 \begin{figure}
@@ -231,8 +231,8 @@ This guarantees (given nonces of sufficient length) that nonces are never repeat
 The algorithm used for encryption is the Salsa20 stream cipher by Daniel J. Bernstein \cite{bernstein2008salsa}.
 It is a family of 256-bit stream ciphers to designed to be used in a wide range of cryptographic applications.
 It uses a 256-bit key and a 64-bit nonce and expands them into a $2^{70}$-byte stream.
-Encryption for a plain text message with $n$ bytes is done by xor'ing the plaintext with the first $n$ bytes of the stream.
-Decryption is done likewise, xor'ing the ciphertext with the first $n$ bytes of the same stream.
+Encryption for a plain text message with $n$ bytes is done by XOR'ing the plaintext with the first $n$ bytes of the stream.
+Decryption is done likewise, XOR'ing the ciphertext with the first $n$ bytes of the same stream.
 We specifically use the Salsa20/20 stream cipher, which is a 20-round stream cipher, compared to reduced-round ciphers specified by Daniel J. Bernstein.
 
 The algorithm used for message authentication is the Poly1305 message authentication code by Daniel J. Bernstein \cite{bernstein2005poly1305}.

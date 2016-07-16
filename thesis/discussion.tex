@@ -101,7 +101,7 @@ The SLP multicast convergence algorithm simply adds all servers already known to
 When a server receives this message, it will check if the client already has knowledge of the server and, if so, will not announce its availability again.
 Like this, only previously unknown servers will announce their availability to the peer.
 
-The \emph{service discovery infrastructure} criterium draws a distinction between systems based on directories and pure peer-to-peer protocols without any sort of directories.
+The \emph{service discovery infrastructure} criterion draws a distinction between systems based on directories and pure peer-to-peer protocols without any sort of directories.
 Directory-based protocols require special nodes which keep track of registered services.
 When a client wants to get to know all services in a scope, it is enough for it to simply discover the directory service and then ask it for all services.
 
@@ -145,7 +145,7 @@ The initial step of every direct connections between client and server is the ke
 As the protocol is designed to be usable in a decentralized environment, no central key distribution center exists which aids in this process.
 Instead, all keys shall be derived using the long-term signature keys of both client and server in order to derive the key.
 The shared secret that is generated should have the property that it is not derivable by external parties while being able to determine that the key can only be derived with the party that we intend to communicate with.
-Our implementation only consideres key exchange between two participants, as there are never more than two parties directly communicating with each other inside the same session.
+Our implementation only considers key exchange between two participants, as there are never more than two parties directly communicating with each other inside the same session.
 
 When exchanging a key between two parties, one can distinguish between \emph{key transport} and \emph{key agreement} protocols \cite{menezes1996handbook}.
 Key transport protocols involve one party creating a secret which is then shared with a second party.
@@ -162,7 +162,7 @@ Implicit key authentication is given when one participant of the protocol can be
 Key confirmation is given when one participant of the protocol can be assured that the other participant actually \emph{has} knowledge on a specific secret.
 Authenticated key agreement which meets both criteria is called an \emph{authenticated key agreement with key confirmation} (AKC).
 
-There exist five properties that are commonly cited when analysing AK or AKC protocols \cite{menezes1996handbook,blake1997key,law2003efficient}:
+There exist five properties that are commonly cited when analyzing AK or AKC protocols \cite{menezes1996handbook,blake1997key,law2003efficient}:
 \begin{enumerate}
     \item \emph{known-key security}
         If session keys have been compromised, the adversary is not able to impact secrecy of the protocol.
@@ -241,7 +241,7 @@ This has been researched in e.g. \cite{mccune2005seeing,saxena2006secure}, where
 \subsection{Access control}
 
 As one of the goals of the developed protocol is to be completely authenticated it is obvious that we have to perform some kind of access control to guard access to different services.
-That is given a client with an identity connecting to a specific service, the service somehow needs to determine if the identity is acutally allowed to perform the desired action.
+That is given a client with an identity connecting to a specific service, the service somehow needs to determine if the identity is actually allowed to perform the desired action.
 
 To discuss how access control is implemented, let us first explore how access control may be implemented in a theoretical view.
 One of the easiest modes on how to perform access control is by using an access control matrix \cite{lampson1974protection,tanenbaum2014modern}.
@@ -250,7 +250,7 @@ In general, the rows are called \emph{subjects} while the columns are called \em
 Each entry in the matrix now determines which actions the client specified by the row is allowed to perform on the service's endpoint.
 
 Each service provides two persistent end-points as well as an unbound number of ephemeral end-points.
-The two persistent end-points provide the interface to query a service, that is obtain additional information on the service's specifica, and to request a new session within a service.
+The two persistent end-points provide the interface to query a service, that is obtain additional information on the service's specifics, and to request a new session within a service.
 All sessions have their own set of permissions, as a session requested by Alice shouldn't be executable by Bob who just created another session.
 As such, sessions can be treated as additional end-points and are thus added to the matrix as objects.
 
@@ -269,7 +269,7 @@ As Alice requested the session, she gains the permission to revoke permissions o
 But given that the session is not created for Alice herself but instead for invocation by Bob, Alice has no right to execute the session, which is instead added to Bob.
 
 The second step performed is that Alice grant Carol the right to query and request session on the service.
-Carol now creates a new session herselves, which adds a newly created \emph{Session 2} to the matrix, granting Carol the right to revoke and execute the new object.
+Carol now creates a new session herself, which adds a newly created \emph{Session 2} to the matrix, granting Carol the right to revoke and execute the new object.
 
 \begin{table}
     \centering
@@ -303,7 +303,7 @@ There are two commonly used distinct models how one can implement this matrix.
 The first model is describing the table by its rows, that is each subject has assigned to it a set of (object,rights) pairs determining which objects may be accessed.
 These pairs attached to the subjects of the matrix are named capabilities.
 The other way to look at the matrix is by having a set of (subject,rights) pairs associated to the columns, which is called an access control list (ACL) \cite{tanenbaum2014modern}.
-Both approaches result in a different set of characteristica for the system which we will now evaluate for our use case.
+Both approaches result in a different set of characteristics for the system which we will now evaluate for our use case.
 
 \subsubsection{Capabilities}
 
@@ -317,12 +317,12 @@ A benefit over conventional access control like ACLs is that processes have fine
 In the 1970s, Wilkes, Needham et al. developed the first capability-using hardware with the Cambridge CAP Computer \cite{wilkes1979cambridge}.
 In contrast to previous systems, which used base-limit registers to guard memory segments from unauthorized access, the CAP system used so-called capability registers.
 In these capability registers, a process is able to store a capability describing a certain memory segment.
-Attached to the capability is a special a bit-pattern used for authenticating the capability to the operating sysetm.
+Attached to the capability is a special a bit-pattern used for authenticating the capability to the operating system.
 
-The bit-pattern stored inside the capability is required to be unforgable by user-space processes.
+The bit-pattern stored inside the capability is required to be unforgeable by user-space processes.
 Only the operating system kernel may issue valid capabilities which are subsequently presented by the process wishing to access a specific memory segment.
 On access of memory, hardware checks the processes capability registers to verify that it has the right to access it.
-So obviously, these capabilities must be constructed in a way such that they are unforgable by all processes except by the operating system kernel itself, lest the system becomes insecure.
+So obviously, these capabilities must be constructed in a way such that they are unforgeable by all processes except by the operating system kernel itself, lest the system becomes insecure.
 
 The CAP computer also manages peripherals through these capabilities by mapping them to special memory segments.
 So when a process wants to access a peripheral device, it has to possess a capability for the segment corresponding to this device.
@@ -337,11 +337,11 @@ This restriction lead to the development of distributed capabilities.
 The easy solution of just requiring every system to use capabilities which are then relayed through a network interface simply does not work, as adversarial users may simply run a modified kernel or operating system which circumvents capabilities in any way.
 Also, there is shared hardware between distributed computers which is able to verify all memory access, so new solutions were developed.
 
-In 1981, Donelley tries to lift this limitation and make capbilities fit for use in distributed environments \cite{donnelley1981managing}.
+In 1981, Donelley tries to lift this limitation and make capabilities fit for use in distributed environments \cite{donnelley1981managing}.
 He defines the \emph{Distributed Domain Management Problem}, which consists of three parts:
 \begin{enumerate}
     \item authorization by the service process
-    \item communication of access between any pair of proceses
+    \item communication of access between any pair of processes
     \item validation by the service process
 \end{enumerate}
 Donelley then proceeds to lay out four mechanisms for how to protect capabilities and their accompanying benefits and detriments.
@@ -354,14 +354,14 @@ The put-port is computed by a one-way function $P = F(G)$ having the property th
 Clients willing to access the service can now send data to $P$, which may only be occupied by services who now the secret get-port $G$.
 
 Amoeba relies on the assumption that every message sent via the network is transformed by this function $F$ and that it is impossible to circumvent, as otherwise an adversary may simply listen on the known public port $P$ without going through transformation of the $F$ function.
-The authors mention two possiblities on how to achieve this: the clients either use a special trusted kernel which is able to perform the transformation, or the gateway to the local network will perform this transformation.
-This fact alone makes Amoeba unusable in the age of the Internet, where it is impossible to control the heterogenous computing devices connected to it.
+The authors mention two possibilities on how to achieve this: the clients either use a special trusted kernel which is able to perform the transformation, or the gateway to the local network will perform this transformation.
+This fact alone makes Amoeba unusable in the age of the Internet, where it is impossible to control the heterogeneous computing devices connected to it.
 
 A common failure of distributed capability systems is the problem of passing on capabilities to other entities.
-E.g. assuming that Alice got a capability to excert an action on a specific service and shares this capability with Bob, it is impossible in classical capability systems to restrict this passing-on of the capability without the use of a reference monitor.
+E.g. assuming that Alice got a capability to execute an action on a specific service and shares this capability with Bob, it is impossible in classical capability systems to restrict this passing-on of the capability without the use of a reference monitor.
 This observation has also been made by Shapiro et al. when constructing the EROS capability system:
 \begin{quote}
-    The prinicpal failing of capabilities is difficulty of administration.
+    The principal failing of capabilities is difficulty of administration.
     In the absence of a reference monitor, there is no direct way to say ``Fred may not use this object.'' \cite{shapiro1999eros}
 \end{quote}
 
@@ -457,7 +457,7 @@ In general it was observed that it is rather hard to design a purely capability 
 As has been acknowledged in multiple papers, capabilities still have some problems which are hard to fix \cite{gong1989secure,shapiro1999eros}.
 One of the biggest problems with capabilities is that it is hard to manage them in a centralized way.
 
-As capabilities are attached to the subjects rather than the objects, it is usualyl hard to impossible to determine who currently has access to which objects.
+As capabilities are attached to the subjects rather than the objects, it is usually hard to impossible to determine who currently has access to which objects.
 The result is that one cannot simply revoke access rights to a certain object for one user without having some kind of additional access control for certain cases.
 
 Without realizing it initially, the initial implementation of capabilities was more of a hybrid approach between capabilities and access control lists, where each session had associated a capability and each caller having the ability to invoke it when providing this capability.
@@ -492,7 +492,7 @@ Kerberos is built on a central authentication server (AS).
 Whenever a client wants to connect to a service (S), it will get retrieve a ticket from the AS which the client can then present to S to authenticate itself to S.
 See figure \ref{fig:kerberos-authentication} for the process of retrieving a ticket and authenticating to a service.
 
-The initial step is for the client C to send a message to the AS, communicating that it wants to authenticatie to the server S.
+The initial step is for the client C to send a message to the AS, communicating that it wants to authenticate to the server S.
 This message contains a claimed identity, the identity of the server it wants to connect to and an expiry time until when the ticket shall be valid.
 The AS will verify that C is allowed to connect to V and if so, will create a new session key which may be used to verify and encrypt traffic between C and V.
 
@@ -565,7 +565,7 @@ This policy client may either have an internal list of clients that are allowed 
 
 Let us now consider figure \ref{fig:protocol-authentication} to see how our protocol compares to the Kerberos protocol.
 When an actual client C wants to connect to a service S, he will first make a request with the capability service CS.
-This request contains to whom C wants to connect to (S), and how the connection shall look like (as the parameters with which C onnects to S later on are passed on to CS).
+This request contains to whom C wants to connect to (S), and how the connection shall look like (as the parameters with which C connects to S later on are passed on to CS).
 CS will now forward this request to the policy-implementing client P.
 Based upon the the identities of C and S, as well as based upon the connection parameters, P may now decide if the connection is a legitimate one and if so, request a new session with S.
 This new session may be revoked by P and executed by C, only.
@@ -573,7 +573,7 @@ The session information is now passed back to C via CS, where C may now connect 
 
 On first sight, our protocol requires much more communication between parties than the Kerberos protocol.
 We note though that the policy-implementing client P can easily remain on the same local server as the capability service CS, and as such the overhead will reduce to a call on the same host.
-The authentication server in the Kerberos protocol will usually have to perform lookups himself in order to determine wether C is allowed to connect.
+The authentication server in the Kerberos protocol will usually have to perform lookups himself in order to determine whether C is allowed to connect.
 Theoretically, it would be possible to have the CS implement the policy directly, without requiring to call out to P.
 This specialized service would reduce the indirection via P and reduce the calls required to 5 instead of 7 calls.
 
@@ -584,16 +584,16 @@ In our protocol there is no way for the CS to eavesdrop on the connection betwee
 \bigskip
 
 Kerberos also has the notion of ticket-granting tickets.
-That is when a client initially connects to an AS, he will typically not request a ticket for single usage but instead a ticket which grants the client the ability to request further ticktes without the requirement to re-authenticate himselves with the user's secret.
+That is when a client initially connects to an AS, he will typically not request a ticket for single usage but instead a ticket which grants the client the ability to request further tickets without the requirement to re-authenticate himself with the user's secret.
 This ticket-granting ticket (TGT) can subsequently be presented to a ticket-granting service (TGS) whenever the client wishes to connect to a service.
 The TGS will verify the TGT is actually valid and output a new ticket for use with the desired service.
 
 Currently, this is not possible for our protocol as upon each connection, the client has to perform the initial handshake which requires him to have access to the long-term signature key pair representing his identity.
 Considering the key pair is currently unprotected, there is no need to insert the password again, which is an obvious shortcoming and should be fixed by encrypting the key pair.
-As soon as the key is encrypted, there may be a solution similar to the Secure SHell (SSH) where an agent caches the key pair in memory upon first decryption so the user is not required to re-input his passphrase on each connection.
+As soon as the key is encrypted, there may be a solution similar to the Secure Shell (SSH) where an agent caches the key pair in memory upon first decryption so the user is not required to re-input his passphrase on each connection.
 Considering the TGT still requires communication with the TGS to get new tickets, our implementation would not perform much worse when requesting sessions with the CS.
 
-The mechanism of TGTs requires further thought about revokability of tickets.
+The mechanism of TGTs requires further thought about revocation of tickets.
 In Kerberos, each ticket has an expiry date after which it becomes invalid.
 This expiry date is chosen by the client and put into the ticket by the AS, which requires loosely-synchronized network times.
 By default, this expiry time is set to 5 minutes for simple tickets and to 8 hours for ticket-granting tickets.
@@ -618,7 +618,7 @@ Most code written only handles interaction with the user interface and has thus 
 Never the less, we will now discuss some of the use cases for the Android controller application and some of its user interface.
 
 The protocol's aim is to be able to orchestrate different services with each other such that these services are composable by users.
-In some environements, this will be done by e.g. the user's work station.
+In some environments, this will be done by e.g. the user's work station.
 In several other situations, though, users will not have a work station at hand, but most people nowadays always carry their mobile phones around.
 Now given a scenario that a user wants to display the graphical interface of an executable running at his trusted home server on a local display, he may simply start up the mobile client which has previously been paired with the home server to connect these services with one another.
 
@@ -666,10 +666,10 @@ One project where random art is used to display keys is OpenSSH \cite{ylonen1996
 Given that the application is a proof-of-concept only, no such solution has been implemented yet.
 
 When the user has set up his key pair, he may now want to actually use the application and connect to services.
-When the mobile client has not been previously paired with a server providing a ceratin service the user wants to connect with, he will choose the service discovery tab, upon which the application will start the discovery protocol to detect present servers.
+When the mobile client has not been previously paired with a server providing a certain service the user wants to connect with, he will choose the service discovery tab, upon which the application will start the discovery protocol to detect present servers.
 For each server that is found, a new entry will be added to the list (see figure \ref{discovery-list}).
 Each entry has displayed the server's name, its network address, an excerpt from its public key as well as a favorite-button.
-The favorite button is displayed as a star, which is either displayed in color, indicating that the server has been saved to the user's favorites, or greyed out.
+The favorite button is displayed as a star, which is either displayed in color, indicating that the server has been saved to the user's favorites, or grayed out.
 By tapping the button, users can add or remove the server from the favorites list.
 
 This state helps the user to identify services which he already knows.
@@ -684,7 +684,7 @@ Following the user interface pattern of editing list items, a user can long-tap 
 This action bar currently has two buttons for either removing the entry or renaming it, which is displayed in the screenshot.
 
 The favorites list also has the functionality to add a custom server by tapping the $+$-button.
-The user is then presented a dialog which asks him for a server address, the server's public key as well as customly chosen name for the server.
+The user is then presented a dialog which asks him for a server address, the server's public key as well as a custom chosen name for the server.
 So in case it is impossible to detect servers by service discovery, e.g. because the server is not connected to the local network, users can manually add these servers and interact with them, given they have a publicly accessible internet address.
 
 On either selecting a server in the favorite's list or discovery list, all services provided by the server are displayed (see figure \ref{services-list}).

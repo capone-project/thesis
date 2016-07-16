@@ -4,7 +4,7 @@ In this thesis, we have developed an approach tackling the problem of connecting
 These resources are presented by services, where each service exposes certain functionality to possible clients.
 All participants of the protocol thereby have an identity, represented by a public key, where all communication is secured by establishing the authenticity of both client and server as well as encrypting all messages exchanged with an ephemeral key.
 
-The proposed protocol solves the use-case of having a controlling application which orchestrates resources with each other by making use of sesssions, which are protected by capabilities.
+The proposed protocol solves the use-case of having a controlling application which orchestrates resources with each other by making use of sessions, which are protected by capabilities.
 When functionality shall be used by any client, a new session is created along with an internal capability.
 For the client which shall be able to use the newly created session, an external capability is created which only he is able to use, as it is bound to his identity.
 This mechanism allows a controlling application to create a new session for another client, subsequently passing on the capability to this third client.
@@ -15,7 +15,7 @@ Besides more common services like the services for sharing a display, forwarding
 While the invoke-service handles the use-cases of pushing a capability to another service, which shall then execute the service for which the capability is designated for, the capability-service handles the case where a capability shall be requested from another client having control over a service.
 
 Benchmarks performed have shown that the protocol is efficient enough to handle both interactive work-flows with acceptable latency as well as scenarios where higher throughput is required.
-While the protocol currently already suffices for both use-cases, future improvements might include services dynamically negotiating different message sizes to tune the communication channels for their respective requiremnets, e.g. interactive flows or high-throughput scenarios.
+While the protocol currently already suffices for both use-cases, future improvements might include services dynamically negotiating different message sizes to tune the communication channels for their respective requirements, e.g. interactive flows or high-throughput scenarios.
 
 The complete project is publicly available under the copyleft GNU General Public License Version 3.
 It is currently available for download at \url{https://github.com/pks-t/sd}.

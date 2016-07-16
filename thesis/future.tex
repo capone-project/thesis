@@ -5,11 +5,11 @@ In this chapter, we will outline major working sites.
 
 One thing that is not currently handled well inside server- as well as client-side implementations is handling of network errors.
 While error handling in general is done in a very careful way such that all error-conditions are checked, all operations including network operations have the problem of not having clear semantics regarding errors.
-Currently, no form of tiemout exists for any network operations, which is particularly worrysome on the server side as it will easily grind to a halt when many clients connect to it which simply do nothing.
+Currently, no form of timeout exists for any network operations, which is particularly worrisome on the server side as it will easily grind to a halt when many clients connect to it which simply do nothing.
 This does not even have to be malicious intent of an adversary wishing to run a denial of service attack on the server, but may also include clients which have lost network connectivity or which are implemented wrongly.
 
 To tackle the problem, proper remote procedure call (RPC) semantics should be implemented which handle timeouts, but also generic errors triggered on the remote side.
-Currently, clients will simply sit idle when an error occured on the remote side, as it simply closes the connection without clients getting any notification.
+Currently, clients will simply sit idle when an error occurred on the remote side, as it simply closes the connection without clients getting any notification.
 Instead, the RPC core should be able to report errors and, in some circumstances, their root cause.
 A branch exists which tackles this problem, but it is not currently merged into the mainline branch due to it being unfinished.
 
@@ -18,20 +18,20 @@ It should be possible to limit the overall rate of how many peers connect in a c
 Some services may also pose their own limits on how often they may be invoked at the same time.
 
 As the implementation for service discovery has been a proof-of-concept only as stated before, some time should be allocated for either integrating the framework into existing service discovery solutions or to extend the existing implementation such that it becomes fit for general use.
-Use-cases not currently tackled are e.g. centrailzed service discovery based on the use of directories and authenticated discovery of services, such that it is possible to only announce services matching the clearance level of the peer.
+Use-cases not currently tackled are e.g. centralized service discovery based on the use of directories and authenticated discovery of services, such that it is possible to only announce services matching the clearance level of the peer.
 
 Regarding access control, capabilities need some more thoughts to make them passable.
 As has been discussed in chapter \ref{sec:capabilities}, capabilities may be passed on by implementing a chain of capabilities, which may then be verified by the server.
-This is an interesting feature in that it highlights the actual benefits of capabilities in contrast to access control lists by allowing distribution of capabilities in a way that the actual way of distribution is verifyable by servers, but no communication with the server is necessary in order to distribute access rights.
+This is an interesting feature in that it highlights the actual benefits of capabilities in contrast to access control lists by allowing distribution of capabilities in a way that the actual way of distribution is verifiable by servers, but no communication with the server is necessary in order to distribute access rights.
 
 But probably the most important problem that needs to be tackled is the design and implementation of actual services which at last makes the framework usable at all.
 Only five different services exist currently, which  is not enough to make an argument for the service framework.
-It would also be interesting to have specialized services which do not simply wrap other protocols (like it is done for example for the xpra service), but instead talk via the exchange of own protocols and protobufs.
+It would also be interesting to have specialized services which do not simply wrap other protocols (like it is done for example for the Xpra service), but instead talk via the exchange of own protocols and Protobufs.
 Examples for interesting services are file services, services providing an interface to drive input devices via mobile phones or even chat services.
 
 Mentioning mobile clients, these should be improved in their usability.
 Given the author of this thesis is not at all skilled in user interface design, the development of a usable and maybe even enjoyable interface for orchestrating services is still a problem that is to be tackled.
-Espeially the problem of constructing flows of services connected with each other is not easily achieved through the client's interface.
+Especially the problem of constructing flows of services connected with each other is not easily achieved through the client's interface.
 
 Last but not least, we have to give this pet project an appealing name.
 
