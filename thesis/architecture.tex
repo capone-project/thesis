@@ -262,8 +262,8 @@ Otherwise all message exchanges boil down to serializing data with Protocol Buff
 \subsection{Protocol}
 \label{sec:protocol}
 
-We will now discuss the application level protocol as it is used by servers and clients to communicate with each other.
-Everything discussed in here will use the low-level protocol discussed in section \ref{sec:low-level-protocol}.
+We will now discuss the application-level protocol as it is used by servers and clients to communicate with each other.
+Everything discussed in here will use the low-level protocol discussed in section \ref{sec:low-level-protocol} for transmitting data via the network.
 
 \subsubsection{Connection establishment}
 \label{sec:connection-establishment}
@@ -274,7 +274,7 @@ The negotiation protocol should ideally also establish the client's identity to 
 The problem of negotiating encryption as well as verifying identities on both sides is called \emph{authenticated key agreement}, which will be discussed in more detail in section \ref{sec:key-exchange}.
 We will now consider the implementation of the protocol used to negotiate ephemeral encryption keys used for the connection.
 
-The key exchange assumes that the public identities, that is the public signature keys of both parties, are known to each other.
+The key exchange assumes that the public identities, that is the public signature keys of both parties, have previously been exchanged in a secure way.
 They are used to verify the actual identity of the opposite party.
 
 \begin{figure}[t]
@@ -282,7 +282,7 @@ They are used to verify the actual identity of the opposite party.
 
     \begin{sequencediagram}
         \newthread{c}{Client $C$}
-        \newinst[6]{s}{Service $S$}
+        \newinst[7]{s}{Service $S$}
 
         \begin{call}{c}{GenerateSid()}{c}{$sid$}
         \end{call}
@@ -299,10 +299,10 @@ They are used to verify the actual identity of the opposite party.
         \begin{call}{s}{GenerateKeypair()}{s}{($enc_S$, $dec_S$)}
         \end{call}
 
-        \begin{messcall}{s}{$S$, $sid$, $enc_s$, $SIG_S(S, sid, enc_s, enc_c, C)$}{c}
+        \begin{messcall}{s}{$S$, $sid$, $enc_s$, Sign$(S, S \mathbin{\|} sid \mathbin{\|} enc_s \mathbin{\|} enc_c \mathbin{\|} C)$}{c}
         \end{messcall}
 
-        \begin{messcall}{c}{$C$, $sid$, $SIG_C(C, sid, enc_c, enc_s, S)$}{s}
+        \begin{messcall}{c}{$C$, $sid$, Sign$(C, C \mathbin{\$} sid \mathbin{\|} enc_c \mathbin{\|} enc_s \mathbin{\|} S)$}{s}
         \end{messcall}
 
         \begin{call}{c}{CalculateKey($enc_S$, $dec_C$)}{c}{Key}
@@ -318,22 +318,22 @@ They are used to verify the actual identity of the opposite party.
     \end{sequencediagram}
 
     \caption{Connection establishment}
-    \label{fig:connection-establishment}
+    \label{fig:connection-establishment-protocol}
 \end{figure}
 
-The sequence diagram in figure \ref{fig:connection-establishment} provides an overview of the key negotiation between two parties, the client $C$ and the service $S$, where $C$ has the intent to connect to $S$.
+The sequence diagram in figure \ref{fig:connection-establishment-protocol} provides an overview of the key negotiation between two parties, the client $C$ and the service $S$, where $C$ has the intent to connect to $S$.
 Let us first define all functions used in the diagram.
 
 \begin{description}
-    \item[$SIG_x(m)$]\hfill\\
-        The signing algorithm of entity $x$ generates upon input of a message $m$ a signature which can be verified by the public signature key of $x$.
     \item[GenerateSid()]\hfill\\
         Generate a new session identifier.
         Session identifier are used to distinguish sessions from each other in case multiple connection establishment protocols are currently in use.
     \item[GenerateKeypair()]\hfill\\
         The key generation algorithm outputs a pair of keys $(enc, dec)$, where $enc$ is the public encryption key and $dec$ is the private decryption key.
         Keys are generated with a cryptographically secure random number generator.
-    \item[CalculateKey($enc, dec$)]
+    \item[Sign($i, m$)]\hfill\\
+        The signing algorithm generates upon input of a private signature key of entity $i$ and a message $m$ a signature which can be verified by the public signature key of $i$.
+    \item[CalculateKey($enc, dec$)]\hfill\\
         The key calculation algorithm generates upon input of a local private encryption key and a remote public decryption key a new symmetric key via Diffie-Hellman key generation.
 \end{description}
 
@@ -346,15 +346,15 @@ He then proceeds to send an initial message containing his public signature key 
 
 Upon receiving the initial message, the service will generate a new ephemeral key pair
 \begin{align*}
-    (enc_S, dec_vS) &= \text{GenerateKeypair}()
+    (enc_S, dec_S) &= \text{GenerateKeypair}()
 \end{align*}.
-The service now assembles a message containing his public signature key, the session identifier sent by $C$, and the public key of his epmehemal key pair.
-Furthermore, he will include a signature using his private signature key, containing his own public signature key, the session identifier, the public ephemeral key of both client and service as well as the public signature key of the client.
+The service now assembles a message containing his public signature key, the session identifier $sid$ as sent by $C$, and the public key of his ephemeral key pair.
+Furthermore, he will generate a new signature with his private signature key containing his own public signature key, the session identifier, the public ephemeral keys of both client and service as well as the public signature key of the client.
 
-Back on the client side, we will can now verify that all parameters included in the received message match the parameters we have just sent.
+Back on the client side, we will now verify that all parameters included in the received message match the parameters we have just sent.
 That is we have to verify the expected public signature key of the service and compare the session identifier with the one we have just generated.
 We also verify the service's signature to assure that we are indeed talking to the service.
-Given that the signature will also contain the session identifier as well as the public epmeheral key generated at random by us, we can thus verify that only an entity possessing the service's private signature key was able to generate this signature.
+Given that the signature will also contain the session identifier as well as the the public ephemeral key generated at random by us, we can verify that only an entity possessing the service's private signature key was able to generate this signature.
 
 At this point of time we have verified that we are indeed talking to the assumed service, but the service does not yet know that he is talking to the client claiming to have knowledge of the client's private signature key, as the initial message does not contain a signature.
 So to establish the client's identity, a third message is required that contains the same information as the second message just sent by the client, except that we do not re-transmit the client's public ephemeral key, as it has already been transferred in the initial message.
@@ -362,7 +362,7 @@ The server will verify the client's signature and thus establish the client's id
 
 When both parties are verified to each other we can now calculate the symmetric key which is used for subsequent communication.
 For each party, the key is calculated by performing a scalar multiplication between the party's private ephemeral key and the remote's public ephemeral key.
-The output is then concatenated with both parties' public keys' and hashed, resulting in a new secret which is shared between both client and server.
+The output is then concatenated with both parties' public keys and hashed, resulting in a new secret which is shared between both client and server.
 
 \subsubsection{Discovery}
 \label{sec:discovery}
