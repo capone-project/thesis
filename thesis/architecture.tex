@@ -120,15 +120,15 @@ We will concentrate on describing design choices based on TCP and UDP transport 
 
 In contrast to TCP, UDP is a connection-less protocol that is based upon packages instead of a data stream.
 As clients have to distinguish these packages in the UDP protocol, they have their package length attached to the package header.
-As such it is guaranteed that when receiving a single package over UDP we know package boundaries and thus can split incoming packages by these boundaries.
+As such it is guaranteed that when receiving a single package over UDP we know package boundaries and are able to split incoming packages by these boundaries.
 On TCP we have to develop our own solution to distinguish single packets, so we need to design a package format which is able to specify package boundaries.
 
 The initial design simply prefixed every single package with an unencrypted package length fixed to four bytes in network byte order.
 This allows the client to initially receive four bytes, convert these to host byte order and subsequently receive the amount of bytes specified.
-While easy to implement this has several disadvantages.
+While easy to implement, this has several disadvantages.
 
 The most obvious disadvantage is that the package length was always transmitted unencrypted and without any message authentication code.
-This allows potential adversaries to do easily traffic analysis based on package lengths or drive an attack by simply tampering with the length.
+This allows potential adversaries to easily perform traffic analysis based on package lengths or drive an attack by simply tampering with the length.
 As the receiver of the package cannot verify the package's length in any way he has to trust it and thus may receive invalid packages.
 
 In order to solve the problem the most obvious solution would be to simply encrypt the length and attach a message authentication code.
@@ -141,9 +141,8 @@ An adversary can simply inspect package headers and thus extract the actual pack
 In the case of TCP where no actual package length is encoded in the TCP header this is a little bit more involved but in many cases still feasible as client and server are likely to exchange single messages by turn.
 So by subtracting the prefixed package length and its message authentication code from the total bytes sent in one turn we are able to gain knowledge of the actual message length with a high probability.
 
-Due to this we are effectively giving the adversary an decryption oracle as he is able to correlate package lengths and their encrypted representations.
+Due to this we are effectively giving the adversary a decryption oracle as he is able to correlate package lengths and their encrypted representations.
 Furthermore it becomes much easier for an adversary to analyze traffic by inspecting actual package lengths.
-\\\\
 
 To fix the problem we send blocks of a fixed length instead of prefixing every package with an encrypted length.
 The initial fixed-length block is prefixed with the overall length of the assembled package.
@@ -153,10 +152,10 @@ The package length is only encoded in the first block.
 
 The following example demonstrates the package format for unencrypted packages.
 We assume a fixed length block size of 64 bytes.
-If a party now wishes to transfer a package of 80 bytes the package will get split into two blocks.
-The first block is prefixed with four bytes containing the actual package length and filled with the initial $64 - 4 = 60$ bytes.
+If a party wishes to transfer a package of 80 bytes, the package will get split into two blocks.
+The first block is prefixed with four bytes containing the actual package length and is then filled with the initial $64 - 4 = 60$ bytes.
 The second package is filled with the remaining $80 - 60 = 20$ bytes and right-padded with $64 - 20 = 44$ zeros.
-Figure \ref{fig:unencrypted-package-format} visualizes the block's contents.
+Figure \ref{fig:unencrypted-package-format} visualizes the blocks' contents.
 
 \begin{figure}
     \center
@@ -181,7 +180,7 @@ Figure \ref{fig:unencrypted-package-format} visualizes the block's contents.
     \label{fig:unencrypted-package-format}
 \end{figure}
 
-The second example (see figure \ref{fig:encrypted-package-format}) demonstrates the package format for an encrypted connection.
+The second example in figure \ref{fig:encrypted-package-format} demonstrates the package format for an encrypted connection.
 In contrast to unencrypted packages there is an additional message authentication code attached to each split package which is now assumed to be 16 bytes long.
 
 \begin{figure}
@@ -196,11 +195,11 @@ In contrast to unencrypted packages there is an additional message authenticatio
 
         \node[draw, on chain=1, minimum width=24mm] {MAC};
         \node[draw, on chain=1, minimum width=8mm ] {len};
-        \node[draw, on chain=1, minimum width=64mm] {44 bytes data};
+        \node[draw, on chain=1, minimum width=64mm] {44 bytes of data};
         \node[left=1cm of 1-1] {Package 1};
 
         \node[draw, on chain=2, minimum width=24mm, below=1cm of 1-1.west, anchor = west] {MAC};
-        \node[draw, on chain=2, minimum width=54mm] {36 bytes data};
+        \node[draw, on chain=2, minimum width=54mm] {36 bytes of data};
         \node[draw, on chain=2, minimum width=18mm] {padding};
         \node[left=1cm of 2-1] {Package 2};
 
@@ -212,16 +211,16 @@ In contrast to unencrypted packages there is an additional message authenticatio
     \label{fig:encrypted-package-format}
 \end{figure}
 
-The client will now fetch the initial fixed-size block
+The client will now fetch the initial fixed-size block.
 If the connection is encrypted, he will decrypt it and verify its message authentication code.
 Now we inspect the first four bytes to gain knowledge about the total package length -- if it exceeds the amount of bytes sent in the initial message, we will receive, decrypt and verify all following packages until all bytes are received.
 Finally, we concatenate the blocks to obtain the complete package.
 
 \subsubsection{Cryptography}
 
-All connections except the initial service discovery are authenticated and encrypted to keep information safe.
+All connections except the initial service discovery are authenticated and encrypted to keep information secure.
 Encryption is done via secret-key authenticated encryption with an encryption key shared between both parties.
-The key is an ephemeral key generated in an authenticated way via Diffie-Hellman key exchange when establishing the connection (see section \ref{sec:connection-establishment} for more details on the actual key exchange).
+The key is an ephemeral key generated in an authenticated way when establishing the connection via Diffie-Hellman key exchange (see section \ref{sec:connection-establishment} for more details on the actual key exchange).
 
 As the generated key is an ephemeral key which is not to be re-used in later sessions we are able to use a simple counter mode for nonces.
 That is, on initial connection the client per definition has a nonce of value $0$ and the server has a nonce of value $1$.
@@ -230,7 +229,7 @@ On the receiving side we increment the remote nonce by $2$ every time we receive
 This guarantees (given nonces of sufficient length) that nonces are never repeated as collisions between client and server nonce are impossible and nonces are monotonously increasing.
 
 The algorithm used for encryption is the Salsa20 stream cipher by Daniel J. Bernstein \cite{bernstein2008salsa}.
-It is a family of 256-bit stream ciphers to designed to be used in a wide range of cryptographic applications.
+It is a family of 256-bit stream ciphers designed to be used in a wide range of cryptographic applications.
 It uses a 256-bit key and a 64-bit nonce and expands them into a $2^{70}$-byte stream.
 Encryption for a plain text message with $n$ bytes is done by XOR'ing the plaintext with the first $n$ bytes of the stream.
 Decryption is done likewise, XOR'ing the ciphertext with the first $n$ bytes of the same stream.
@@ -242,14 +241,14 @@ The key for the combination of Salsa20/Poly1305 is generated by deriving a subke
 
 \subsubsection{Message exchange}
 
-Exchanging data between hosts poses several questions.
+Exchanging data between hosts poses several challenges.
 Consider we want to send a data structure over to another host.
 The naive approach would be to simply stream over the in-memory representation of the structure and let the receiver interpret the data stream as the corresponding structure.
 This naive approach is not even guaranteed to work for two hosts running on the same architecture, as for example the compiler may choose to re-arrange structure entries.
 The approach finally falls flat when considering different operating systems with different application binary interfaces or even different memory layouts, e.g. different byte orders.
 
 The problem of correctly serializing data is not trivial and thus we choose to not handle the problem ourselves but let a library designed for this problem handle serialization.
-Google Protocol Buffers \cite{varda2008protocol} implement a method for serializing structured data in platform- and language-independent way.
+Google Protocol Buffers \cite{varda2008protocol} implement a method for serializing structured data in a platform- and language-independent way.
 Protocol Buffers come with a way to specify interface descriptions that describe how data is structured in a certain message type.
 These interface descriptions are then compiled to language-specific code that can be imported via language-specific constructs.
 
@@ -257,7 +256,7 @@ One inherent benefit of this approach is that we are able to re-use the interfac
 In particular, we use the same interface definitions across the command line client and server which are both written in C, and the Android controller which is written in Java.
 
 The whole protocol is built upon these interface descriptions with the only exception being when we forward application-specific data between two specific services.
-As we do not want to know about the specific protocols they use in order to be generic as possible we simply relay data from and to both service end points.
+As we do not want to know about the specific protocols they use in order to be as generic as possible, we simply relay data from and to both service end points.
 Otherwise all message exchanges boil down to serializing data with Protocol Buffers and then de-serializing them on the receiving site.
 
 \subsection{Protocol}
