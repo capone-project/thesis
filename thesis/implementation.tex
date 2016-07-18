@@ -170,6 +170,8 @@ The following functions are used in the diagram:
 \begin{figure}[t]
     \centering
 
+    \resizebox{\textwidth}{!}
+    {
     \begin{sequencediagram}
         \newthread{c}{Client $c$}
         \newinst[3]{s}{Service $s$}
@@ -197,6 +199,7 @@ The following functions are used in the diagram:
         \end{messcall}
         \prelevel
     \end{sequencediagram}
+    }
 
     \caption{Invoke Service}
     \label{fig:invoke-service}
@@ -282,6 +285,8 @@ The following functions are used in the diagram:
 \begin{figure}[t]
     \centering
 
+    \resizebox{\textwidth}{!}
+    {
     \begin{sequencediagram}
         \newthread{c}{Client c}
         \newinst[1]{r}{Registrant r}
@@ -312,6 +317,7 @@ The following functions are used in the diagram:
 
         \prelevel
     \end{sequencediagram}
+    }
 
     \caption{Capability Request}
     \label{fig:capability-request}
@@ -438,6 +444,8 @@ The following functions are used:
 \begin{figure}[t]
     \centering
 
+    \resizebox{\textwidth}{!}
+    {
     \begin{sequencediagram}
         \newinst{x}{Xpra server}
         \newthread[2]{c}{Client $c$}
@@ -475,6 +483,7 @@ The following functions are used:
             \prelevel
         \end{messcall}
     \end{sequencediagram}
+    }
 
     \caption{Xpra Service}
     \label{fig:xpra-service}

@@ -141,11 +141,11 @@ To estimate the effect of block lengths for different scenarios, we have chosen 
 The results can be seen in figure \ref{fig:block-length-benchmarks} visualized as graphs.
 See appendix \ref{sec:appendix-throughput} for bare results.
 
-\begin{figure}
+\begin{figure}[t]
     \centering
 
-    \begin{subfigure}[t]{0.4\textwidth}
-        \resizebox*{!}{0.9\textwidth}
+    \begin{subfigure}[t]{0.49\textwidth}
+        \resizebox{\textwidth}{!}
         {
             \begin{tikzpicture}
                 \begin{axis}[ylabel=Throughput (in MB/s),ymax=200,xmode=log,xlabel={Block length (logarithmic scale, in bytes)}]
@@ -166,9 +166,9 @@ See appendix \ref{sec:appendix-throughput} for bare results.
         \caption{256 bytes of data}
         \label{fig:block-length-benchmark-256b}
     \end{subfigure}
-    \hspace{2em}
-    \begin{subfigure}[t]{0.4\textwidth}
-        \resizebox*{!}{0.9\textwidth}
+    \hfill
+    \begin{subfigure}[t]{0.49\textwidth}
+        \resizebox{\textwidth}{!}
         {
             \begin{tikzpicture}
                 \begin{axis}[ylabel=Throughput (in MB/s),ymax=400,xmode=log,xlabel={Block length (logarithmic scale, in bytes)}]
@@ -192,8 +192,8 @@ See appendix \ref{sec:appendix-throughput} for bare results.
 
     \vspace{1em}
 
-    \begin{subfigure}[t]{0.4\textwidth}
-        \resizebox*{!}{0.9\textwidth}
+    \begin{subfigure}[t]{0.49\textwidth}
+        \resizebox{\textwidth}{!}
         {
             \begin{tikzpicture}
                 \begin{axis}[ylabel=Throughput (in MB/s),ymax=750,xmode=log,xlabel={Block length (logarithmic scale, in bytes)}]
@@ -214,9 +214,9 @@ See appendix \ref{sec:appendix-throughput} for bare results.
         \caption{100 kilobytes of data}
         \label{fig:block-length-benchmark-100kb}
     \end{subfigure}
-    \hspace{2em}
-    \begin{subfigure}[t]{0.4\textwidth}
-        \resizebox*{!}{0.9\textwidth}
+    \hfill
+    \begin{subfigure}[t]{0.49\textwidth}
+        \resizebox{\textwidth}{!}
         {
             \begin{tikzpicture}
                 \begin{axis}[ylabel=Throughput (in MB/s),ymax=750,xmode=log,xlabel={Block length (logarithmic scale, in bytes)}]

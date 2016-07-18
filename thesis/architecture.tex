@@ -280,6 +280,8 @@ They are used to verify the actual identity of the opposite party.
 \begin{figure}[t]
     \centering
 
+    \resizebox{\textwidth}{!}
+    {
     \begin{sequencediagram}
         \newthread{c}{Client $C$}
         \newinst[7]{s}{Service $S$}
@@ -316,6 +318,7 @@ They are used to verify the actual identity of the opposite party.
 
         \end{messcall}
     \end{sequencediagram}
+    }
 
     \caption{Connection establishment}
     \label{fig:connection-establishment-protocol}
@@ -416,8 +419,8 @@ This may be the case when users want to share insensitive data with a public ser
         \centering
         \begin{sequencediagram}
             \newinst{s1}{Service 1}
-            \newthread[4]{c}{Client}
-            \newinst[4]{s2}{Service 2}
+            \newthread[3]{c}{Client}
+            \newinst[3]{s2}{Service 2}
 
             \mess{c}{Discover}{s1}
             \prelevel
@@ -651,6 +654,8 @@ If Bob was now able to modify those parameters, he could simply tell the service
 \begin{figure}[t]
     \centering
 
+    \resizebox{\textwidth}{!}
+    {
     \begin{sequencediagram}
         \newthread{c}{Alice A}
         \newinst[6]{s}{Service S}
@@ -680,6 +685,7 @@ If Bob was now able to modify those parameters, he could simply tell the service
 
         \prelevel
     \end{sequencediagram}
+    }
 
     \caption{Direct Connect}
     \label{fig:direct-connect}
