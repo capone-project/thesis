@@ -535,63 +535,25 @@ Despite the initial connection establishment all subsequent steps remain unchang
 \subsubsection{Query}
 \label{sec:query}
 
-Now that we have discovered servers at our location and know basic information about the services they provide.
-Currently we only know about the server's location, their identity and name, category and port of its services.
+After the initial service discovery, we onl yhave access to the most basic information about each server.
+We only know the server's location and name as well as for each service hosted by that server, its name, category and ports.
 While this is key data for a user who wants to connect, it does not provide enough detail to actually know what the service provides, if it suits our needs and how to connect.
 
-To get to know these specifics we can connect to a specific service on a server and ask about what it actually provides.
-It would certainly be possible to provide such information in the service discovery which precedes this step, but the protocol has been explicitly designed to hand over as little information as is required in the device discovery.
-This serves two purposes:
+To get to know more detailed information, we can connect to a specific service on a server and ask about what it actually provides.
+It would certainly be possible to provide such information in the service discovery which precedes this step, but the protocol has been explicitly designed to hand over as little information as is required in the service discovery.
+This serves multiple purposes:
 \begin{itemize}
-    \item Device discovery is usually centered around transmitting single UDP packages.
-        That is, we explicitly do not want to handle more complex communication between client and server, which may be required to implement more sophisticated exchanges between client and server.
-        Furthermore, we want to keep UDP packages as small as possible to not overload the subnet where there are lots of servers present trying to announce their availability to one or multiple clients which want to discover servers.
+    \item Service discovery is usually centered around transmitting single UDP packages.
+        That is, we explicitly do not want to handle more complex communication between client and server, which may be required to implement sophisticated negotiation between client and server.
+        Furthermore, we want to keep UDP packages as small as possible to not overload the network when there are lots of servers present trying to announce their availability to one or multiple clients which want to discover servers.
     \item Details about certain services provided on a server may contain sensitive information.
         One kind of possibly sensitive information is the location, which might be confidential in certain setups.
         In some cases even the actual service provided may be confidential.
     \item To keep confidential data secure we may want to verify that connecting parties are in fact authorized to access the service or information about it.
-        As service discovery is not authorized by default it is obvious that we do not want to publish information in the service discovery.
+        As service discovery is not authorized by default, we want to keep published information as scarce as possible.
 \end{itemize}
 
-These reasons lead to the design of an additional step to obtain data on a service, which is the query.
-When a client discovered a service and has the intent to connect to it, he will first query the service instance.
-Querying involves first initiating a secured connection as explained before and then transmitting its intent to query the service (see figure \ref{fig:query}).
-
-Upon receiving the initial connection, the service will first verify that the client's identity is allowed to connect to the service at all.
-If not, the service will drop the connection.
-Otherwise, we will assemble a so-called service description, containing details about the service (see listing \ref{src:query-protos} for the message interface):
-\begin{description}
-    \item[Name]\hfill\\
-        This is the same field as announced in the service discovery.
-    \item[Category]\hfill\\
-        This is the same field as announced in the service discovery.
-    \item[Port]\hfill\\
-        This is the same field as announced in the service discovery.
-    \item[Type]\hfill\\
-        The actual type of the service.
-        While the category already specifies what kind of service it is, e.g. a display or input device, this reports the actual implementation of the service.
-        For example a service of type ``Display'' may be backed by VNC, RDP or xpra, which would then be the respective type of the service.
-        As such, the client may choose the concrete plugin for servicing the type if it is able to support it.
-    \item[Version]\hfill\\
-        The version specifies the service type's implementation version.
-        If for example a new version of the application backing the service plugin is released which is incompatible to previous versions, we may need to increment the plugin's version in order to guarantee the interoperability.
-        Versions are per plugin type.
-    \item[Location]\hfill\\
-        For many applications it is important for users to know about the service's location.
-        Assuming a client resides in a conference room with multiple displays and wants to present data on one of those screens.
-        The client now obviously wants to know which service corresponds to the actual screen he wants to present his data, instead of displaying it on the wrong screen in the room or even in another conference room.
-        The location field is intended to help clients find the correct service.
-    \item[Parameters]\hfill\\
-        Each service may provide a certain set of supported parameters which alter their behavior.
-        For a CPU service plugin which executes a certain application on the server, we may want to specify which executable to start, its parameters and environment variables.
-        The service would then report that it supports three parameters ``executable'', ``parameters'' and ``environment'', which may be specified by the client.
-        The service may also hint allowed values by specifying possible values in the value field for each parameter.
-\end{description}
-
-The connection will now be closed upon receiving the actual service description.
-The user will now decide if he actually wants to connect to the service based on the information given to him.
-
-\begin{figure}[H]
+\begin{figure}[t]
     \centering
 
     \begin{sequencediagram}
@@ -611,7 +573,44 @@ The user will now decide if he actually wants to connect to the service based on
     \label{fig:query}
 \end{figure}
 
-\lstinputlisting[caption=Query Interface,label=src:query-protos,firstline=10,lastline=24,float,floatplacement=h]{../../source/sd/proto/connect.proto}
+These reasons lead to the design of an additional step to obtain additional data on a service, which is called a \emph{query}.
+When a client discovered a service and has the intent to connect to it, he will first query the service instance to obtain information required to initiate a session.
+Querying involves first initiating a secured connection as explained before and then transmitting its intent to query the service (see figure \ref{fig:query}).
+
+Upon receiving the initial connection, the service will first verify that the client's identity is allowed to connect to the service at all.
+If not, the service will drop the connection.
+Otherwise, we will assemble a so-called service description, containing details about the service:
+\begin{description}
+    \item[Name]\hfill\\
+        This is the same field as announced in the service discovery.
+    \item[Category]\hfill\\
+        This is the same field as announced in the service discovery.
+    \item[Port]\hfill\\
+        This is the same field as announced in the service discovery.
+    \item[Type]\hfill\\
+        The actual type of the service.
+        While the category already specifies what kind of service it is, e.g. a display or input device, this reports the actual implementation of the service.
+        For example a service of type ``Display'' may be backed by VNC, RDP or Xpra, which would then be the respective type of the service.
+        Based on which protocol type the service is backed with, clients can choose a concrete plug-in which is able to handle that protocol.
+        If the client has no plug-in able to handle the protocol, he cannot use the service.
+    \item[Version]\hfill\\
+        The version specifies the service type's implementation version.
+        If for example a new version of the application backing the service plugin is released which is incompatible to previous versions, we may need to increment the plugin's version in order to guarantee interoperability.
+        Versions are specific to the service's type.
+    \item[Location]\hfill\\
+        For many applications it is important for users to know about the service's location.
+        Assume a client resides in a conference room with multiple displays and wants to present data on one of those screens.
+        The client now obviously wants to know which service corresponds to the actual screen he wants to present his data, instead of displaying it on the wrong screen in the room or even in another conference room.
+        The location field is intended to help clients find the correct service.
+    \item[Parameters]\hfill\\
+        Each service may provide a certain set of supported parameters which define their behavior when a session is started.
+        For a CPU service plugin which executes a certain application on the server, we may want to specify which executable to start, its parameters and environment variables.
+        The service would then report that it supports three parameters ``executable'', ``parameters'' and ``environment'', which have to be specified by the client.
+        The service may also hint allowed values by specifying possible values in the value field for each parameter.
+\end{description}
+
+The connection will be closed after receiving the actual service description, finishing the service query.
+The user can now decide if he actually wants to connect to the service based on the information given to him.
 
 \subsubsection{Session Initiation}
 \label{sec:session-initiation}
