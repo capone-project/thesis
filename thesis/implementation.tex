@@ -78,10 +78,11 @@ For more details on the capability implementation, please refer to \cite{gong198
 \section{Services}
 \label{sec:services}
 
-Next to the protocol as it has been specified in section \ref{sec:architecture}, all functionality provided by the server is implemented in terms of services.
-A service as such is a single unit providing usually providing a single functionality to users.
+All protocols as they have been defined serve no other purpose than to enable the orchestration of access rights to functionality provided by services.
+We will outline the actual implementation of five services which have been exemplarily implemented in this thesis.
+A service thereby is a single unit providing usually providing a single functionality to users.
 
-In order to start using service, the user first has to establish a service session and then subsequently start using the session (see section \ref{sec:session-initiation} for more details).
+In order to start using service, the user first has to establish a service session and then subsequently start using the session, as has been shown in section \ref{sec:session-initiation}.
 When establishing the service session, the user has to specify a set of parameters.
 These parameters are passed on to the service when the created session is started by the user and may influence its behavior.
 Assuming a shell service which provides the functionality to execute a program, the parameters may for example include which program to execute, what its parameters are and possibly environmental variables passed to the service.
@@ -89,30 +90,32 @@ Assuming a shell service which provides the functionality to execute a program, 
 There are currently five exemplary services implemented:
 \begin{description}
     \item[Invoke service]\hfill\\
-        Invoke services handle the use case where a user wants to execute a service on certain server hosting the invoke service.
+        Invoke services handle the use case where a user wants to execute a service on another server hosting the invoke service.
         This is used heavily when the Android controller application is used, which will usually not execute provided services itself but instead cause another server (which provides the invoke service) to start the service.
     \item[Capability service]\hfill\\
         Capability services handle the use case where a user wants to ask another user for the permission to execute a service in his name.
     \item[Xpra service]\hfill\\
         Xpra is a specific implementation of an X11 server session manager.
         When applications are started in the Xpra server, it is possible to attach to this application on another computer and display the application on another screen.
+        The Xpra service automates the setup-process of connecting two Xpra-instaces with each other, making it accessible by our protocol.
     \item[Synergy service]\hfill\\
         Synergy handles forwarding of input devices, that is mouse and keyboard, to another computer.
+        As for the Xpra service, the Synergy service enables automation of connecting two Synergy instances with each other.
     \item[Execution service]\hfill\\
         The execution service provides an interface to execute applications on a server.
 \end{description}
 
-The current interface how service plug-ins are instantiated is very simple.
-Each service has a set of functions to retrieve metadata on the service or to handle the connection to a server or from a client.
-The aim of this design is to have services pluggable in the future, that is we want to have a true plug-in-based approach.
+Each service is implemented by a set of functions defined by a service-agnostic interface.
+This interface includes functions to retrieve metadata on the service and functions handling the client- respectively server-part for the service-specific parts.
+The aim of this design is to make services pluggable in the future, that is we want to have be able to distribute service plug-ins independently of the actual core protocol implementation.
 
 Currently, all services are statically linked into the server's and client's executable.
-But when a clean interface exists to separate each service from the main executable, we are later able to cut out these services and dynamically link them in as shared object later on, so that they can be linked on-demand.
-This keeps the server lean in such a way that it only implements core functionality while still being extendable.
+But when a clean interface exists that has proven itself capable to handle all required scenarios for different types of plug-ins, we will cut out the service implementations and distribute them as plug-ins only, which can then be loaded at runtime.
+This keeps the server lean by having it implement only core functionality while still being extendable.
 
-Being extendable and being able to only link to a certain set of service objects at runtime is of importance for cross-platform functionality.
-Not every services may be available on all platform, e.g. when services link against the X server they might not easily be available on Windows.
-In order to avoid having to handle all plug-ins conditionally of the build platform in the source code itself, we could easily extend the build system to build only a certain set of services.
+Being extendable and able to only link to a certain set of service plug-ins at runtime is of importance for cross-platform functionality.
+Not every service may be available on all platforms, e.g. when services link against the X server they might not be portable to the Windows platform.
+In order to avoid having to handle all plug-ins conditionally of the target platform in the source code itself, we could easily extend the build system to build only a certain set of services.
 In addition, it would become simpler for third-party developers to create and tie in additional services.
 
 \medskip
@@ -120,19 +123,19 @@ In addition, it would become simpler for third-party developers to create and ti
 To guarantee a working plug-in system we have to have a working plug-in-interface, though.
 The current service interface consists of the following functions:
 \begin{itemize}
-    \item An init function initializing the plug-in
-    \item A function reporting the service's version
-    \item A function reporting parameters the service may be invoked with
-    \item A handler function which handles the server side of a session
-    \item An invoke function which handles the client side of a session
+    \item an initialization function handling the plug-in's setup process
+    \item a function reporting the service's version
+    \item a function reporting parameters the service may be invoked with
+    \item a handler function which handles the server side of a session
+    \item an invoke function which handles the client side of a session
 \end{itemize}
 
 The heart of each plug-in is contained in the \lstinline{handler} and \lstinline{invoke} functions.
-When a client wants to execute a service and the service session has been started, the client's executable will execute the \lstinline{invoke} function of the service plug-in, receiving the channel and the client's configuration as arguments.
+When a client wants to execute a service and the service session has been started, the client will execute the \lstinline{invoke} function of the service plug-in, receiving the channel and the client's configuration as arguments.
 It will then perform all service-specific actions and communicate with the remote side via the channel, which transparently handles encryption.
 
 The \lstinline{handle} function is the counterpart to \lstinline{invoke}.
-Upon a client connecting to a server and starting a session, the server will execute \lstinline{handle} for the respective plug-in, passing in the session with its parameters as well as the channel connected to the client.
+Upon a client connecting to a server and starting a session, the server will execute \lstinline{handle} for the respective plug-in, passing in the session with its parameters as well as the channel connected to the client and its identity.
 
 It remains to be seen if this interface design is sufficient to handle different use-cases required by different service plug-ins.
 
