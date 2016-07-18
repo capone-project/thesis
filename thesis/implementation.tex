@@ -1,4 +1,4 @@
-\section{Implementation}
+\chapter{Implementation}
 
 In this chapter we will now discuss how the architecture discussed in the previous section is actually implemented.
 The application is split into two parts, the Android app as well as the framework used to implement the complete server component as well as a command-line driven client.
@@ -8,7 +8,7 @@ In this chapter, we will only cover the implementation of the C part containing 
 The Android-specific part is mostly uninteresting, as most of the code is related to handling the user interface with only a small amount of code related to the actual protocol implementation.
 As the complete protocol including the client part has also been implemented in C, no gains are expected in describing the Android application itself other than getting knowledge on the Android ecosystem in a whole.
 
-\subsection{Channel}
+\section{Channel}
 \label{sec:channel}
 
 Nearly all parts of the application perform network operations, reading and writing data sent from the remote side.
@@ -41,7 +41,7 @@ The nonces are incremented on the block level instead of on a message level.
 Assuming it was instead incremented after sending a message, messages containing two blocks which are equivalent to each other due to repeating patterns in the message would be encrypted with the same nonce, leaking information.
 As such, it is important to handle nonces on the block level.
 
-\subsection{Capabilities}
+\section{Capabilities}
 \label{sec:capabilities}
 
 The protocol makes usage of capabilities to guard access to all sessions.
@@ -68,7 +68,7 @@ If the calculated hash matches the hash provided by the user's capability, acces
 
 For more details on the capability implementation, please refer to \cite{gong1989secure} and section \ref{sec:access-control}.
 
-\subsection{Services}
+\section{Services}
 \label{sec:services}
 
 Next to the protocol as it has been specified in section \ref{sec:architecture}, all functionality provided by the server is implemented in terms of services.
@@ -129,7 +129,7 @@ Upon a client connecting to a server and starting a session, the server will exe
 
 It remains to be seen if this interface design is sufficient to handle different use-cases required by different service plug-ins.
 
-\subsubsection{Invoke service}
+\subsection{Invoke service}
 \label{sec:invoke-service}
 
 The invoke service provides the ability to start a remote service on the server providing the invoke service.
@@ -219,7 +219,7 @@ Client now creates a new session with Invoker, passing on the capability as well
 
 When the Invoker session has been created, Client starts it, causing the Invoker to retrieve the passed on capability for Service from the session parameters and connects to the session on Service.
 
-\subsubsection{Capability service}
+\subsection{Capability service}
 \label{sec:capability-service}
 
 The capability service solves the use case where an entity desires the ability to invoke a service in the name of another service.
@@ -364,7 +364,7 @@ To solve this problem, one can envision that the session establishment should be
 The connection between Service and Registrant would obviously still be encrypted so the Capability Service is not able to listen on anything these services are talking.
 In such a design, the Capability Service would completely proxy all traffic between Registrant, Client and Service without the Registrant talking to the Service or Client directly at all.
 
-\subsubsection{Execution service}
+\subsection{Execution service}
 \label{sec:exec-service}
 
 The execution is a simple service providing some kind of shell to start up command line applications.
@@ -376,7 +376,7 @@ As such clients starting the execution service are able to receive output of the
 As this service is by default able to execute arbitrary command on the server, careful attention should be paid to the access policy.
 That is, the server should not be made accessible by everybody but usually only by special users.
 
-\subsubsection{Xpra service}
+\subsection{Xpra service}
 \label{sec:xpra-service}
 
 The Xpra service wants to allow a client to forwards its graphical applications to a display connected to the Xpra service.
@@ -490,7 +490,7 @@ All traffic going through this socket will now be forwarded over the client chan
 As soon as initial data is arriving on the client's channel receiving side, he will open a new connection to the loopback interface on the port he has initially instructed the Xpra server to run on.
 As soon as the Xpra server accepts the connection, he will forward data between the server channel and the Xpra server socket and thus finish the session setup.
 
-\subsubsection{Synergy service}
+\subsection{Synergy service}
 \label{sec:synergy-service}
 
 The Synergy service is an implementation of a mouse and keyboard sharing application.
@@ -523,7 +523,7 @@ So the mouse will still be visible as it is directly connected to the display se
 
 Such a set up has not been tested though despite simple proof-of-concept tests with the Xvfb and input guidance.
 
-\subsection{Development process}
+\section{Development process}
 
 The complete software stack is split up into two major components, namely the server-side part and the controller application for Android.
 While these two components are strictly split up in functionality and dependencies, they still reside in a mono-repository so that it becomes easier to modify the core protocol and adjust both sides to work with the new version.

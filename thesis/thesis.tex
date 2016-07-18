@@ -1,4 +1,4 @@
-\documentclass[12pt,a4paper,english,twoside]{article}
+\documentclass[12pt,a4paper,english]{book}
 
 \usepackage[T1]{fontenc}
 \usepackage[utf8]{inputenc}
@@ -30,15 +30,11 @@
 \fancyfoot{}
 \fancyfoot[C]{\thepage}
 \renewcommand{\headrulewidth}{0pt}
-\renewcommand{\sectionmark}[1]{\markright{\thesection\ #1}}
+\renewcommand{\chaptermark}[1]{\markright{\thesection\ #1}}
 
 % No identation
 \setlength\headheight{15pt}
 \setlength\parindent{0pt}
-
-% Break after each section
-\let\stdsection\section
-\newcommand{\bigparskip}{\vspace{12pt}}
 
 \bibliographystyle{alpha}
 
@@ -105,21 +101,13 @@
     \setcounter{page}{1}
 
     \input{introduction}
-    \clearpage
     \input{problem}
-    \clearpage
     \input{architecture}
-    \clearpage
     \input{implementation}
-    \clearpage
     \input{evaluation}
-    \clearpage
     \input{discussion}
-    \clearpage
     \input{future}
-    \clearpage
     \input{conclusion}
-    \clearpage
 
     \clearpage
 

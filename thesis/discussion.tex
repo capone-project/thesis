@@ -1,6 +1,6 @@
-\section{Discussion}
+\chapter{Discussion}
 
-\subsection{Super servers}
+\section{Super servers}
 
 The functionality developed in this thesis is commonly referred to as a \emph{super server}.
 A super server is a program which orchestrates communication with multiple service implementations on a single computer, e.g. handling a daemon for the FTP protocol as well as another daemon providing time via NTP.
@@ -63,7 +63,7 @@ In contrast to user accounts, though, our approach based on capabilities allows 
 
 We conclude that currently existing solutions for super servers are not able to address our use case of a secure-by-default implementation of a super server.
 
-\subsection{Service discovery}
+\section{Service discovery}
 
 The thesis does include a mechanism to discover services using a custom protocol based on Google Protobuf.
 The actual implementation is a very simple one, only providing peer-to-peer service discovery in the local network:
@@ -139,7 +139,7 @@ Currently, no perfect solution exists which is able to handle peer-to-peer disco
 One of the most interesting protocols for centralized service discovery is the Ninja SDS, as it provides many security-related features as well as service confidentiality.
 Regarding flexibility, SLP is another interesting protocol which is able perform peer-to-peer discovery, but also to scale up in the presence of directory agents.
 
-\subsection{Key exchange}
+\section{Key exchange}
 \label{sec:key-exchange}
 
 The initial step of every direct connections between client and server is the key exchange where a shared secret is generated which will subsequently be used to encrypt all communication.
@@ -239,7 +239,7 @@ Other side channels might also depend on the services themselves.
 For example services providing a graphical display may also use the display to present additional information to users.
 This has been researched in e.g. \cite{mccune2005seeing,saxena2006secure}, where data is displayed via QR codes scannable by mobile phones to improve security.
 
-\subsection{Access control}
+\section{Access control}
 \label{sec:access-control}
 
 As one of the goals of the developed protocol is to be completely authenticated it is obvious that we have to perform some kind of access control to guard access to different services.
@@ -307,7 +307,7 @@ These pairs attached to the subjects of the matrix are named capabilities.
 The other way to look at the matrix is by having a set of (subject,rights) pairs associated to the columns, which is called an access control list (ACL) \cite{tanenbaum2014modern}.
 Both approaches result in a different set of characteristics for the system which we will now evaluate for our use case.
 
-\subsubsection{Capabilities}
+\subsection{Capabilities}
 
 \cite{dennis1966programming}
 
@@ -468,7 +468,7 @@ The situation has been greatly improved by the actual split of internal and exte
 Unfortunately, though, we have still found no clean solution to making the complete system capability based.
 While established sessions are now controlled by capabilities only, there are still problems when trying to use capabilities for the query and request end-points (see sections \ref{sec:query} and \ref{sec:session-initiation}) discussed in the following section.
 
-\subsubsection{Access control lists}
+\subsection{Access control lists}
 
 The \emph{query} and \emph{request} end-points are not managed through capabilities but instead through access control lists.
 This results from the the fact that is actually hard to administer capabilities in a centralized way \cite{shapiro1999eros}.
@@ -484,7 +484,7 @@ Upon executing these end-points, the ACL is checked with the authenticated ident
 So while we unfortunately employ both kinds of access control in the protocol, they are cleanly separated on the objects they actually handle.
 For future iterations it is still debatable if the protocol should instead employ straight ACLs or capabilities for all objects, though.
 
-\subsubsection{Comparison to Kerberos}
+\subsection{Comparison to Kerberos}
 \label{sec:kerberos}
 
 Another system based on capabilities is the Kerberos protocol developed by Neuman et al. \cite{neuman1994kerberos,neuman2005rfc}, which provides a solution for network authentication based on capabilities.
@@ -612,7 +612,7 @@ For our protocol, no such mechanism is required.
 The first hurdle is that sessions cannot be invoked by any other identity than the owner of the long-term signature key pair for whom the session has been created.
 If such a key pair has been compromised, it is possible to revoke sessions by either the session creator (e.g. the policy client of the CS) or the session's invoker.
 
-\subsection{Mobile client}
+\section{Mobile client}
 
 Until now, the mobile client has not been mentioned much at all.
 This results from the fact that the controller itself is mostly uninteresting in that the implementation itself is very specific to the Android platform.

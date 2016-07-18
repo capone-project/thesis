@@ -1,4 +1,4 @@
-\section{Evaluation}
+\chapter{Evaluation}
 \label{sec:evaluation}
 
 In this chapter we will evaluate the fitness of the framework to handle certain scenarios.
@@ -73,7 +73,7 @@ Like this, the tests become reproducible by not being reliant on external networ
 All tests have been executed on a Linux 4.6.0 host with an Intel\textregistered Core\texttrademark i5-6600K with 6MB of cache and a clock rate of 3.50GHz.
 The benchmarking utilities and all dependencies have been compiled with GCC 5.3.0 with optimizations enabled.
 
-\subsection{Throughput}
+\section{Throughput}
 
 The throughput benchmark aims to measure how much data we can fit through a single connection to a remote host.
 The primitive used for connections in our service stack is called a channel.
@@ -301,7 +301,7 @@ It may be desirable to make the block length configurable per service.
 Services usually know their communication patterns and can thus optimize for the respective scenario they require.
 Currently no such feature exists, but the block length is trivially changeable at compile time and as such it would a small feat to make block lengths configurable at runtime.
 
-\subsection{Connection establishment latency}
+\section{Connection establishment latency}
 
 The second benchmark involves connection establishment latency.
 When a client connects to servers, the first thing that is always performed is negotiation of an ephemeral key, which requires a total of three messages being exchanged between all parties.
@@ -360,7 +360,7 @@ Exceeding the sent message's size, this can be summarized by the formula $t = 4 
 For slow connections with a packet delay of up to 250ms we would still be able to perform connection establishment in around one second.
 Considering that connection establishments are only performed at most three times for a service invocation (that is querying the service, creating a session and start the session), this should be sufficient.
 
-\subsection{Input latency}
+\section{Input latency}
 
 The last benchmark done aims to determine how the framework performs for interactive processes.
 The scenario is simple: given a user connected to a service forwarding its input to another server, how long does it take until an input event issued by the user to arrive at that server and be processed by the display server?
