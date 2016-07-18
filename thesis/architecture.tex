@@ -409,6 +409,56 @@ Instead, we assume that participants of the service network have means through w
 What we still do have to solve is getting to know local clients, for example in public environments where people do not actually care that much who is actually providing a certain service.
 This may be the case when users want to share insensitive data with a public service which is to be viewed by others, but other scenarios will certainly exist.
 
+\begin{figure}[t]
+    \centering
+
+    \begin{subfigure}{0.9\textwidth}
+        \centering
+        \begin{sequencediagram}
+            \newinst{s1}{Service 1}
+            \newthread[4]{c}{Client}
+            \newinst[4]{s2}{Service 2}
+
+            \mess{c}{Discover}{s1}
+            \prelevel
+            \mess{c}{Discover}{s2}
+
+            \postlevel
+
+            \mess{s1}{Announce}{c}
+            \mess{s2}{Announce}{c}
+        \end{sequencediagram}
+
+        \caption{Undirected Service Discovery}
+        \label{fig:undirected-service-discovery}
+    \end{subfigure}
+
+    \vspace{0.5cm}
+
+    \begin{subfigure}{0.9\textwidth}
+        \centering
+
+        \begin{sequencediagram}
+            \newthread{c}{Client}
+            \newthread[4]{s}{Service}
+
+            \begin{messcall}{c}{InitiateConnection()}{s}
+                \postlevel
+                \postlevel
+
+                \begin{messcall}{s}{Announce}{c}{}
+                \end{messcall}
+                \prelevel
+            \end{messcall}
+        \end{sequencediagram}
+
+        \caption{Directed Service Discovery}
+        \label{fig:directed-service-discovery}
+    \end{subfigure}
+
+    \caption{Service discovery}
+\end{figure}
+
 In order to be able to solve both use cases, that is discovery of previously unknown services and discovery of services whose identity is known through other means, the actual device discovery implemented has two modes.
 \begin{description}
     \item[Undirected service discovery]\hfill\\
@@ -473,28 +523,6 @@ Each service announced has a name, category and port.
 The server will now send back the serialized message to the querying client.
 The client's address is assembled by taking the originator address from the UDP package and the port specified in the Discover message.\\
 
-\begin{figure}[H]
-    \centering
-
-    \begin{sequencediagram}
-        \newinst{s1}{Service 1}
-        \newthread[4]{c}{Client}
-        \newinst[4]{s2}{Service 2}
-
-        \mess{c}{Discover}{s1}
-        \prelevel
-        \mess{c}{Discover}{s2}
-
-        \postlevel
-
-        \mess{s1}{Announce}{c}
-        \mess{s2}{Announce}{c}
-    \end{sequencediagram}
-
-    \caption{Undirected Service Discovery}
-    \label{fig:undirected-service-discovery}
-\end{figure}
-
 In contrast to the undirected service discovery the directed service discovery provides a way to obtain information about a server's services in an authenticated way.
 As we have previously obtained the public signature key of the server we want to talk to, we are already able to establish authenticated and encrypted connections.
 
@@ -503,27 +531,6 @@ If we would use UDP for this as we do for undirected service discovery, we would
 To avoid this burden, we instead use a different socket for directed service discovery which uses TCP as a protocol.
 
 Despite the initial connection establishment all subsequent steps remain unchanged, albeit data sent is encrypted with the generated ephemeral key.
-
-\begin{figure}[H]
-    \centering
-
-    \begin{sequencediagram}
-        \newthread{c}{Client}
-        \newthread[4]{s}{Service}
-
-        \begin{messcall}{c}{InitiateConnection()}{s}
-            \postlevel
-            \postlevel
-
-            \begin{messcall}{s}{Announce}{c}{}
-            \end{messcall}
-            \prelevel
-        \end{messcall}
-    \end{sequencediagram}
-
-    \caption{Directed Service Discovery}
-    \label{fig:directed-service-discovery}
-\end{figure}
 
 \subsubsection{Query}
 \label{sec:query}
