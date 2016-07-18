@@ -82,19 +82,16 @@
 \date{Berlin, \today}
 
 \begin{document}
-
+    \pagestyle{plain}
     \pagenumbering{gobble}
     \input{cover}
     \input{license}
     \input{affirmation}
 
-    \clearpage
-
-    \pagenumbering{Roman}
     \tableofcontents
-    \clearpage
     \listoffigures
-    \clearpage
+
+    \cleardoublepage
 
     \pagestyle{fancy}
     \pagenumbering{arabic}
@@ -109,13 +106,10 @@
     \input{future}
     \input{conclusion}
 
-    \clearpage
-
     \begin{appendices}
         \input{appendices}
     \end{appendices}
 
-    \clearpage
     \nocite{*}
     \bibliography{resources/bibliography}
 \end{document}
