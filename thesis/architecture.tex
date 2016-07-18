@@ -763,22 +763,30 @@ Given the actual service implementations are implemented securely, session owner
 \subsubsection{Termination}
 
 In most cases, sessions will be invoked right after they are created by the session creator.
-Sometimes, though, sessions will be created but not directly invoked after creation.
-Assuming session creator and invoker are the same, this is no problem: the creator will simply throw away the session identifier and thus never use the capability associated with it.
-In certain scenarios, this is not desirable, though.
-First, users may wish to explicitly delete sessions they have just created as they know they are never going to invoke the session or because the creator specified parameters which, on second though, he deems to contain sensitive information he at least wants to remove from the server right now.
+In certain scenarios, though, sessions will be created but will not be used right away, thus leaving the session's parameters and internal capability idle on the server.
+Assuming session creator and invoker are the same, this is no real problem: the creator can simply choose to throw away the capability, loosing the right to execute the service and then forget about the session.
+But after all, leaving sessions idle on servers may pose a security risk sometimes.
 
-One solution to this problem would be to simply invoke the session and then immediately terminate it again.
-As sessions are immediately removed from the pool of established sessions after starting the session, it will be discarded from the service without actually using the session's service.
-But imagine a session creator has just created a new session where he himself is not the session's invoker.
-Despite being unclean in its design to simply invoke and immediately disconnect from the service, in this case it would be impossible for the session creator to invoke the capability at all, as he is not the invoker.
+Assume for example that a session has been created where the session creator unintentionally specified a wrong set of parameters, thus leaking a sensitive file to the session owner.
+Another example would be if the session owner has, by accident or intent, disclosed his private signature key to a third-party.
+In these cases affected sessions should be terminated as soon as possible.
 
-The implementation of this use-case is realized by another end-point which has been added to the protocol through which one is able to terminate sessions and the associated capabilities.
-A client may initiate a new connection with a service, telling the service it wants to invoke the session-termination end-point, and then send a termination message to the server.
-The termination message contains the session identifier and the invoker of the session that is to be terminated.
-It is necessary to also specify an invoker as the server currently has no guarantees about session identifier being unique on a global level but only in combination with the invoker's identity.
+One naive solution to this problem would be to simply invoke the session and then immediately terminate it again.
+As session metadata is immediately deleted upon the session being invoked, this would prune data from the service.
+But in fact this is a short-sighted solution, as what happens upon the client immediately terminating after starting a session is dependent on the service's semantics.
 
-The server will now search all established sessions if there is any session matching the session creator, which has to match the termination requester's identity, as well as the session identifier and session invoker specified in the termination message.
-If such a session is found, it will immediately be removed and the capability is rendered invalid.
+To remedy this, another end-point has been added to the protocol through which entities are able to terminate sessions.
+As has been mentioned briefly, the session message sent after creating a new session does contain \emph{two} capabilities.
+One capability is bound to the session owner and can be used to either connect to the session or to terminate the session.
+The second capability is instead bound to the session creator and can only be used to terminate the session.
+
+When either session owner or session creator now wish to terminate the session, they will send a session termination message to this end-point.
+THe session termination message only contains the capability given by the server and suffices to identify the actual session that is to be terminated.
+The server will verify that the capability is valid for the connected identity and if it actually has the right to terminate a session.
+If so, the session referenced by the capability will be searched and, if found, all associated metadata will be pruned.
+This includes pruning parameters as well as revoking the right to execute the session.
+
+Ideally, this mechanism would also be able to stop sessions that have already been invoked and are currently executed.
+The current implementation does not handle this yet but will later be extended to do so.
 
 % vim: ft=tex tw=0
