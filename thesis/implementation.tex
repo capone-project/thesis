@@ -550,7 +550,7 @@ So the mouse will still be visible as it is directly connected to the display se
 
 Such a set up has not been tested though despite simple proof-of-concept tests with the Xvfb and input guidance.
 
-\section{Development process}
+\section{Development}
 
 The complete software stack is split up into two major components, namely the server-side part and the controller application for Android.
 While these two components are strictly split up in functionality and dependencies, they still reside in a mono-repository so that it becomes easier to modify the core protocol and adjust both sides to work with the new version.
@@ -559,7 +559,8 @@ The server-side stack is written in the C programming language and currently clo
 Code is logically split up into a set of executables and libraries like following:
 \begin{description}
     \item[Benchmarking]\hfill\\
-        Two executables exist that drive the logic behind the benchmarks described in section \ref{sec:evaluation}, where \emph{sd-bench} handles logic around throughput-benchmarks and \emph{sd-latency} estimates connection establishment latency.
+        Three executables exist that drive the logic behind the benchmarks described in section \ref{sec:evaluation}.
+        \emph{sd-bench-throughput} handles logic involving throughput-benchmarks, \emph{sd-bench-latency} estimates connection establishment latency and \emph{sd-bench-input} measures input latency.
     \item[Discovery]\hfill\\
         Service discovery is handled by \emph{sd-discovery-server} with a complementary executable \emph{sd-discover} used for testing the server implementation.
         It handles the process of directed and multicast server discovery as described in section \ref{sec:discovery}.
@@ -596,22 +597,22 @@ Table \ref{tab:sloc} summarizes the source lines of code per component, where th
         Tests & 2216 & 3022 \\
         \hline
     \end{tabular}
-    \caption{Lines of code per component for server}
+    \caption{Lines of code per component for server side}
     \label{tab:sloc}
 \end{table}
 
 A great emphasis has been put on cross-platform support.
 As such, the code is written in strict ISO C90 \cite{iso-c90} which is supported by all modern compilers.
 To guarantee that the code actually works on multiple platforms, multiple continuous integration (CI) services have been set up.
-The CI services get notified on the event that a new commit has been pushed to a monitored repository and if so, they fetch the changes, build the applications and execute tests.
-Currently, there are two CI services have been registered:
+The CI services get notified on the event that a new commit has been pushed to a monitored repository and if so, fetch the changes, build the executables and execute unit tests.
+Currently, there are two CI services which have been employed:
 \begin{itemize}
-    \item Travis CI \cite{travis} provides Linux and OS X build platforms
-    \item AppVeyor \cite{appveyor} provides Windows build platforms
+    \item Travis CI \cite{travis} provides CI services for Linux and OS X build platforms
+    \item AppVeyor \cite{appveyor} provides CI services for Windows build platforms
 \end{itemize}
 
 The project uses the Git source control management system \cite{git} and GitHub as its hosting platform \cite{github}.
-In order to have a clean development process and a main branch which is always potentially releasable, that is it always builds and unit tests pass on all platforms, a development process is specified making heavy use of branches.
+In order to have a clean development process and a main branch which is always potentially releasable, meaning that the branch always compiles and unit tests pass on all platforms, a development process is specified making heavy use of branches.
 Every unit of development, e.g. a new feature, bugfixing or refactoring, is done in a separate branch which is then pushed to the main repository where it is picked up by the CI services.
 As soon as all CI services have determined that the changes do not break the build on any platform and that all unit tests pass, the branch can be merged into the mainline.
 
@@ -669,7 +670,7 @@ The total controller application is around 2691 lines of actual code which can b
     \label{tab:sloc-controller}
 \end{table}
 
-Table \ref{tab:sloc-controller} provides an overview over the amount of code per component.
+Table \ref{tab:sloc-controller} provides an overview of the amount of code per component.
 
 Due to timing constraints no tests are available for the Android application and no CI services have been set up.
 
