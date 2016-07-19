@@ -142,37 +142,38 @@ It remains to be seen if this interface design is sufficient to handle different
 \subsection{Invoke service}
 \label{sec:invoke-service}
 
-The invoke service provides the ability to start a remote service on the server providing the invoke service.
+The Invoke service provides the ability to start a remote service on the server providing the Invoke service.
 There are up to three parties involved in the process:
 \begin{description}
     \item[Controller]
         The entity controlling the process.
-        The controller is the one directing the invoke service to invoke another service.
+        The controller is the one directing the Invoke service to start another service.
     \item[Invoker]
         The service providing the ability to start a service on the server it is hosted on.
     \item[Service]
         The service being started by the Invoker.
-        While this service will often reside on another server than the invoke service, this is not a requirement.
+        While this service will often reside on another server than the Invoke service, this is not a requirement.
 \end{description}
 
 References to these specific parties will be written with a capitalized first letter.
 The whole process of service initiation has three steps:
 \begin{enumerate}
     \item The Controller creates a new session with the Service that is to be started later by the Invoker.
+        When creating the session, the Invoker's identity is set up as the session owner.
     \item The Controller creates a new session with the Invoker, passing the capability for the session just created with the Service.
     \item The Controller starts the session created with the Invoker, causing the Invoker to start the session on the Service.
 \end{enumerate}
 
 These steps are visualized in an UML flow diagram in figure \ref{fig:invoke-service}.
-Each entity has a public identity represented by the lowercase letter following its name.
+In this diagram, each entity has a public identity represented by the lowercase letter following its name.
 The following functions are used in the diagram:
 \begin{description}
     \item[Request($i$, $p$) $\rightarrow$ $c$]
         Request a new session with a set of parameters represented as key-value pairs for entity $i$.
         Returns a capability $c$ which can be used by $i$.
     \item[CreateSession($e$, $i$, $p$) $\rightarrow$ $c$]
-        Create a new session with session owner $e$ for invocation by entity $i$, storing the set of parameters $p$.
-        Returns a capability $c$ used to invoke the session.
+        Create a new session with session creator $e$ for invocation by entity $i$, storing the set of parameters $p$.
+        Returns a capability $c$ which can later be used by $i$ to invoke the session.
     \item[Start($c$)]
         Start the session associated with capability $c$.
 \end{description}
@@ -216,36 +217,36 @@ The following functions are used in the diagram:
 \end{figure}
 
 On first sight, the order of session establishment may seem a bit puzzling, as the Service session is created before the Invoker session is being created.
-But actually this results out of the protocol's design: no entity is able to create a session in name of another entity when it does not know about the other entity's long term signature key.
-As the Client wants to create a session which can be started by the Invoker, he will have to create a new capability which he owns but which the Invoker may use.
+But actually, this results out of the protocol's design: no entity is able to create a session in name of another entity when it does not know about the other entity's private long term signature key.
+As the Client wants to create a session which can be started by the Invoker, he will have to create a new capability which the Invoker may use.
 
-This use case is exactly why capabilities differentiate between their owners and their invokers:
-the owner is the entity who creates the capability and who may destroy the capability before it has been used, but he is unable to use the capability.
+This use case is exactly why capabilities differentiate between their creators and their owners:
+the creator is the entity who creates the capability and who may destroy the capability before it has been used, but in fact he is unable to use the capability.
 The invoker of a capability is only able to use a capability which has been granted by either himself when creating a new session or which has been passed by another entity.
 
-Returning back to the invoke service it now becomes obvious why the Client creates the session with the Service, as only he is able to create a session in his own name.
+Returning back to the invoke service, it now becomes obvious why the Client creates the session with the Service, as only he is able to create a session in his own name.
 It would theoretically be possible for the Invoker to create the session himself, but assuming the Service has some kind of access control he might either not be allowed to create sessions or he may not be allowed to create sessions capable of accessing data belonging to Client.
 
 All subsequent steps are now trivial:
-Given the session just created, Service returns a capability which can be used by Invoker to the Client.
+Given the session just created, Service returns a capability to the Client which can be used by Invoker.
 Client now creates a new session with Invoker, passing on the capability as well as specifying the address of the service that is to be invoked.
 
-When the Invoker session has been created, Client starts it, causing the Invoker to retrieve the passed on capability for Service from the session parameters and connects to the session on Service.
+When the Invoker session has been created, Client starts it, causing the Invoker to retrieve the passed capability for Service from the session parameters, using it to connect to the session on Service.
 
 \subsection{Capability service}
 \label{sec:capability-service}
 
 The capability service solves the use case where an entity desires the ability to invoke a service in the name of another service.
-That is it is the direct contrary to the invoke service, which can be used to push a capability to an invoker, in that the capability service pulls a capability from another entity.
+It is the counterpart to the Invoke service, which can be used to push a capability to an invoker, in that the capability service pulls a capability from another entity.
 
 Ideally, the capability service would not be required at all but instead, a requester would just directly ask another entity for permissions to execute a certain service.
 But the requirement to directly connect to another entity requires the requester to always know of the address of the entity he wishes to ask.
 As it may be very likely that the person asked for the capability uses a mobile phone with the Android application as a controller, the address might not be as stable as one would wish in this case.
-Furthermore, it might be impossible to establish a direct connection when entities are in different networks, which usually use network address translation and do not allow direct connections to arbitrary ports.
+Furthermore, it might be impossible to establish a direct connection when entities are in different networks, which often use network address translation and do not allow direct connections to arbitrary ports.
 
 In order to solve this problem, the capability service was developed as a means to forward capability requests between a requesting entity and a requested entity.
-In fact the service does nothing more than allow entities to register themselves at the server and then subsequently forwards requests from other entities to registered entities and sending back capabilities created from accepted requests.
-So it can be regarded as some kind of proxy service.
+In fact the service does nothing more than allow entities to register themselves at the server and then subsequently forwards requests from other entities to registered entities, sending back capabilities created from accepted requests.
+So it can be thought of as some kind of proxy service.
 
 There are four participating entities which we will now define.
 As before, we will subsequently refer to these entities by upper-casing the first letter.
@@ -263,12 +264,13 @@ As before, we will subsequently refer to these entities by upper-casing the firs
 
 The process of capability requests involves five steps:
 \begin{enumerate}
-    \item The Registrant connects to the Capability Service
-    \item The Client requests a capability from Registrant to invoke Service with a set of parameters by sending a request to Capability Service
-    \item Capability Service forwards the request to Registrant
+    \item The Registrant connects to the Capability Service.
+    \item The Client requests a capability from Registrant to invoke Service with a set of parameters by sending a request to Capability Service.
+    \item Capability Service forwards the request to Registrant.
     \item Registrant decides if the request should be accepted or rejected.
-        If it accepted, he creates a new session on Service for Client and send the capability to Capability Service
-    \item Capability Service forwards the Capability to Client, who can now start the session on Service
+        If it accepted, he creates a new session on Service for Client, using the parameters provided by Client.
+        He then returns the capability to Capability Service.
+    \item Capability Service forwards the Capability to Client, who can now start the session on Service.
 \end{enumerate}
 
 The whole process is visualized in figure \ref{fig:capability-request}.
@@ -278,17 +280,17 @@ The following functions are used in the diagram:
         Creates and starts a session with a Capability Service to become a registrant.
     \item[CapRequest($r$, $s$, $p$) $\rightarrow$ $c$]\hfill\\
         Request permissions to start service $s$ in the name of registrant $r$ with the set of parameters $p$.
-        Returns a capability $c$ usable by the requester for service $s$.
-    \item[Ask($c$, $s$, $p$) $\rightarrow$ $c$]\hfill\\
-        Ask Registrant to create a capability for the client $c$ to invoke service $s$ with a set of parameters $p$.
-        Returns a capability $c$ usable by the client $c$ if the registrant accepts the request.
+        Returns a capability $c$ usable by the requester for service $s$ in case the request got accepted.
+    \item[Ask($i$, $s$, $p$) $\rightarrow$ $c$]\hfill\\
+        Ask Registrant to create a capability for the client $i$ to invoke service $s$ with a set of parameters $p$.
+        Returns a capability $c$ usable by the client $i$ if the registrant accepts the request.
     \item[Request($i$, $p$) $\rightarrow$ $c$]
         Request a new session with a set of parameters represented as key-value pairs for entity $i$.
         Returns a capability $c$ which can be used by $i$.
-    \item[CreateSession($e$, $i$, $p$) $\rightarrow$ $c$]
-        Create a new session with session owner $e$ for invocation by entity $i$, storing the set of parameters $p$.
+    \item[CreateSession($e$, $i$, $p$) $\rightarrow$ $c$]\hfill\\
+        Create a new session with session creator $e$ for invocation by entity $i$, storing the set of parameters $p$.
         Returns a capability $c$ used to invoke the session.
-    \item[Start($c$)]
+    \item[Start($c$)]\hfill\\
         Start the session associated with capability $c$.
 \end{description}
 
@@ -336,23 +338,24 @@ The following functions are used in the diagram:
 Let us now take a more detailed look at the steps.
 The initial step is the registration of the Registrant.
 The Capability Service needs to know where to send incoming capability requests to.
-As such, entities who want to be able to answer capability requests need to register with the Capability Service in order to be able to retrieve the requests.
+As such, entities who want to be able to answer capability requests need to register with the Capability Service in order to be able to retrieve these requests.
 
-The registration is very simple in that a new session is created and opened with the Capability Service which, where the session is created as a \emph{Registrant} session.
-Upon starting the session, the connection between Registrant and Capability Service will be kept alive and used to relay incoming requests.
+The registration is very simple in that a new session is created and opened with the Capability Service, where the session is created as a \emph{Registrant} session.
+Upon starting the session, the connection between Registrant and Capability Service will be kept alive and used to forward incoming requests.
 Intuitively, one Capability Service can accept multiple Registrants at the same time.
 For multiple Registrants with different identities the service works as one might expect:
 Upon an incoming request, the Capability Service compares the requested identity with the identities of Registrants -- if one Registrant matches, the request will be forwarded to him.
-Even though it is possible for the same entity to register twice at a Capability Service, this does not really make sense currently as the capability request is only forwarded to the first Registrant matching the entity requested by an incoming request.
+
+Even though it is currently possible for the same entity to register twice at a Capability Service, this does not really make sense as the capability request is only forwarded to the first Registrant matching the entity requested by an incoming request.
 This might change in future to either allow only one Registrant having the same identity at the same time or by forwarding the request to all matching Registrants, waiting for the first one to accept.
 
-Independent of the registration, Clients may send capability requests to the server.
+Independent of the registration, Clients may send capability requests to the Capability Service.
 Each capability request contains whom to ask for permissions, which service the Client wants to have a capability for and a set of parameters which should be used to establish a session.
 The request is sent to the Capability Service, which will now search its Registrants for one matching with the requested entity.
-If one is found, the Capability Service will forward the capability request together with the entity of the Client asking for the capability to the matching Registrant.
+If one is found, the Capability Service will forward the capability request to the matching Registrant together with the Client's identity, asking for the capability.
 
 As the Registrant receives the Capability Request, he will have to somehow determine if the requesting entity should be allowed to invoke the service as he requests or if the request should be rejected.
-If he accepts the request, he will create a new session with Service for Client with the forwarded parameters, retrieves the newly created capability and forwards it to the Capability Service, which will subsequently forward the capability to the Client.
+If he accepts the request, he will create a new session with Service for Client with the forwarded parameters, retrieve the newly created capability and forward it to the Capability Service, which will subsequently forward the capability to the Client.
 The Client is now able to use the capability to start a session with Service.
 
 \medskip
@@ -365,10 +368,10 @@ He now has two buttons to either accept or reject the request, causing the mobil
 
 But actually, human beings are just a special case of Registrants.
 Instead of a human receiving requests, a special controller may connect to a Capability Service which is connected to some source for actual access control policies.
-This controller will register and receive just the same as human Registrants would, but may automatically accept or reject requests based on the access control policy.
+This controller will register and receive requests just the same as human Registrants would, but may automatically accept or reject requests based on the access control policy.
 
 In theory, these automated controllers can be as simple or complex as one can imagine.
-While a conventional user may have a controller allowing all his friends to connect to his home display, large enterprises could deploy controllers with distinguished policies based on information retrieved from Active Directory Domains Services.
+While a conventional user may have a controller allowing all his friends to connect to his home display, large enterprises could deploy controllers with distinguished policies based on information retrieved from Active Directory Domain Services.
 
 One more possible use case is where a user owns a long-term signature key which is too important for him to have on his mobile phone in order to connect to certain services.
 Instead, he may have a controller running at home with a Registrant connected owning the real long-term signature key.
@@ -383,39 +386,42 @@ In such a design, the Capability Service would completely proxy all traffic betw
 \subsection{Execution service}
 \label{sec:exec-service}
 
-The execution is a simple service providing some kind of shell to start up command line applications.
-Upon connecting, the user specifies which executable to start, the parameters passed to the executable and the environment variables which should be set.
+The execution is a simple service providing some kind of shell to start up command line or even graphical applications.
+Upon connecting, the user specifies which executable to start, the command line arguments which shall be passed to the executable and the environment variables which should be set.
 
-The server then starts the executable and forwards all output from \lstinline{stdout} and \lstinline{stderr} the client's channel as well as forwarding all input from the client's channel to \lstinline{stdin} of the executable.
+The server then starts the executable and forwards all output from \lstinline{stdout} and \lstinline{stderr} to the client's channel as well as forwarding all input from the client's channel to \lstinline{stdin} of the process.
 As such clients starting the execution service are able to receive output of the program and provide input.
 
-As this service is by default able to execute arbitrary command on the server, careful attention should be paid to the access policy.
+As this service is by default able to execute arbitrary command on the server, careful attention is required regarding the access policy.
 That is, the server should not be made accessible by everybody but usually only by special users.
 
 \subsection{Xpra service}
 \label{sec:xpra-service}
 
-The Xpra service wants to allow a client to forwards its graphical applications to a display connected to the Xpra service.
-Given a set of graphical applications on the client starting the Xpra service, the Xpra service will connect to the Xpra instance running on the client encapsulating the applications and then display them on the attached display.
+The Xpra service wants to allow a client to forward applications with a graphical user interface to a display connected to the Xpra service.
+Given a set of graphical applications on the client starting the Xpra service, the Xpra service will connect to the Xpra instance running on the client hosting these applications and then display them on the attached display.
 
 Xpra itself builds upon the X11 server technology and heavily uses X virtual frame buffers (Xvfb).
-Xvfb is a technology where framebuffers are created which are not actually rendered to a display, but graphical applications are instead rendered into memory.
-These virtual framebuffers can then be attached to by an Xpra client which will subsequently receive graphic updates and render these to the display.
+Xvfb is a technology where framebuffers are created which are not actually rendered to a display, but all graphics are instead rendered into memory.
+These virtual framebuffers can then be attached to by an Xpra client which will subsequently receive graphic updates and render these to a display.
 
 Xpra was chosen as the display technology as it is very flexible in how it works.
 Besides having cross-platform support for Windows, Linux and OS X, it is also capable of driving the communication between server and client with different encodings.
 While it usually uses Portable Network Graphics (PNG) as encoding, it is also able to use the video codec H264 as encoding.
-As such it is not only suitable to remotely display typical office desktops with text applications, but it is also able to stream graphically heavy applications like video players.
+As such it is not only suitable to remotely display typical office desktops with text applications, but it is also able to stream graphically intense applications like video players.
 
-Xpra is built upon a server-client approach.
-While the server owns the Xvfb where graphical applications are instantiated inside, the client attaches to the server and thus displays the actual graphics.
-This gets particularly confusing to reason about combined with the Xpra service, which is hosted on the server but acts as the client to the Xvfb buffer.
+Xpra is built upon a server-client architecture.
+While the Xpra server owns the Xvfb where graphical applications are rendered to, the client attaches to the server and thus displays the actual graphics.
+This gets particularly confusing to reason about combined with our implementation of the Xpra service, which is hosted on the server but acts as the client to the Xvfb buffer.
 
-The setup includes three involved entities:
+The setup includes four involved entities:
 \begin{description}
     \item[Xpra server]\hfill\\
-        The Xpra server instance with the Xvfb where applications are rendered to.
-        This Xpra server is usually instantiated on the Client side.
+        The Xpra server instance with the Xvfb is where applications are rendered to.
+        This Xpra server is instantiated on the Client side.
+    \item[Xpra client]\hfill\\
+        The Xpra client attaches to the Xpra server in order to display graphical user interfaces on a display.
+        The Xpra client is executed on the Display service.
     \item[Client]\hfill\\
         The Client is the entity having a running Xpra server with a set of applications rendering to it.
         He wishes to display these applications on the Display service
@@ -425,10 +431,10 @@ The setup includes three involved entities:
 
 The following steps are required to display applications on the remote screen controlled by the Display service:
 \begin{enumerate}
-    \item The Client starts the Xpra server and (optionally) some applications running in the Xvfb
-    \item The Client requests and starts a connection with the Display service
-    \item The Display service starts up the Xpra client
-    \item Data between Xpra server and Xpra client is tunneled through an encrypted channel
+    \item The Client starts the Xpra server and (optionally) some applications running in the Xvfb.
+    \item The Client requests and starts a session with the Display service.
+    \item The Display service starts up the Xpra client, connecting to the Client's Xpra server.
+    \item Data between Xpra server and Xpra client is tunneled through an encrypted channel.
 \end{enumerate}
 
 The UML flow diagram in figure \ref{fig:xpra-service} details these steps.
@@ -436,19 +442,21 @@ The following functions are used:
 
 \begin{description}
     \item[StartXpra($p$)]
-        Start a new Xpra server instance on port $p$.
+        Start a new Xpra server instance listening on port $p$.
+    \item[StartXpraClient($p$)]
+        Start a new Xpra client, connecting to the local port $p$.
+    \item[ConnectXpra($p$)]
+        Connect to a local Xpra instance on port $p$.
     \item[Request($i$) $\rightarrow$ $c$]
         Request a new session with no parameters for entity $i$.
         Returns a capability $c$ which can be used by $i$.
     \item[CreateSession($e$, $i$, $p$) $\rightarrow$ $c$]
-        Create a new session with session owner $e$ for invocation by entity $i$, storing the set of parameters $p$.
-        Returns a capability $c$ used to invoke the session.
+        Create a new session with session creator $e$ for invocation by entity $i$, storing the set of parameters $p$.
+        Returns a capability $c$ which may be used by $i$ to invoke the session.
     \item[Start($c$)]
         Start the session associated with capability $c$.
     \item[Forward($p$)]
         Forward data between port $p$ and the channel to the invoked entity.
-    \item[ConnectXpra($p$)]
-        Connect to a local Xpra instance on port $p$.
 \end{description}
 
 \begin{figure}[t]
@@ -458,34 +466,34 @@ The following functions are used:
     {
     \begin{sequencediagram}
         \newinst{x}{Xpra server}
-        \newthread[2]{c}{Client $c$}
+        \newthread[2]{c}{Client $i$}
         \newinst[2]{s}{Display service}
 
-        \begin{messcall}{c}{StartXpra($p_{xs}$)}{x}
+        \begin{messcall}{c}{StartXpra($p_c$)}{x}
             \postlevel
 
-            \begin{call}{c}{Request($c$)}{s}{Capability $c$}
-                \begin{call}{s}{CreateSession($c$, $c$, $p$)}{s}{Capability $c$}
+            \begin{call}{c}{Request($i$)}{s}{Capability $c$}
+                \begin{call}{s}{CreateSession($i$, $i$, $\{\}$)}{s}{Capability $c$}
                 \end{call}
             \end{call}
 
             \postlevel
 
             \begin{messcall}{c}{Start($c$)}{s}
-                \begin{call}{s}{StartXpraClient()}{s}{$p_{xc}$}
+                \begin{call}{s}{StartXpraClient($p_{s}$)}{s}{}
                 \end{call}
 
-                \begin{messcall}{s}{Forward($p_{xc}$)}{c}
+                \begin{messcall}{s}{Forward($p_s$)}{c}
                 \end{messcall}
                 \prelevel
-                \begin{messcall}{c}{ConnectXpra($p_{xs}$)}{x}
+                \begin{messcall}{c}{ConnectXpra($p_c$)}{x}
                 \end{messcall}
 
                 \begin{messcall}{x}{Display data}{c}
                 \end{messcall}
                 \prelevel
                 \prelevel
-                \begin{messcall}{c}{Forward($p_{xs}$)}{s}
+                \begin{messcall}{c}{Forward($p_c$)}{s}
                 \end{messcall}
 
             \prelevel
@@ -506,7 +514,7 @@ The Client establishes and connects to a new session with no parameters on the D
 Upon starting the session, the Display service creates a new Unix socket which will be put into listening mode, starts up the Xpra client and lets it connect to the newly created socket.
 All traffic going through this socket will now be forwarded over the client channel and thus be encrypted.
 
-As soon as initial data is arriving on the client's channel receiving side, he will open a new connection to the loopback interface on the port he has initially instructed the Xpra server to run on.
+As soon as initial data is arriving on the client's channel receiving side, Client will open a new connection to the loopback interface on the port he has initially instructed the Xpra server to run on.
 As soon as the Xpra server accepts the connection, he will forward data between the server channel and the Xpra server socket and thus finish the session setup.
 
 \subsection{Synergy service}
@@ -515,30 +523,30 @@ As soon as the Xpra server accepts the connection, he will forward data between 
 The Synergy service is an implementation of a mouse and keyboard sharing application.
 It provides cross-platform support for Windows, Linux and OS X.
 
-The service actually works nearly the same as the Xpra service and thus is not described in detail.
+The service has an architecture similar to the Xpra service and thus is not described in detail.
 On client-side, the Synergy server is started which will handle capturing and forwarding mouse and keyboard input.
 When the client starts a session with the Synergy service, the Synergy service starts up a Synergy client.
 All data between the Synergy client and server will then be tunneled through the channel between client and server.
 
 \medskip
 
-What requires further though is the actual mode of input how it is set up in the end.
+What requires further thought is the actual mode of input how it is set up in the end.
 There are two possibilities on how to set it up: either input can be connected to the display server or it can be connected to the server hosting the actual application.
 
 The most immediate concern is that of confidential input, e.g. when a user runs a confidential application on his server which then requires a password.
 We will assume that the actual input device itself is safe to use and not tampered with as otherwise all considerations done on the software layer become naught.
 
-As the user may not trust the environment where he is currently located, he might not want to connect his input devices to the display service, which would then forward traffic to the connected application.
+As the user may not trust the environment where he is currently located in, he might not want to connect his input devices to the display service, which would then forward traffic to the connected application.
 Instead, he might want to send all input through the encrypted channel to his home server so that input is passed on directly to the application instead of first going through the Xpra service where keyloggers may be active.
 
-Actually, assuming the Xpra service is being used for screen sharing, both modes are supported currently.
+Actually, assuming the Xpra service is being used for screen sharing, both modes are supported right now.
 Input connected directly to the display's X server is currently able to modify displayed applications.
 On the other hand, it is possible to connect input to the Xvfb in which applications are rendered directly, so that no additional redirection exists.
-Unfortunately, Xpra is currently implemented such that the mouse cursor is not display so that a user cannot see the mouse cursor.
+Unfortunately, Xpra is implemented in a way that the mouse cursor is not display so that a user cannot see the mouse cursor.
 
 A workaround may be to split up mouse and keyboard input so that the mouse is connected to the display service and keyboard input is directly wired into the Xvfb.
 While the mouse cursor would usually be visible anyway and thus should not provide any sensitive information to bystanders, the keyboard's input is often concealed when sensitive information is requested.
-So the mouse will still be visible as it is directly connected to the display service and can be used to guide input of the keyboard around without revealing input data from the keyboard to third parties except the server executing the application.
+So the mouse will still be visible as it is directly connected to the display service and can be used to guide input of the keyboard without revealing input data from the keyboard to third parties except the server executing the application.
 
 Such a set up has not been tested though despite simple proof-of-concept tests with the Xvfb and input guidance.
 
