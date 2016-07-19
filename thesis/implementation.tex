@@ -555,7 +555,7 @@ Such a set up has not been tested though despite simple proof-of-concept tests w
 The complete software stack is split up into two major components, namely the server-side part and the controller application for Android.
 While these two components are strictly split up in functionality and dependencies, they still reside in a mono-repository so that it becomes easier to modify the core protocol and adjust both sides to work with the new version.
 
-The server-side stack is written in the C programming language and currently clocks in at 6680 source lines of code excluding empty lines and comments.
+The server-side stack is written in the C programming language and currently clocks in at 7370 source lines of code excluding empty lines and comments.
 Code is logically split up into a set of executables and libraries like following:
 \begin{description}
     \item[Benchmarking]\hfill\\
@@ -583,17 +583,17 @@ Table \ref{tab:sloc} summarizes the source lines of code per component, where th
         \hline
         \bfseries Component & \bfseries Lines of source code & \bfseries Total lines\\
         \hline
-        Benchmarking & 293 & 405\\
+        Benchmarking & 390 & 545\\
         \hline
-        Discovery & 331 & 456\\
+        Discovery & 393 & 531\\
         \hline
-        Server & 515 & 678\\
+        Server & 478 & 631\\
         \hline
-        Services & 971 & 1523\\
+        Services & 1000 & 1554\\
         \hline
-        Library & 2407 & 4798\\
+        Library & 2893 & 5696\\
         \hline
-        Tests & 2075 & 2811 \\
+        Tests & 2216 & 3022 \\
         \hline
     \end{tabular}
     \caption{Lines of code per component for server}
@@ -634,7 +634,7 @@ The second component of the ecosystem is the controller application for Android 
 As the Android operating system provides a development environment based on the Dalvik Virtual Machine, the main programming language used to develop Android applications is the Java programming language.
 
 As with the parts written in C, some effort has been done to have a clean separation between the protocol libraries and low-level functionality and the actual user interface.
-The total controller application is around 2660 lines of actual code which can be split up into the following components:
+The total controller application is around 2691 lines of actual code which can be split up into the following components:
 \begin{description}
     \item[User interface]\hfill\\
         The user interface provides all functionality directly presented to the user.
@@ -662,7 +662,7 @@ The total controller application is around 2660 lines of actual code which can b
         \hline
         Service plug-ins & 711 & 1022\\
         \hline
-        Protocol & 982 & 1513\\
+        Protocol & 1012 & 1571\\
         \hline
     \end{tabular}
     \caption{Lines of code per component for Android controller}
