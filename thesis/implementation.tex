@@ -578,7 +578,7 @@ Code is logically split up into a set of executables and libraries like followin
 \end{description}
 
 Table \ref{tab:sloc} summarizes the source lines of code per component, where the column ``Lines of source code'' counts the actual lines of code excluding comments and whitespace and the column ``Total lines'' counts the total amount of lines.
-\begin{table}
+\begin{table}[t]
     \centering
     \begin{tabular}{|c|c|c|}
         \hline
@@ -634,6 +634,23 @@ It is able to catch a lot of errors like invalid memory access and leaked file d
 The second component of the ecosystem is the controller application for Android mobile phones.
 As the Android operating system provides a development environment based on the Dalvik Virtual Machine, the main programming language used to develop Android applications is the Java programming language.
 
+\begin{table}[t]
+    \centering
+    \begin{tabular}{|c|c|c|}
+        \hline
+        \bfseries Component & \bfseries Lines of source code & \bfseries Total lines\\
+        \hline
+        User interface & 968 & 1357\\
+        \hline
+        Service plug-ins & 711 & 1022\\
+        \hline
+        Protocol & 1012 & 1571\\
+        \hline
+    \end{tabular}
+    \caption{Lines of code per component for Android controller}
+    \label{tab:sloc-controller}
+\end{table}
+
 As with the parts written in C, some effort has been done to have a clean separation between the protocol libraries and low-level functionality and the actual user interface.
 The total controller application is around 2691 lines of actual code which can be split up into the following components:
 \begin{description}
@@ -652,23 +669,6 @@ The total controller application is around 2691 lines of actual code which can b
         This module implements the protocol.
         This includes the low-level protocol used by channels as described in \ref{sec:low-level-protocol} and the messages exchanged for querying, session establishment and session invocation as described in section \ref{sec:protocol}.
 \end{description}
-
-\begin{table}
-    \centering
-    \begin{tabular}{|c|c|c|}
-        \hline
-        \bfseries Component & \bfseries Lines of source code & \bfseries Total lines\\
-        \hline
-        User interface & 968 & 1357\\
-        \hline
-        Service plug-ins & 711 & 1022\\
-        \hline
-        Protocol & 1012 & 1571\\
-        \hline
-    \end{tabular}
-    \caption{Lines of code per component for Android controller}
-    \label{tab:sloc-controller}
-\end{table}
 
 Table \ref{tab:sloc-controller} provides an overview of the amount of code per component.
 
