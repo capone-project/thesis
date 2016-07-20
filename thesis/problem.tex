@@ -18,16 +18,16 @@ Nevertheless, the service discovery part is not a focus of this thesis as a mult
 
 A central point to this thesis is to implement the protocol in a secure way.
 We explicitly exclude the implemented service discovery protocol from this requirement, as its purpose is to discover previously unknown services where it is impossible to authenticate the service without any prior knowledge.
+The complete problem of a secure initial exchange of identities is not part of this thesis.
 Barring this initial step, all communication between services and their peers shall be fully authenticated and encrypted such that no adversary is able to recover messages exchanged between these parties.
 
-To achieve the goal of security, we have to make multiple assumptions,.
+To achieve the goal of security, we have to make multiple assumptions.
 The first assumption made is that peers have previously exchanged long-term public signature keys with each other through some kind of side-channel.
-The problem of exchanging these keys in a secure way is not solved in this thesis.
 
 We further assume that the adversary has the ability to interpose all communication paths.
 He is able to read all traffic between peers, modify or replay messages sent or inject arbitrary messages.
 Additionally, the adversary is able to pretend to be either of these peers on the networking layer, e.g. by adopting the peer's IP address.
-Summarizing the adversary's capabilities, he has complete control over all network functionality and is able to spoof identities of all participating peers.
+Summarizing the adversary's capabilities, he has complete control over all network functionality and is able to spoof network addresses of all participating peers.
 
 On the other hand, the adversary has no access to key material.
 That is, he cannot encrypt, decrypt or sign any messages in the name of any peer without previously gaining access to the key material in any way.
