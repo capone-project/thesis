@@ -299,23 +299,23 @@ It is the smallest block length able to achieve all target throughputs except fo
 
 \section{Connection establishment latency}
 
-The second benchmark involves connection establishment latency.
+The second benchmark is designed to measure connection establishment latency.
 When a client connects to servers, the first thing that is always performed is negotiation of an ephemeral key, which requires a total of three messages being exchanged between all parties.
 In this benchmark, we want to determine how the complete sequence of key negotiation performs under different networking settings and how this is influenced by different block lengths.
 
 To test the connection establishment process, we wrote a simple benchmarking utility.
 The utility consists of a client and a server thread, where the client repeatedly connects to the server, initiates the key exchange protocol and then disconnects again.
-The whole process is repeated 1000 times in order to increase the timing's validity.
+The whole process is repeated 1000 times in order to increase the timing's accuracy.
 
-See figure \ref{fig:connection-establishment} for the results visualized as a graph and appendix \ref{sec:appendix-connection-establishment} for the bare timings.
-The horizontal axis displays the block length in bytes, that is what is size of the fixed-size blocks used to split messages by.
+Measured is only the time required for the client to connect and initiate the algorithm, as the server has to perform the same steps without the initial connection establishment and only sends one of the three messages.
+So timings on the client side result in more interesting measurements.
+Appendix \ref{sec:appendix-connection-establishment} contains both client and server timings, though.
+
+See figure \ref{fig:connection-establishment} for the results visualized as graphs and appendix \ref{sec:appendix-connection-establishment} for the bare timings.
+The horizontal axis displays the block length in bytes, that is the size of the fixed-size blocks used to split messages by.
 The block length is measured in a logarithmic scale ranging from 64 bytes up to 4096 bytes.
 The vertical axis displays the overall time required for the complete connection establishment process in milliseconds.
 Each of the three graphs represents a networking condition with a different latency.
-
-Displayed is only the time required for the client to connect and initiate the algorithm, as the server has to perform the same steps without the initial connection establishment and only sends one of the three messages.
-So timings on the client side result in more interesting measurements.
-Appendix \ref{sec:appendix-connection-establishment} contains both client and server timings, though.
 
 \begin{figure}[t]
     \centering
@@ -335,26 +335,30 @@ Appendix \ref{sec:appendix-connection-establishment} contains both client and se
     \label{fig:connection-establishment}
 \end{figure}
 
-We can see that the computational overhead induced by encryption and exchange of the messages is near-negligible as without latency, we do not even reach 1ms of required time.
+We can see that the computational overhead induced by encryption and exchange of the messages is near-negligible as without latency, we do not even reach 1ms required to establish the connection.
 So the graph for same-host communication seems uninteresting as no distinct features can be seen.
 In fact, though, there is a $5\%$ decrease in time required to do the initiation for block lengths of 64 bytes to block lengths of 256 bytes.
-Each message sent in the key exchange contains exactly 134 bytes, which surmounts to a total of 138 bytes including the package length and excluding encryption, which is not used in this step.
-As such, a block length of 256 bytes is the optimum block length of the block lengths exercised, as it is the first one able to fit all data in one message.
+The biggest message sent in key derival protocol is exactly 140 bytes, which surmounts to a total of 144 bytes including the package length and excluding encryption, which is not used in this step.
+As such, a block length of 256 bytes is the optimum block length of the block lengths tested in our benchmarks, as it is the first one able to fit all data into one block.
 
-Interestingly there is another increase in performance of around $4\%$ between block lengths of 256 bytes and 512 bytes, which cannot be explained by message splitting as both block lengths are sufficient.
+Interestingly, there is another increase in performance of around $4\%$ between block lengths of 256 bytes and 512 bytes, which cannot be explained by message splitting as both block lengths are sufficiently large to store all messages.
 In fact, one would rather expect a decrease in performance as there is additional overhead required to send additional padding.
 As repeated benchmarks have resulted in the same results, it is unlikely that this is caused by measurement anomalies, even though we operate in microsecond-ranges.
 Up to now, we are unable to explain this behavior.
 
 For the other two graphs with 2 and 20 milliseconds of packet delay, the results are as one would expect.
-There is a harsh decrease of connection establishment time as soon as we exceed the size of messages sent.
-This improve in efficiency can be seen especially for 20ms of latency, as we effectively cut the blocks required in half and each block induces some latency.
+There is a harsh decrease of connection establishment time by roughly half as soon as we exceed the size of messages sent.
+This improvement in efficiency is particularly salient for 20ms of latency, as we effectively cut the number of blocks required in half and each block is restrained by latency.
 
-For both graphs with latency one can easily see that we have a connection establishment latency of the number of blocks sent multiplied by by the latency plus the latency induced by the initial connection to the server.
+For both graphs with latency one can easily see that we have a connection establishment latency of the number of blocks sent multiplied by the latency plus the latency induced by the initial connection to the server.
 Exceeding the sent message's size, this can be summarized by the formula $t = 4 \times l + c$, where $t$ is the time required for the complete connection establishment protocol, $l$ is the latency and $c$ is a sub-millisecond constant for calculations regarding key derival.
 
 For slow connections with a packet delay of up to 250ms we would still be able to perform connection establishment in around one second.
-Considering that connection establishments are only performed at most three times for a service invocation (that is querying the service, creating a session and start the session), this should be sufficient.
+Considering that for a single connection establishment we require up to three connectiots with querying the service, requesting a session and then connecting to the session itself, the setup would at least take three seconds for the connection establishment alone, excluding all protocol exchanges following.
+
+While we cannot alter the initial key exchange, it might be desirable to let clients connect once and perform all actions with this single connection.
+This would allow us to drop the initial key exchange for all but the initial request and re-use it for following requests.
+For simplicity and due to timing constraints, we have not implemented this, yet.
 
 \section{Input latency}
 
