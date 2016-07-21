@@ -122,21 +122,32 @@
 
 \clearpage
 \section{Service discovery interface}
-\lstinputlisting[label=lst:connection-establishment,firstline=3]{../../source/sd/proto/discovery.proto}
+\label{apx:service-discovery}
+
+\lstinputlisting[firstline=3]{../../source/sd/proto/discovery.proto}
 
 \clearpage
 \section{Connection establishment interface}
+\label{apx:connection-establishment}
 
-\lstinputlisting[label=lst:connection-establishment,firstline=3]{../../source/sd/proto/encryption.proto}
+\lstinputlisting[firstline=3]{../../source/sd/proto/encryption.proto}
 
 \clearpage
 \section{Service query interface}
+\label{apx:service-query}
 
 \lstinputlisting[firstline=14,lastline=27]{../../source/sd/proto/connect.proto}
 
 \clearpage
-\section{Session handling interface}
+\section{Session initiation interface}
+\label{apx:session-initiation}
 
-\lstinputlisting[firstline=29,lastline=52]{../../source/sd/proto/connect.proto}
+\lstinputlisting[firstline=29,lastline=48]{../../source/sd/proto/connect.proto}
+
+\clearpage
+\section{Session termination interface}
+\label{apx:session-termination}
+
+\lstinputlisting[firstline=49,lastline=52]{../../source/sd/proto/connect.proto}
 
 % vim: ft=tex tw=0

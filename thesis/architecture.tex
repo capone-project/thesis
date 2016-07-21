@@ -367,6 +367,8 @@ When both parties are verified to each other we can now calculate the symmetric 
 For each party, the key is calculated by performing a scalar multiplication between the party's private ephemeral key and the remote's public ephemeral key.
 The output is then concatenated with both parties' public keys and hashed, resulting in a new secret which is shared between both client and server.
 
+The messaging interface used for Google Protocol Buffers is added as appendix \ref{apx:connection-establishment}.
+
 \subsection{Discovery}
 \label{sec:discovery}
 
@@ -476,6 +478,7 @@ In order to be able to solve both use cases, that is discovery of previously unk
 
 Let us now consider the undirected discovery protocol.
 We assume both client and service own a long term signing key pair $(pk_c, sk_c)$ and $(pk_s, sk_s)$, respectively, that is used for establishing their own identity.
+The message format now described is printed in appendix \ref{apx:service-discovery}.
 
 The initial \emph{Discover} message serves the purpose of notifying all servers listening on the local network that a client wants to discover what services are available.
 It contains the following fields:
@@ -579,6 +582,7 @@ This serves multiple purposes:
 These reasons lead to the design of an additional step to obtain additional data on a service, which is called a \emph{query}.
 When a client discovered a service and has the intent to connect to it, he will first query the service instance to obtain information required to initiate a session.
 Querying involves first initiating a secured connection as explained before and then transmitting its intent to query the service (see figure \ref{fig:query}).
+The query messages are listed in appendix \ref{apx:service-query}.
 
 Upon receiving the initial connection, the service will first verify that the client's identity is allowed to connect to the service at all.
 If not, the service will drop the connection.
@@ -757,7 +761,8 @@ After verifying the capability, the service retrieves the parameters stored alon
     \label{fig:indirect-connect}
 \end{figure}
 
-The complete session protocol involves three different messages passed between clients and services in order to request a session, retrieve the capabilities and then start the actual session..
+The complete session protocol involves three different messages passed between clients and services in order to request a session, retrieve the capabilities and then start the actual session.
+These three messages are defined in appendix \ref{apx:session-initiation} as \lstinline{SessionRequestMessage}, \lstinline{SessionMessage} and \lstinline{SessionInitiationMessage}.
 Initially, a service will send a session request messages, containing all parameters for configuring the session's behavior, as well as the public key of the session owner.
 If the request is granted, the service will respond with a message containing two capabilities:
 one capability for starting the session, and one capability for terminating the session, which will be explained in the following section.
@@ -786,7 +791,7 @@ As has been mentioned briefly, the session message sent after creating a new ses
 One capability is bound to the session owner and can be used to either connect to the session or to terminate the session.
 The second capability is instead bound to the session creator and can only be used to terminate the session.
 
-When either session owner or session creator now wish to terminate the session, they will send a session termination message to this end-point.
+When either session owner or session creator now wish to terminate the session, they will send a session termination message to this end-point (see appendix \ref{apx:session-termination}).
 THe session termination message only contains the capability given by the server and suffices to identify the actual session that is to be terminated.
 The server will verify that the capability is valid for the connected identity and if it actually has the right to terminate a session.
 If so, the session referenced by the capability will be searched and, if found, all associated metadata will be pruned.
