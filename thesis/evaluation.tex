@@ -150,7 +150,7 @@ See appendix \ref{sec:appendix-throughput} for bare results.
         \resizebox{\textwidth}{!}
         {
             \begin{tikzpicture}
-                \begin{axis}[ylabel=Throughput (in MB/s),ymax=200,xmode=log,xlabel={Block length (logarithmic scale, in bytes)}]
+                \begin{axis}[ylabel=Throughput (in MB/s),ymax=200,xmode=log,xlabel={Block length (logarithmic scale, in bytes)},xtick={64,128,256,512,1024,1500,2048,4096},xticklabels={64,,,512,,1500,,4096}]
                     \addplot table [x=pkglen,y=tpenc, col sep=comma,discard if not={datalen}{256}] {data/bench.csv};
                     \addlegendentry{0ms latency}
 
@@ -173,7 +173,7 @@ See appendix \ref{sec:appendix-throughput} for bare results.
         \resizebox{\textwidth}{!}
         {
             \begin{tikzpicture}
-                \begin{axis}[ylabel=Throughput (in MB/s),ymax=400,xmode=log,xlabel={Block length (logarithmic scale, in bytes)}]
+                \begin{axis}[ylabel=Throughput (in MB/s),ymax=400,xmode=log,xlabel={Block length (logarithmic scale, in bytes)},xtick={64,128,256,512,1024,1500,2048,4096},xticklabels={64,,,512,,1500,,4096}]
                     \addplot table [x=pkglen,y=tpenc, col sep=comma,discard if not={datalen}{1024}] {data/bench.csv};
                     \addlegendentry{0ms latency}
 
@@ -198,7 +198,7 @@ See appendix \ref{sec:appendix-throughput} for bare results.
         \resizebox{\textwidth}{!}
         {
             \begin{tikzpicture}
-                \begin{axis}[ylabel=Throughput (in MB/s),ymax=750,xmode=log,xlabel={Block length (logarithmic scale, in bytes)}]
+                \begin{axis}[ylabel=Throughput (in MB/s),ymax=750,xmode=log,xlabel={Block length (logarithmic scale, in bytes)},xtick={64,128,256,512,1024,1500,2048,4096},xticklabels={64,,,512,,1500,,4096}]
                     \addplot table [x=pkglen,y=tpenc, col sep=comma,discard if not={datalen}{102400}] {data/bench.csv};
                     \addlegendentry{0ms latency}
 
@@ -221,7 +221,7 @@ See appendix \ref{sec:appendix-throughput} for bare results.
         \resizebox{\textwidth}{!}
         {
             \begin{tikzpicture}
-                \begin{axis}[ylabel=Throughput (in MB/s),ymax=750,xmode=log,xlabel={Block length (logarithmic scale, in bytes)}]
+                \begin{axis}[ylabel=Throughput (in MB/s),ymax=750,xmode=log,xlabel={Block length (logarithmic scale, in bytes)},xtick={64,128,256,512,1024,1500,2048,4096},xticklabels={64,,,512,,1500,,4096}]
                     \addplot table [x=pkglen,y=tpenc, col sep=comma,discard if not={datalen}{10240000}] {data/bench.csv};
                     \addlegendentry{0ms latency}
 
@@ -320,7 +320,7 @@ Appendix \ref{sec:appendix-connection-establishment} contains both client and se
 \begin{figure}[t]
     \centering
     \begin{tikzpicture}
-        \begin{axis}[ylabel=Connection time (in ms),xmode=log,xlabel={Block length (logarithmic scale, in bytes)}]
+        \begin{axis}[ylabel=Connection time (in ms),xmode=log,xlabel={Block length (logarithmic scale, in bytes)},xtick={64,128,256,512,1024,1500,2048,4096},xticklabels={64,,,512,,1500,,4096}]
             \addplot table [x=pkglen,y=connect, col sep=comma,discard if not={latency}{0}] {data/latency.csv};
             \addlegendentry{0ms latency}
 
@@ -401,7 +401,7 @@ These bars mark the timings for input delay when the Synergy service and client 
 \begin{figure}[t]
     \centering
     \begin{tikzpicture}
-        \begin{axis}[ylabel=Input delay (in ms),xmode=log,ymax=1450,xlabel={Block length (logarithmic scale, in bytes)},xmax=7500]
+        \begin{axis}[ylabel=Input delay (in ms),xmode=log,ymax=1450,xlabel={Block length (logarithmic scale, in bytes)},xmax=7500,xtick={64,128,256,512,1024,1500,2048,4096},xticklabels={64,,,512,,1500,,4096}]
             \pgfplotsinvokeforeach {0, 2, 20} {
                 \addplot table [forget plot,x=pkglen,y=delay, col sep=comma,discard if not={latency}{#1}] {data/input.csv};
                 \addlegendentry {#1ms latency}
