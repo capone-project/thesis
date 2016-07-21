@@ -113,7 +113,7 @@ Besides the total length of data to be transmitted, we need to send a message au
     \Rightarrow &1048576 &+ & 26215 &* &16 &+ &4\\
     \Rightarrow &1468020
 \end{align*}
-This ammounts to a $40\%$ increase of bytes required to send data.
+This amounts to a $40\%$ increase of bytes required to send data.
 When tuning the block length to perform better for bulk transfers, the overhead would drastically decrease.
 Take the following example where we assume a block length of 4 kilobytes (4096 bytes):
 \begin{align*}
@@ -290,7 +290,7 @@ Let us subsume our findings from these benchmarks:
     \item the optimum block length for short messages is the minimum block length able to fit in the complete message
     \item increasing block lengths will penalize short messages due to encryption overhead
     \item optimizing block lengths in the scenario of high latency is not expedient as the graphs show no heavy correlation between block length and throughput in that case.
-        The only noticable effect is for small block lengths, where we have a drop in throughput as soon as we exceed a block length of 512 bytes
+        The only noticeable effect is for small block lengths, where we have a drop in throughput as soon as we exceed a block length of 512 bytes
     \item optimal block length should not exceed length of the MTU (e.g. 1500 bytes)
 \end{itemize}
 
@@ -354,7 +354,7 @@ For both graphs with latency one can easily see that we have a connection establ
 Exceeding the sent message's size, this can be summarized by the formula $t = 4 \times l + c$, where $t$ is the time required for the complete connection establishment protocol, $l$ is the latency and $c$ is a sub-millisecond constant for calculations regarding key derival.
 
 For slow connections with a packet delay of up to 250ms we would still be able to perform connection establishment in around one second.
-Considering that for a single connection establishment we require up to three connectiots with querying the service, requesting a session and then connecting to the session itself, the setup would at least take three seconds for the connection establishment alone, excluding all protocol exchanges following.
+Considering that for a single connection establishment we require up to three connections with querying the service, requesting a session and then connecting to the session itself, the setup would at least take three seconds for the connection establishment alone, excluding all protocol exchanges following.
 
 While we cannot alter the initial key exchange, it might be desirable to let clients connect once and perform all actions with this single connection.
 This would allow us to drop the initial key exchange for all but the initial request and re-use it for following requests.
@@ -402,7 +402,7 @@ The graphs represent measurements under different network conditions.
 
 The figure also has three additional graphs which are constant horizontal lines.
 These horizontal lines mark the timings for input delay when the Synergy service and client are connected to each other without tunneling data through our service framework and should act as a reference.
-They are color-coded the same as the respective graphs for tunnelede Synergy services as can be seen in the figure's legend.
+They are color-coded the same as the respective graphs for tunneled Synergy services as can be seen in the figure's legend.
 
 \begin{figure}[t]
     \centering
@@ -424,7 +424,7 @@ They are color-coded the same as the respective graphs for tunnelede Synergy ser
 In the scenario of same-host communication, our framework performs very close to the plain Synergy solution.
 But as latency rises, using the service framework puts an increasing penalty on input latency.
 While we cannot observe a statistically significant difference between using the service and plain Synergy on same-host communication, we perform around $1\%$ worse than the reference value at 2ms of latency, which increases to around $6\%$ worse at 20ms of latency compared to the reference value.
-The divergence is expected to grow worse for higher latencies.
+The divergence is expected to grow worse for higher latency.
 
 Interestingly, block lengths do not have any impact for these benchmarks.
 In more constrained environments, where bandwidth is limited this changes so that with increasing block lengths, input delay will increase the more input events are sent.

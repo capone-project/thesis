@@ -255,7 +255,7 @@ Each entry in the matrix now determines which actions the client specified by th
 
 Each service provides two persistent end-points as well as an unbound number of ephemeral end-points.
 The two persistent end-points provide the interface to query a service, that is obtain additional information on the service's specifics, and to request a new session within a service.
-All sessions have their own set of permissions, as a session requested by Alice shouldn't be executable by Bob who just created another session.
+All sessions have their own set of permissions, as a session requested by Alice should not be executable by Bob who just created another session.
 As such, sessions can be treated as additional end-points and are thus added to the matrix as objects.
 
 On each of these objects, subjects can perform a set of different actions, which currently only contain \emph{execute} and \emph{revoke}.
