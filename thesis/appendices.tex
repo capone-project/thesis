@@ -121,13 +121,22 @@
 \chapter{Listings}
 
 \clearpage
-\section{Session Handling}
-
-\lstinputlisting{../../source/sd/proto/connect.proto}
+\section{Service discovery interface}
+\lstinputlisting[label=lst:connection-establishment,firstline=3]{../../source/sd/proto/discovery.proto}
 
 \clearpage
-\section{Encryption negotiation}
+\section{Connection establishment interface}
 
-\lstinputlisting{../../source/sd/proto/encryption.proto}
+\lstinputlisting[label=lst:connection-establishment,firstline=3]{../../source/sd/proto/encryption.proto}
+
+\clearpage
+\section{Service query interface}
+
+\lstinputlisting[firstline=14,lastline=27]{../../source/sd/proto/connect.proto}
+
+\clearpage
+\section{Session handling interface}
+
+\lstinputlisting[firstline=29,lastline=52]{../../source/sd/proto/connect.proto}
 
 % vim: ft=tex tw=0
