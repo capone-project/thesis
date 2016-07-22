@@ -357,7 +357,7 @@ Furthermore, he will generate a new signature with his private signature key con
 Back on the client side, we will now verify that all parameters included in the received message match the parameters we have just sent.
 That is we have to verify the expected public signature key of the service and compare the session identifier with the one we have just generated.
 We also verify the service's signature to assure that we are indeed talking to the service.
-Given that the signature will also contain the session identifier as well as the the public ephemeral key generated at random by us, we can verify that only an entity possessing the service's private signature key was able to generate this signature.
+Given that the signature will also contain the session identifier as well as the public ephemeral key generated at random by us, we can verify that only an entity possessing the service's private signature key was able to generate this signature.
 
 At this point of time we have verified that we are indeed talking to the assumed service, but the service does not yet know that he is talking to the client claiming to have knowledge of the client's private signature key, as the initial message does not contain a signature.
 So to establish the client's identity, a third message is required that contains the same information as the second message just sent by the client, except that we do not re-transmit the client's public ephemeral key, as it has already been transferred in the initial message.
@@ -523,7 +523,7 @@ Each service announced has a name, category and port.
         The category is used as a distinguisher such that users are able to filter out services that do not serve their purpose.
         Assuming a user Alice wants to have connect to a service providing input devices, she may easily filter the list of local services by restricting them to the category ``Input'', only.
     \item[Port]\hfill\\
-        The port specifies where clients need to connect to to interact with these services.
+        The port specifies where clients need to connect to in order to interact with these services.
 \end{description}
 
 The server will now send back the serialized message to the querying client.
