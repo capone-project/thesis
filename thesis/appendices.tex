@@ -35,7 +35,7 @@
     \footnotesize
     \begin{tabular}{|c|c|c|}
         \hline
-        \bfseries Blocklen (bytes) & \bfseries Messagelen (bytes) & \bfseries Throughput (unencrypted, MB/s)
+        \bfseries Block length (bytes) & \bfseries Message length (bytes) & \bfseries Throughput (unencrypted, MB/s)
         \csvreader[head to column names]{data/bench-2ms.csv}{}
         {\\\hline \pkglen & \datalen & \tpplain }
         \\\hline
@@ -48,7 +48,7 @@
     \footnotesize
     \begin{tabular}{|c|c|c|}
         \hline
-        \bfseries Blocklen (bytes) & \bfseries Messagelen (bytes) & \bfseries Throughput (encrypted, MB/s)
+        \bfseries Block length (bytes) & \bfseries Message length (bytes) & \bfseries Throughput (encrypted, MB/s)
         \csvreader[head to column names]{data/bench-2ms.csv}{}
         {\\\hline \pkglen & \datalen & \tpenc }
         \\\hline
@@ -61,7 +61,7 @@
     \footnotesize
     \begin{tabular}{|c|c|c|c|}
         \hline
-        \bfseries Blocklen (bytes) & \bfseries Messagelen (bytes)  & \bfseries Throughput (unencrypted, MB/s)
+        \bfseries Block length (bytes) & \bfseries Message length (bytes)  & \bfseries Throughput (unencrypted, MB/s)
         \csvreader[head to column names]{data/bench.csv}{}
         {\\\hline \pkglen & \datalen & \tpplain }
         \\\hline
@@ -74,7 +74,7 @@
     \footnotesize
     \begin{tabular}{|c|c|c|}
         \hline
-        \bfseries Blocklen (bytes) & \bfseries Messagelen (bytes)  & \bfseries Throughput (encrypted, MB/s)
+        \bfseries Block length (bytes) & \bfseries Message length (bytes)  & \bfseries Throughput (encrypted, MB/s)
         \csvreader[head to column names]{data/bench.csv}{}
         {\\\hline \pkglen & \datalen & \tpenc }
         \\\hline
@@ -92,7 +92,7 @@
     \footnotesize
     \begin{tabular}{|c|c|c|c|}
         \hline
-        \bfseries Block length (bytes) & \bfseries Latency (in ms) & \bfseries Client time (in ms) & \bfseries Server time (in ms)
+        \bfseries Block length (bytes) & \bfseries Latency (ms) & \bfseries Client time (ms) & \bfseries Server time (ms)
         \csvreader[head to column names]{data/latency.csv}{}
         {\\\hline \pkglen & \latency & \connect & \await }
         \\\hline
@@ -110,7 +110,7 @@
     \footnotesize
     \begin{tabular}{|c|c|c|}
         \hline
-        \bfseries Block length (bytes) & \bfseries Latency (in ms) & \bfseries Delay (in ms)
+        \bfseries Block length (bytes) & \bfseries Latency (ms) & \bfseries Delay (ms)
         \csvreader[head to column names]{data/input.csv}{}
         {\\\hline \pkglen & \latency & \delay }
         \\\hline
