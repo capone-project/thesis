@@ -167,7 +167,7 @@ So the initial connection establishment performs a form of authenticated key agr
 In order to guarantee authenticity as well as achieve confirmation of the identity of the remote party we are performing AK with, two properties need to be fulfilled \cite{law2003efficient}.
 Implicit key authentication is given when one participant of the protocol can be assured that no other entity than the intended recipient is able to get to know a specific secret.
 Key confirmation is given when one participant of the protocol can be assured that the other participant actually \emph{has} knowledge of a specific secret.
-Authenticated key agreement protocols which have both implicit key authentication as well as key confirmation are called an emph{authenticated key agreement protocols with key confirmation} (AKC).
+Authenticated key agreement protocols which have both implicit key authentication as well as key confirmation are called an \emph{authenticated key agreement protocols with key confirmation} (AKC).
 
 There exist five properties that are commonly cited when analyzing AK or AKC protocols \cite{menezes1996handbook,blake1997key,law2003efficient}:
 \begin{enumerate}
@@ -352,7 +352,7 @@ In distributed systems, though, these capabilities are not usable due to the com
 
 This restriction lead to the development of distributed capabilities.
 The easy solution of just requiring every system to use capabilities which are then relayed through a network interface simply does not work, as adversarial users may simply run a modified kernel or operating system which circumvents capabilities in any way.
-Furthermore, there is usually no shared hardware botween distributed computers which would be able to verify all memory access based on the use of capabilities.
+Furthermore, there is usually no shared hardware between distributed computers which would be able to verify all memory access based on the use of capabilities.
 
 In \cite{donnelley1981managing}, Donnelley outlines the actual problems faced when using capabilities in a networked environment.
 He defines the \emph{Distributed Domain Management Problem}, which consists of three parts:
@@ -361,7 +361,7 @@ He defines the \emph{Distributed Domain Management Problem}, which consists of t
     \item communication of access between any pair of processes
     \item validation by the service process
 \end{enumerate}
-Donelley then proceeds to lay out multiple mechanisms for how to protect capabilities and their accompanying benefits and detriments.
+Donnelley then proceeds to lay out multiple mechanisms for how to protect capabilities and their accompanying benefits and detriments.
 These mechanisms include control by passwords, control based on access control lists, encrypted network addresses as well as control by using public key encryption.
 
 One of the first systems using capabilities for protection in distributed systems was the Amoeba operating system developed by Tanenbaum, Mullender et al. in 1986 \cite{tanenbaum1986using,mullender1990amoeba}.
@@ -469,7 +469,7 @@ The result is that one cannot simply revoke access rights to a certain object fo
 
 Without realizing it initially, the initial implementation of capabilities was more of a hybrid approach between capabilities and access control lists, where each session had associated list of capabilities, where access to a capability was granted based on the user's identity as well as a session identifier.
 So the pair of public key and session identifier was thought of as a capability, but in fact more resembled the notion of access control lists.
-By adopting the split of internal and external capabilities based on public keys as proposed by Gong \cite{gong1989secure}, we beliebe that the actual distinguishment between ACLs and capabilities has been made much clearer.
+By adopting the split of internal and external capabilities based on public keys as proposed by Gong \cite{gong1989secure}, we believe that the actual difference between ACLs and capabilities has been made much clearer.
 
 Unfortunately, though, we have still found no clean solution to making the complete system capability based.
 While established sessions are now controlled by capabilities only, there are still problems when trying to use capabilities for the query and request end-points discussed in the following section.
@@ -625,7 +625,7 @@ If such a key pair has been compromised, it is possible to revoke sessions by ei
 
 \bigskip
 
-Summarising our findings, it is possible to establish our protocol in a similar scenario as Kerberos by deploying a capability service together with a policy-implementing client.
+Summarizing our findings, it is possible to establish our protocol in a similar scenario as Kerberos by deploying a capability service together with a policy-implementing client.
 Whereas Kerberos fully trusts the authentication server as it also generates session keys, our protocol instead derives an ephemeral key which cannot be compromised by either capability service or policy client.
 
 One problem with our protocol is that compared to Kerberos, it needs more messages to establish an actual session.

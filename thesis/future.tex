@@ -14,7 +14,7 @@ Another related problem is that for any network operation, the sockets are confi
 This is particularly worrisome on the server side as it will easily grind to a halt when many clients connect to it which simply do nothing.
 This does not even have to be malicious intent of an adversary wishing to run a denial of service attack on the server, but may also include clients which have lost network connectivity or which are implemented wrongly.
 
-Also falling insito the networking category is the problem of rame limiting connections.
+Also falling into the networking category is the problem of rate limiting connections.
 It should be possible to limit the overall rate of how many peers connect in a certain time frame, but also more specific limits to e.g. which identity or network host is allowed to connect how often.
 Some services may also pose their own limits on how often they may be invoked at the same time.
 
@@ -22,7 +22,7 @@ As the implementation for service discovery has been a proof-of-concept only, so
 Use-cases not currently tackled are e.g. centralized service discovery based on the use of directories and authenticated discovery of services, such that it is possible to only announce services matching the clearance level of the peer.
 
 Regarding access control, capabilities need some more thoughts to make them passable.
-As has been discussed in chapter \ref{sec:capabilities}, capabilities might be passed on by implementing a verifyable chain of capabilities, which is then verified by the server.
+As has been discussed in chapter \ref{sec:capabilities}, capabilities might be passed on by implementing a verifiable chain of capabilities, which is then verified by the server.
 This feature would highlight the actual benefits of using capabilities in contrast to access control lists by allowing distribution of capabilities without the need to communicate with the server itself.
 Still, the chain of identities who have passed on the capability is explicitly included and required in the capability, making it traceable.
 
