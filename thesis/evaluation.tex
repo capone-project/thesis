@@ -7,7 +7,7 @@ There are three major measurements we will take a look at which directly influen
 \begin{description}
     \item[Throughput]\hfill\\
         How much data are we able to write through a channel in a certain amount of time.
-        This statistics is of particular importance when performing bulk data transfer, e.g. when connected to a file service or forwarding the user's desktop to a display.
+        This value is of particular importance when performing bulk data transfer, e.g. when connected to a file service or forwarding the user's desktop to a display.
     \item[Connection establishment]\hfill\\
         How long does it take to negotiate a connection with remote hosts.
         This is experienced by users which try to connect to a service and determines how long it will take until initial messages are transferred between two entities.
@@ -26,7 +26,8 @@ Timings are obtained by invoking the POSIX function \lstinline{clock_gettime} wi
 Monotonic clocks do not jump in time when certain events happen on the system, e.g. when timezone changes or when \lstinline{adjtime} is called by some kind of NTP implementation.
 On most systems, including the host where tests have been conducted on, the \lstinline{clock_gettime} function provides timings in nanosecond resolution.
 
-As timings are inherently inaccurate on computer systems due to interference with other programs, the kernel's scheduler, frequency scaling and more effects, we are averaging the timings over repeated invocations of the core functionality that is to be benchmarked.
+Timings on computers are inherently inaccurate due to effects like interference with other programs, the kernel's scheduler or frequency scaling.
+In order to still get meaningful results, we are averaging the timings over repeated invocations of the core functionality that is to be benchmarked.
 Experimentation showed results with errors in the range of $\pm2\%$.
 This is precise enough in order to make observations as we usually operate in the range of multiple orders of magnitude where results are sufficiently distinct.
 
@@ -53,7 +54,7 @@ The other two tests on connection establishment and input latency are not limite
 
 The last parameter remaining is packet delay, that is how long does it take for a packet sent via network from one host to arrive at another host.
 The different network scenarios all have different package delay characteristics.
-While same-host communication should be near-instant, that is all data sent is only delayed by the time the operating system requires to process data in the TCP/IP stack and by the framework, local area networks and the internet both induce a delay.
+While same-host communication should be near-instant because data sent is only delayed by the time the operating system requires to process data in the TCP/IP stack and by the framework, local area networks and the internet both induce a delay.
 For local area networks, which we define as computers which are connected to the same router via network cables in this context, we have chosen a packet delay of 2 milliseconds.
 For internet-based connections, we have chosen a packet delay of 20 milliseconds.
 
@@ -371,7 +372,7 @@ To be able to determine input latency, we have developed a framework to generate
 
 The X protocol is developed with no real security built-in.
 While usually considered a shortcoming of the X protocol as it becomes impossible to separate graphical applications and inputs from each other, it is of great benefit for us as we are able to utilize this fact to do these measurements.
-The idea is to create two framebuffers separated from each other, connect these framebuffers via Synergy, hook them up to receive events and then determine how long it does take when an event is generated in the first framebuffer to arrive in the second framebuffer
+The idea is to create two framebuffers separated from each other, connect these framebuffers via Synergy, hook them up to receive events and then determine how long it does take when an event is generated in the first framebuffer to arrive in the second framebuffer.
 
 The concrete implementation instantiates two X virtual frame buffers (Xvfb), which do not render to hardware but instead to virtual memory.
 We then connect these virtual framebuffers either directly with a Synergy client and server, or via the service framework tunneling Synergy's data.
