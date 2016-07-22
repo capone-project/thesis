@@ -627,7 +627,7 @@ The session request contains an identity and parameters, both set by the client 
 On the service side, the server generates an internal capability and persists it along with the parameters contained in the session request.
 The server then goes on to create a capability bound to the specified identity, which references the internal capability just created, and transfers this capability back to the client.
 Now the specified identity is able to connect to the session by presenting the created capability.
-Please refer to section \label{sec:capabilities} for the implementation of identity-bound capabilities.
+Please refer to section \ref{sec:capabilities} for the implementation of identity-bound capabilities.
 
 Let us now consider the design decisions which are hinted at in the given overview.
 It is important to understand that we have to differentiate steps involved in the actual session initiation:
