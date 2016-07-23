@@ -1,4 +1,4 @@
-\section{Introduction}
+\chapter{Introduction}
 
 \begin{quote}
     The most profound technologies are those that disappear.
@@ -6,29 +6,29 @@
 \end{quote}
 
 The above quote is how Mark Weiser introduces his paper on how he imagines the computer of the 21st century.
-The computer is about to disappear, become our go-to technology for many different things without even noticing that we are acutally using a computer.
+The computer is about to disappear, become our go-to technology for many different things without even noticing that we are actually using a computer.
 Nowadays many see this paper as a vision for how computing should work: integrate all everyday-objects like fridges, watches or even light bulbs with computers and orchestrate them all together using a simple interface.
 This is how the Internet of Things is envisioned.
 
 But are we even close to this vision?
 Every month, there are new devices announced which are able to communicate via the internet and be remote-controlled by people.
-But with most devices, there is a recurring theme: these devices are insecure, have no real authentication or even encryption.
+But with most devices, there is a recurring theme: these devices are insecure, use no real authentication or even encryption.
 
 But we do not even have to look as far as ``Internet of Things''-enabled devices.
 In his seminal paper, Mark Weiser goes on to talk about how devices seamlessly integrate with each other.
-But as of today, we are not even able to easily handle interconnectivity for the most basic of tasks: just try to transfer a simple file from a computer with one operating system to another computer with a different operating systems or display a graphical application on the screen of a colleague.
+But as of today, we are not even able to easily handle interconnectivity for the most basic of tasks: just try to transfer a simple file from a computer with one operating system to another computer with a different operating system or display a graphical application on the screen of a colleague.
 So when even those simple tasks are not trivial to do, one can argue that we are far away from the Internet of Things as imagined by Mark Weiser.
 
-The aim of this thesis is to develop a protocol which enables more seamless integration between devices.
-Given a set of devices, each device shall be able to host a set of services each providing a certain functionality.
+In this thesis, our aim is to develop a protocol which enables more seamless integration between devices.
+Given a set of devices, each of them shall be able to host a set of services, where every service provides certain functionality.
 Other devices shall be able to bind to these services and use their provided functionality.
 But most importantly, we want the binding process to be as hassle-free as possible for the user.
 
-Given that smart phones are as ubiquitous as they are today, they become a natural match in guiding this process:
-a user should be able to simply connect his home server with the display at work by pressing a button on his smart phone, where the complete setup following the button press is done by the service framework.
+Given that smartphones are as ubiquitous as they are today, they become a natural match in guiding this process:
+a user should be able to simply connect his home server with the display at work by pressing a button on his smartphone, where the complete setup following the button press is done by the service framework.
 
 One of the most important aspects is to have the framework do its work in a way such that every action is fully authenticated and encrypted.
-No entity shall be able to talk to any service for which he has no access rights and no adversary shall be able to gain knowledge about what an entity and the services its connect to are transmitting.
+No entity shall be able to talk to any service for which it has no access rights and no adversary shall be able to gain knowledge about what an entity and the services its connect to are transmitting.
 
 In order to fulfill these requirements, we develop a protocol based on public keys and capabilities.
 The permission to interact with a service is granted when an entity with a certain public key possesses the capability to access that service.
@@ -36,9 +36,10 @@ The permission to interact with a service is granted when an entity with a certa
 \bigskip
 
 The thesis proceeds as follows:
-In the second chapter, we will detail the problem that this thesis is about to solve
-The third chapter will describe the architecture of the developed protocol in a theoretical manner, followed by a chapter about the implementation details of the architecture.
-The fifth chapter will discuss the ability of protocol and implementation to solve the actual problem.
+In the second chapter, we will detail the problem that this thesis is about to solve.
+The third chapter will describe the architecture of the developed protocol in a theoretical manner.
+The fourth chapter presents the implementation details of the architecture, followed by a chapter in which we present benchmarking results for this implementation.
+The sixth chapter will discuss the ability of protocol and implementation to solve the actual problem.
 Finally, we will summarize our findings.
 
 % vim: ft=tex tw=0

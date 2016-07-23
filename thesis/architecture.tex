@@ -1,10 +1,9 @@
-\section{Architecture}
+\chapter{Architecture}
 \label{sec:architecture}
 
 We will now take a look at the high-level architecture of the whole application stack.
-That is we will cover the initial process of a client discovering available servers in a local network, querying found servers and then connecting to a specific service.
-Let us first define the terms.
-
+We will cover the initial process of a client discovering available servers in the local network, querying found servers and then connecting to a specific service.
+Let us first define the terms used throughout the paper:
 \begin{description}
     \item[Server]\hfill\\
         A server is a single entity which may host several services.
@@ -15,99 +14,101 @@ Let us first define the terms.
         Services provide a certain bit of functionality, e.g. they may provide a display for use by other parties or provide the functionality of executing a certain program.
     \item[Session]\hfill\\
         When a client wants to start a certain service, he will first have to initiate a session which can then be used to actually start the service.
-        Upon sending an identity and a set of parameters to the service, it will create a new session and return an identifier for the session.
-        The session identity is then able to connect to the service using the identifier and as such start using its functionality.
+        Upon sending an identity and a set of parameters to the service, it will create a new session and return a capability for the session.
+        The session identity is then able to connect to the service using the capability and then start using its functionality.
     \item[Client]\hfill\\
         Clients are parties which have the intent to invoke a certain service.
         A client has an identity, as well, which is used by services to identify their permissions and to establish sessions.
 \end{description}
 
-We will now take a look at the actual process how a single client will proceed if it wants to invoke a certain set of services (see figure \ref{fig:overview}).
+We will now take a look at the actual process of how a single client will proceed if it wants to invoke a certain set of services (see figure \ref{fig:overview}).
+We assume the network has three different servers connected to it, namely A, B and C.
+Server A, which is owned by Alice, is running a graphical application and hosts a single Invoke service.
+Server B is owned by Bob, a friend of Alice, and provides the ability to display graphical applications through its Display service.
+Server C is a third service hosted by Charlie, hosting a CPU service as well as another Display service.
 
 \begin{figure}[t]
     \centering
 
     \begin{tikzpicture}[
-            connection/.style={draw, -triangle 45},
+            connection/.style={draw, triangle 45-triangle 45},
+            invocation/.style={draw, -triangle 45},
             server/.style={draw, rectangle, minimum height=1cm, minimum width=0.4cm},
             service/.style={draw, ellipse}
         ]
 
         \node (client) {Client};
 
-        \node[server, left=3.0cm of client,  yshift=0.8cm] (s1) {};
+        \node[server, left=3.0cm of client,  yshift=0.8cm] (s1) {B};
         \node[service, left=of s1] (display) {Display};
         \path[draw] (display) -- (s1);
 
-        \node[server, above=3.0cm of client, xshift=2.0cm] (s2) {};
+        \node[server, above=2.0cm of client, xshift=1.0cm] (s2) {C};
         \node[service, above=of s2, xshift=-1.5cm] (cpu2) {CPU};
         \path[draw] (cpu2) -- (s2);
         \node[service, above=of s2, xshift=+1.5cm] (display2) {Display};
         \path[draw] (display2) -- (s2);
 
-        \node[server, below=3.0cm of client, xshift=3.0cm] (s3) {};
+        \node[server, below=2.5cm of client, xshift=1.5cm] (s3) {A};
         \node[service, right=of s3] (invoke) {Invoke};
         \path[draw] (invoke) -- (s3);
 
-        \path[connection, bend right=20] (client) to node[above] {1.} (s1);
-        \path[connection, bend right=20] (client) to node[left] {1.} (s2);
+        \path[connection, bend right=25] (client) to node[above] {1.} (s1);
+        \path[connection] (client) to node[left] {1.} (s2);
         \path[connection, bend right=20] (client) to node[below left] {1.} (s3);
 
-        \path[connection, bend left=20, transform canvas={yshift=-1mm}] (s1) to (client);
-        \path[connection, bend left=20, transform canvas={xshift=+1mm}] (s2) to (client);
-        \path[connection, bend left=20, transform canvas={yshift=+0.5mm, xshift=+0.5mm}] (s3) to (client);
-
         \path[connection, bend left=20] (client) to node[below] {2.} (s1);
-        \path[connection, bend right=20, transform canvas={yshift=+1mm}] (s1) to (client);
 
-        \path[connection, bend left=20] (client) to node[above right] {3.} (s3);
-        \path[connection, bend right=20, transform canvas={yshift=-0.5mm, xshift=-0.5mm}] (s3) to (client);
+        \path[connection, bend left=25] (client) to node[right] {3.} (s3);
 
-        \path[connection] (client) to node[right] {4.} (s3);
-        \path[connection, bend left=30] (s3) to node[below] {5.} (s1);
+        \path[invocation] (client) to node[right] {4.} (s3);
+        \path[invocation, bend left=30] (s3) to node[below] {5.} (s1);
     \end{tikzpicture}
 
     \caption{Overview}
     \label{fig:overview}
 \end{figure}
 
-Let us assume that Alice wants to connect a display provided by one service with an executable that she has running on her own server.
-Both servers are part of the same network and can thus connect to each other without problems.
+Let us assume that Alice wants to connect a display provided by one service with an application is already running on her own server.
+Both servers are part of the same network and can thus connect to each other without any problem.
 
-The initial step is to discover the devices taking part in the protocol.
-After connecting to the internal network with her mobile phone, Alice will start the client application and initiate the service discovery.
-The service discovery will broadcast a message into the network and alert the servers that a new client has appeared which wants to discover all servers with their services.
-Alice will now receive announcements of the three available servers in the local network together with their identity and a list of services they host.
+The initial step (step 1 in figure \ref{fig:overview}) is to discover the devices taking part in the protocol.
+After connecting to the internal network with her mobile phone, Alice will start the client application and initiate service discovery.
+The service discovery will broadcast a message into the network and alert all servers connected to the network that a new client has appeared which wants to discover all servers with their hosted services.
+Alice will now receive announcements of the three available servers in the local network including their identity and a list of services they host.
 One of these servers is her own computer running the executable she wants to connect to the display, which is already marked in her application as being known and verified.
 
-Alice compares the remaining server's identities to the one Bob gave her to find the server sharing the display.
+Alice compares the remaining servers' identities to the one Bob gave her to find the server sharing the display.
 As she trusts Bob, she also trusts that the identity given to her is actually valid and that the attached server is of benign nature.
-She now spotted the server on the list and recognizes that it indeed exposes a display service, which she now queries for further details.
-The server announces that the service is actually backed by the Xpra service, which is a specific implementation used for graphics forwarding.
-As Alice is already running her local application inside an Xpra instance, everything is fine and she proceeds.
+She now identifies the server on the list and recognizes that it indeed exposes a display service, which she now queries for further details.
+The server announces that the service is actually backed by the Xpra protocol, which is a specific implementation used for graphics forwarding.
+As Alice is already running her local application inside an Xpra instance, everything is fine and she can proceed.
 
 Now comes the time of actually connecting to the service.
-Alice establishes a connection to the newly discovered display service and creates a new session.
-As she does not want to connect herself but instead wants her server to connect to the display, she specifies her server's identity as the session owner.
-The server creates the new session and tells Alice its identifier.
+In step 2, Alice establishes a connection to the newly discovered display service on server B and creates a new session.
+As she does not want to connect herself but instead wants her server A to connect to the display, she specifies her server's identity as the session owner.
+The server creates the new session and hands over a capability which may be used by Alice's server.
 
-As the session is established and ready for use, Alice now creates a new session on her own server, this time setting her own identity as the session owner.
-Along with the identity, she also sends over details about the other service as well as the session identifier she just obtained as parameters which should be used by her own service.
-She now invokes her own service, which goes on to start the session with the display service stored in the session's parameters.
-The locally running application is now forwarded to the display until the session is terminated.\\
+As the session is established and ready for use, Alice now creates a new session on her own server, this time setting her identity as the session owner (step 3).
+Along with her identity, she also sends over details about the other service as well as the capability she just obtained.
+After receiving the capability for the new session on A, she may now invoke her own service in step 4.
+Presenting the capability just obtained, the server will accept the session connection and itself connect to server B in step 5, presenting the capability Alice previously gave it when creating the session in step 3.
+The locally running application is now forwarded to the display until the session is terminated.
+
+\bigskip
 
 Summarizing the above, the following steps are required to connect to a service:
 \begin{enumerate}
     \item Discover services in the local network by broadcasting messages
     \item Query a specific service on a server for its details
     \item Establish a session with a set of parameters and specify a session owner
-    \item Let the owner connect to and thus start the session
+    \item Let the owner connect and thus start the session
 \end{enumerate}
 
 We will discuss how these steps are implemented in section \ref{sec:protocol}.
 But first, let us examine how data is transmitted on the wire.
 
-\subsection{Low-level protocol}
+\section{Low-level protocol}
 \label{sec:low-level-protocol}
 
 The low-level protocol determines how the actual packets sent between client and server are constructed.
@@ -115,47 +116,46 @@ It specifies a common format independent of the actual transport layer that is u
 The protocol is currently designed to be used over either TCP or UDP but should be generic enough to be used for other transport layers.
 We will concentrate on describing design choices based on TCP and UDP transport layouts only, though.
 
-\subsubsection{Package boundaries}
+\subsection{Package boundaries}
 
 In contrast to TCP, UDP is a connection-less protocol that is based upon packages instead of a data stream.
 As clients have to distinguish these packages in the UDP protocol, they have their package length attached to the package header.
-As such it is guaranteed that when receiving a single package over UDP we know package boundaries and thus can split incoming packages by these boundaries.
+As such it is guaranteed that when receiving a single package over UDP we know package boundaries and are able to split incoming packages by these boundaries.
 On TCP we have to develop our own solution to distinguish single packets, so we need to design a package format which is able to specify package boundaries.
 
 The initial design simply prefixed every single package with an unencrypted package length fixed to four bytes in network byte order.
 This allows the client to initially receive four bytes, convert these to host byte order and subsequently receive the amount of bytes specified.
-While easy to implement this has several disadvantages.
+While easy to implement, this has several disadvantages.
 
 The most obvious disadvantage is that the package length was always transmitted unencrypted and without any message authentication code.
-This allows potential adversaries to do easily traffic analysis based on package lengths or drive an attack by simply tampering with the length.
+This allows potential adversaries to easily perform traffic analysis based on package lengths or drive an attack by simply tampering with the length.
 As the receiver of the package cannot verify the package's length in any way he has to trust it and thus may receive invalid packages.
 
 In order to solve the problem the most obvious solution would be to simply encrypt the length and attach a message authentication code.
 By doing so we would prevent the adversary of knowing the following data's length and prevent that he is able to tamper with it.
-Like this, we obviously gain a boost in security compared to sending package length's in plain text.
+Like this, we are able to improve security as compared to sending package lengths in plain text.
 
 On the other hand, the adversary is still able to observe actual package lengths.
 In the case of UDP being used as a transport layer this is trivial:
 An adversary can simply inspect package headers and thus extract the actual package length, as data is in the general case sent in a single package.
-In the case of TCP where no actual package length is encoded in the TCP header this is a little bit more involved but in many cases still feasible as client and server are likely to exchange single messages by turn.
+In the case of TCP where no actual package length is encoded in the TCP header, this is a little bit more involved but in many cases still feasible as client and server are likely to exchange single messages by turn.
 So by subtracting the prefixed package length and its message authentication code from the total bytes sent in one turn we are able to gain knowledge of the actual message length with a high probability.
 
-Due to this we are effectively giving the adversary an decryption oracle as he is able to correlate package lengths and their encrypted representations.
-Furthermore it becomes much easier for an adversary to analyze traffic by inspecting actual package lengths.
-\\\\
+Due to this, we are effectively giving the adversary a decryption oracle as he is able to correlate package lengths and their encrypted representations.
+Furthermore, it becomes much easier for an adversary to analyze traffic by inspecting actual package lengths.
 
 To fix the problem we send blocks of a fixed length instead of prefixing every package with an encrypted length.
 The initial fixed-length block is prefixed with the overall length of the assembled package.
 If the overall length exceeds the length of the remaining bytes of the first fixed length block, then the complete block is assembled by concatenating the first block excluding its length prefix and all subsequent blocks until the announced length is received.
-The last block is right-padded with zeroes until its length matches the block length.
+The last block is right-padded with zeros until its length matches the block length.
 The package length is only encoded in the first block.
 
 The following example demonstrates the package format for unencrypted packages.
 We assume a fixed length block size of 64 bytes.
-If a party now wishes to transfer a package of 80 bytes the package will get split into two blocks.
-The first block is prefixed with four bytes containing the actual package length and filled with the initial $64 - 4 = 60$ bytes.
-The second package is filled with the remaining $80 - 60 = 20$ bytes and right-padded with $64 - 20 = 44$ zeroes.
-Figure \ref{fig:unencrypted-package-format} visualizes the block's contents.
+If a party wishes to transfer a package of 80 bytes, the package will get split into two blocks.
+The first block is prefixed with four bytes containing the actual package length and is then filled with the initial $64 - 4 = 60$ bytes.
+The second package is filled with the remaining $80 - 60 = 20$ bytes and right-padded with $64 - 20 = 44$ zeros.
+Figure \ref{fig:unencrypted-package-format} visualizes the blocks' contents.
 
 \begin{figure}
     \center
@@ -180,8 +180,8 @@ Figure \ref{fig:unencrypted-package-format} visualizes the block's contents.
     \label{fig:unencrypted-package-format}
 \end{figure}
 
-The second example (see figure \ref{fig:encrypted-package-format}) demonstrates the package format for an encrypted connection.
-In contrast to unencrypted packages there is an additional message authentication code attached to each split package which is now assumed to be 16 bytes long.
+The second example in figure \ref{fig:encrypted-package-format} demonstrates the package format for an encrypted connection.
+In contrast to unencrypted packages, there is an additional message authentication code attached to each split package which is now assumed to be 16 bytes long.
 
 \begin{figure}
     \center
@@ -195,11 +195,11 @@ In contrast to unencrypted packages there is an additional message authenticatio
 
         \node[draw, on chain=1, minimum width=24mm] {MAC};
         \node[draw, on chain=1, minimum width=8mm ] {len};
-        \node[draw, on chain=1, minimum width=64mm] {44 bytes data};
+        \node[draw, on chain=1, minimum width=64mm] {44 bytes of data};
         \node[left=1cm of 1-1] {Package 1};
 
         \node[draw, on chain=2, minimum width=24mm, below=1cm of 1-1.west, anchor = west] {MAC};
-        \node[draw, on chain=2, minimum width=54mm] {36 bytes data};
+        \node[draw, on chain=2, minimum width=54mm] {36 bytes of data};
         \node[draw, on chain=2, minimum width=18mm] {padding};
         \node[left=1cm of 2-1] {Package 2};
 
@@ -211,44 +211,44 @@ In contrast to unencrypted packages there is an additional message authenticatio
     \label{fig:encrypted-package-format}
 \end{figure}
 
-The client will now fetch the initial fixed-size block
+The client will now fetch the initial fixed-size block.
 If the connection is encrypted, he will decrypt it and verify its message authentication code.
 Now we inspect the first four bytes to gain knowledge about the total package length -- if it exceeds the amount of bytes sent in the initial message, we will receive, decrypt and verify all following packages until all bytes are received.
 Finally, we concatenate the blocks to obtain the complete package.
 
-\subsubsection{Cryptography}
+\subsection{Cryptography}
 
-All connections except the initial service discovery are authenticated and encrypted to keep information safe.
+All connections except the initial service discovery are authenticated and encrypted to keep information secure.
 Encryption is done via secret-key authenticated encryption with an encryption key shared between both parties.
-The key is an ephemeral key generated in an authenticated way via Diffie-Hellman key exchange when establishing the connection (see section \ref{sec:connection-establishment} for more details on the actual key exchange).
+The key is an ephemeral key generated in an authenticated way when establishing the connection via Diffie-Hellman key exchange (see section \ref{sec:connection-establishment} for more details on the actual key exchange).
 
 As the generated key is an ephemeral key which is not to be re-used in later sessions we are able to use a simple counter mode for nonces.
-That is, on initial connection the client per definition has a nonce of value $0$ and the server has a nonce of value $1$.
+On initial connection the client per definition has a nonce of value $0$ and the server has a nonce of value $1$.
 Whenever either the client or server encrypts and sends a new block, its nonce is incremented by $2$.
-On the receiving side we increment the remote nonce by $2$ every time we receive an encrypted block.
+On the receiving side, we increment the remote nonce by $2$ every time we receive an encrypted block.
 This guarantees (given nonces of sufficient length) that nonces are never repeated as collisions between client and server nonce are impossible and nonces are monotonously increasing.
 
 The algorithm used for encryption is the Salsa20 stream cipher by Daniel J. Bernstein \cite{bernstein2008salsa}.
-It is a family of 256-bit stream ciphers to designed to be used in a wide range of cryptographic applications.
+It is a family of 256-bit stream ciphers designed to be used in a wide range of cryptographic applications.
 It uses a 256-bit key and a 64-bit nonce and expands them into a $2^{70}$-byte stream.
-Encryption for a plain text message with $n$ bytes is done by xor'ing the plaintext with the first $n$ bytes of the stream.
-Decryption is done likewise, xor'ing the ciphertext with the first $n$ bytes of the same stream.
+Encryption for a plain text message with $n$ bytes is done by XOR'ing the plaintext with the first $n$ bytes of the stream.
+Decryption is done likewise, XOR'ing the ciphertext with the first $n$ bytes of the same stream.
 We specifically use the Salsa20/20 stream cipher, which is a 20-round stream cipher, compared to reduced-round ciphers specified by Daniel J. Bernstein.
 
 The algorithm used for message authentication is the Poly1305 message authentication code by Daniel J. Bernstein \cite{bernstein2005poly1305}.
 Poly1305 takes a 32-byte key and a message and produces a 16-byte tag that authenticates the message.
 The key for the combination of Salsa20/Poly1305 is generated by deriving a subkey from a tuple of key and nonce used for encrypting the actual message.
 
-\subsubsection{Message exchange}
+\subsection{Message exchange}
 
-Exchanging data between hosts poses several questions.
+Exchanging data between hosts poses several challenges.
 Consider we want to send a data structure over to another host.
 The naive approach would be to simply stream over the in-memory representation of the structure and let the receiver interpret the data stream as the corresponding structure.
-This naive approach is not even guaranteed to work for two hosts running on the same architecture, as for example the compiler may choose to re-arrange structure entries.
+This naive approach is not even guaranteed to work for two hosts running on the same architecture, as the compiler may for example choose to re-arrange structure entries.
 The approach finally falls flat when considering different operating systems with different application binary interfaces or even different memory layouts, e.g. different byte orders.
 
 The problem of correctly serializing data is not trivial and thus we choose to not handle the problem ourselves but let a library designed for this problem handle serialization.
-Google Protocol Buffers \cite{varda2008protocol} implement a method for serializing structured data in platform- and language-independent way.
+Google Protocol Buffers \cite{varda2008protocol} implement a method for serializing structured data in a platform- and language-independent way.
 Protocol Buffers come with a way to specify interface descriptions that describe how data is structured in a certain message type.
 These interface descriptions are then compiled to language-specific code that can be imported via language-specific constructs.
 
@@ -256,127 +256,124 @@ One inherent benefit of this approach is that we are able to re-use the interfac
 In particular, we use the same interface definitions across the command line client and server which are both written in C, and the Android controller which is written in Java.
 
 The whole protocol is built upon these interface descriptions with the only exception being when we forward application-specific data between two specific services.
-As we do not want to know about the specific protocols they use in order to be generic as possible we simply relay data from and to both service end points.
-Otherwise all message exchanges boil down to serializing data with Protocol Buffers and then de-serializing them on the receiving site.
+As we do not want to know about the specific protocols they use in order to be as generic as possible, we simply relay data from and to both service end points.
+Otherwise, all message exchanges boil down to serializing data with Protocol Buffers and then de-serializing them on the receiving site.
 
-\subsection{Protocol}
+\section{Protocol}
 \label{sec:protocol}
 
-We will now discuss the application level protocol as it is used by servers and clients to communicate with each other.
-Everything discussed in here will use the low-level protocol discussed in section \ref{sec:low-level-protocol}.
+We will now discuss the application-level protocol as it is used by servers and clients to communicate with each other.
+Everything discussed in here will use the low-level protocol discussed in section \ref{sec:low-level-protocol} for transmitting data via the network.
 
-\subsubsection{Connection establishment}
+\subsection{Connection establishment}
 \label{sec:connection-establishment}
 
-When a client connects to a service we want to encrypt their communication.
-Obviously we need to have a way to negotiate the encryption between both parties, as the server has to know who is about to connect and the client wants to authenticate that he is really talking to the server he wants to talk to.
-We will now consider the key exchange protocol used to negotiate ephemeral encryption key used for the connection.
+When a client connects to a service we want to encrypt all communication between these two parties in order to avoid a third party getting knowledge about what information they actually exchange.
+Obviously, we need to have a way to negotiate how data sent shall be encrypted.
+The negotiation protocol should ideally also establish the client's identity to the server as well as the server's identity to the client.
+The problem of negotiating encryption as well as verifying identities on both sides is called \emph{authenticated key agreement}, which will be discussed in more detail in section \ref{sec:key-exchange}.
+We will now consider the implementation of the protocol used to negotiate ephemeral encryption keys used for the connection.
 
-The key exchange assumes that the public identities, that is the public signature keys of both parties, are known to each other.
+The key exchange assumes that the public identities, that is the public signature keys of both parties, have previously been exchanged in a secure way.
 They are used to verify the actual identity of the opposite party.
 
-The sequence diagram in figure \ref{fig:connection-establishment} provides an overview of the key negotiation between two parties, the client $C$ and the service $S$, where $C$ has the intent to connect to $S$.
-Let us first define all functions used in the diagram.
-
-\begin{description}
-    \item[Sign$_s(m)$]\hfill\\
-        The signing algorithm generates upon input of a private signature key $s$ and message $m$ a signature $\sigma \leftarrow \text{Sign}_{s}(m)$.
-    \item[Verify$_v(m, \sigma)$]\hfill\\
-        The verification algorithm takes as input a public verification key $v$, a message $m$ and a signature $\sigma$.
-        Verify returns success iff the signature $\sigma$ is valid for the verification key $v$ and message $m$.
-    \item[GenerateKeypair()]\hfill\\
-        The key generation algorithm outputs a pair of keys $(enc, dec)$, where $enc$ is the public encryption key and $dec$ is the private decryption key.
-        Keys are generated with a cryptographically secure random number generator.
-    \item[CalculateKey($enc, dec$)]
-        The key calculation algorithm generates upon input of a local private encryption key and a remote public decryption key a new symmetric key via Diffie-Hellman key generation.
-\end{description}
-
-First the client $C$ generates a new ephemeral key pair $(enc_C, dec_C) = \text{GenerateKeypair}()$.
-He then proceeds to send an initial message containing his public verification key $vrfy_C$, the newly generated public ephemeral key $enc_C$ and a signature of $vrfy_C$ and $enc_C$ concatenated.
-
-Upon receiving the initial message, the service verifies that the concatenated keys have indeed been signed by the announced client's public verification key.
-This step verifies that the received message has at one point been in fact generated and signed by an entity which possesses the key $vrfy_C$.
-If the verification is successful, we continue and generate our own ephemeral key pair $(enc_S, dec_S) = \text{GenerateKeypair}()$.
-
-The service now sends a signature of the generated ephemeral keys of both client and service as well as both keys in plain text.
-Back on the client side we can now verify that we are indeed talking to the correct identity, as the signature now contains not only the remote's newly generated ephemeral public key, but also our own randomly generated public key.
-Due to this it is safe to assume that the service indeed possesses the private signature key belonging to the public signature key we know.
-
-At this point of time we have verified that we are indeed talking to an entity possessing $vrfy_S$, but the server does not yet know that he is indeed talking to a client possessing $vrfy_C$, as the initial message could have been recorded and replayed by an adversary.
-To fix the situation we now perform the same step of signing both public ephemeral keys and sending them to the server again, who may now verify whom he is talking to.
-
-When both parties are verified to each other we can now calculate the symmetric key which is used for subsequent communication.
-For each party, the key is calculated by performing a scalar multiplication between the party's private ephemeral key and the remote's public ephemeral key.
-The output is then concatenated with both parties' public keys' and hashed, resulting in a new secret which is shared between both client and server.
-
-\begin{figure}
+\begin{figure}[t]
     \centering
 
+    \resizebox{\textwidth}{!}
+    {
     \begin{sequencediagram}
-        \newthread{c}{Client ($vrfy_C$, $sign_C$)}
-        \newthread[4]{s}{Service ($vrfy_S$, $sign_S$)}
+        \newthread{c}{Client $C$}
+        \newinst[7]{s}{Service $S$}
+
+        \begin{call}{c}{GenerateSid()}{c}{$sid$}
+        \end{call}
+
+        \postlevel
 
         \begin{call}{c}{GenerateKeypair()}{c}{($enc_C$, $dec_C$)}
-            \postlevel
         \end{call}
 
         \postlevel
 
-        \begin{messcall}{c}{$\sigma = \text{Sign}_{sign_C}(vrfy_C \| enc_C), vrfy_C, enc_C$}{s}
-        \end{messcall}
-
-        \begin{call}{s}{Verify$_{vrfy_C}(\sigma, vrfy_C \| enc_C)$}{s}{}
-            \postlevel
-        \end{call}
-
-        \postlevel
+        \begin{messcall}{c}{$C$, $sid$, $enc_c$}{s}
 
         \begin{call}{s}{GenerateKeypair()}{s}{($enc_S$, $dec_S$)}
-            \postlevel
         \end{call}
 
-        \postlevel
-
-        \begin{messcall}{s}{$\sigma = \text{Sign}_{sign_S}(enc_S \| enc_C), enc_S, enc_C$}{c}
+        \begin{messcall}{s}{$S$, $sid$, $enc_s$, Sign$(S, S \mathbin{\|} sid \mathbin{\|} enc_s \mathbin{\|} enc_c \mathbin{\|} C)$}{c}
         \end{messcall}
 
-        \begin{call}{c}{$\text{Verify}_{vrfy_S}(\sigma, enc_S \| enc_C)$}{c}{}
-            \postlevel
-        \end{call}
-
-        \postlevel
-
-        \begin{messcall}{c}{$\sigma = \text{Sign}_{sign_C}(enc_S || enc_C), enc_S, enc_C$}{s}
+        \begin{messcall}{c}{$C$, $sid$, Sign$(C, C \mathbin{\$} sid \mathbin{\|} enc_c \mathbin{\|} enc_s \mathbin{\|} S)$}{s}
         \end{messcall}
-
-        \begin{call}{s}{$\text{Verify}_{vrfy_C}(\sigma, enc_S \| enc_C)$}{s}{}
-            \postlevel
-        \end{call}
-
-        \postlevel
 
         \begin{call}{c}{CalculateKey($enc_S$, $dec_C$)}{c}{Key}
-            \postlevel
         \end{call}
 
-        \prelevel
         \prelevel
         \prelevel
 
         \begin{call}{s}{CalculateKey($enc_C$, $dec_S$)}{s}{Key}
-            \postlevel
         \end{call}
+
+        \end{messcall}
     \end{sequencediagram}
+    }
 
     \caption{Connection establishment}
-    \label{fig:connection-establishment}
+    \label{fig:connection-establishment-protocol}
 \end{figure}
 
-\subsubsection{Discovery}
+The sequence diagram in figure \ref{fig:connection-establishment-protocol} provides an overview of the key negotiation between two parties, the client $C$ and the service $S$, where $C$ has the intent to connect to $S$.
+Let us first define all functions used in the diagram.
+
+\begin{description}
+    \item[GenerateSid()]\hfill\\
+        Generate a new session identifier.
+        The session identifier is used to distinguish sessions from each other in case multiple connection establishment protocols are currently in use.
+    \item[GenerateKeypair()]\hfill\\
+        The key generation algorithm outputs a pair of keys $(enc, dec)$, where $enc$ is the public encryption key and $dec$ is the private decryption key.
+        Keys are generated with a cryptographically secure random number generator.
+    \item[Sign($i, m$)]\hfill\\
+        The signing algorithm generates upon input of a private signature key of entity $i$ and a message $m$ a signature which can be verified by the public signature key of $i$.
+    \item[CalculateKey($enc, dec$)]\hfill\\
+        The key calculation algorithm generates upon input of a local private encryption key and a remote public decryption key a new symmetric key via Diffie-Hellman key generation.
+\end{description}
+
+In the initial step, the client $C$ generates a new ephemeral key pair as well as a new session identifier used for the current connection establishment
+\begin{align*}
+    (enc_C, dec_C) &= \text{GenerateKeypair}()\\
+    sid &= \text{GenerateSid()}
+\end{align*}.
+He then proceeds to send an initial message containing his public signature key $C$, the generated session identifier as well as the public key of the just created ephemeral key pair.
+
+Upon receiving the initial message, the service will generate a new ephemeral key pair
+\begin{align*}
+    (enc_S, dec_S) &= \text{GenerateKeypair}()
+\end{align*}.
+The service now assembles a message containing his public signature key, the session identifier $sid$ as sent by $C$, and the public key of his ephemeral key pair.
+Furthermore, he will generate a new signature with his private signature key containing his own public signature key, the session identifier, the public ephemeral keys of both client and service as well as the public signature key of the client.
+
+Back on the client side, we will now verify that all parameters included in the received message match the parameters we have just sent.
+That is we have to verify the expected public signature key of the service and compare the session identifier with the one we have just generated.
+We also verify the service's signature to assure that we are indeed talking to the service.
+Given that the signature will also contain the session identifier as well as the public ephemeral key generated at random by us, we can verify that only an entity possessing the service's private signature key was able to generate this signature.
+
+At this point of time, we have verified that we are indeed talking to the assumed service, but the service does not yet know that he is talking to the client claiming to have knowledge of the client's private signature key, as the initial message does not contain a signature.
+So to establish the client's identity, a third message is required that contains the same information as the second message just sent by the client, except that we do not re-transmit the client's public ephemeral key, as it has already been transferred in the initial message.
+The server will verify the client's signature and thus establish the client's identity.
+
+When both parties are verified to each other we can now calculate the symmetric key which is used for subsequent communication.
+For each party, the key is calculated by performing a scalar multiplication between the party's private ephemeral key and the remote's public ephemeral key.
+The output is then concatenated with both parties' public keys and hashed, resulting in a new secret which is shared between both client and server.
+
+The messaging interface used for Google Protocol Buffers is added as appendix \ref{apx:connection-establishment}.
+
+\subsection{Discovery}
 \label{sec:discovery}
 
 Device discovery is the process of discovering previously unknown services in a certain network.
-That is given a client and a certain amount of services that all reside in the same network we want to get to know all the services that are present without previously knowing where they are.
+That is given a client and a certain amount of services that all reside on the same network, we want to get to know all the services that are present without previously knowing which machines host them at which network address.
 
 Let us consider the two obvious solutions coming to mind, that is client- and service-driven approaches.
 \begin{itemize}
@@ -386,50 +383,86 @@ Let us consider the two obvious solutions coming to mind, that is client- and se
 \end{itemize}
 
 Both methods have their own merit.
-Periodic announcements of the service conceal the intent of clients to discover local services as they are not directly involved in the process of finding services.
+Periodic announcements of the service conceal the intent of clients to discover local services, as these clients do not need to broadcast their intent to the network and only passively consume announcement messages.
 They have the disadvantage of additional overhead, though, as we regularly have to announce our service to the whole subnet.
-While this might not be problematic when only few services are available in a certain subnet it may become unwieldy when hundreds of services are present which are constantly firing announce messages to each member of the network.
+While this might not be problematic when only a few services are available on a certain subnet, it may become impractical when hundreds of services are present which are constantly broadcasting announcement messages to each member of the network.
 
-On the other hand with a client-driven approach it is easy to avoid this particular problem.
-Given a client which wants to probe the network for available services we will simply drop a broadcast message to the subnet and wait for available services to respond.
-Like this the whole process is intent-driven, as the user has an explicit intent of discovering services, and repeating messages are avoided.
+On the other hand with a client-driven approach, it is easy to avoid this particular problem.
+Given a client which wants to probe the network for available services, we will simply drop a broadcast message to the subnet and wait for available services to respond.
+Like this, the whole process is intent-driven, as the user has an explicit intent of discovering services, and repeating messages are avoided.
 
-Just how important this distinction is gets particularly clear when we consider the process how users want to start interacting with a certain service.
-Assume Alice starts up her mobile phone and intents to discover a certain service she expects to be available in the local network.
+Just how important this distinction is becomes particularly clear when we consider the process how users want to start interacting with a certain service.
+Assume Alice starts up her mobile phone and intents to discover a certain service she expects to be available on the local network.
 Given the approach where services periodically announce their availability, Alice might have to wait the whole time span between two announcements if she just missed the previous one.
 Depending on how the announcement interval was chosen this may be a long time.
 The worst case scenario is when Alice becomes too uncomfortable waiting for the first availability announcement to arrive, instead simply dropping her intent and aborting discovery.
 
 When we actively probe the subnet for available services instead the response times will in the mean case be much less than with the other approach.
 That is the delay of services popping up is only based on latency and processing time of both service and client.
-As a consequence we have chosen to implement the client-driven approach of actively probing the subnet.\\
+As a consequence, we have chosen to implement the client-driven approach of actively probing the subnet.\\
 
-
-The initial exchange between a client and service which have never seen each other before is problematic security wise.
-Without further information we are not able to verify that the other side is in fact the one we want to talk to.
+The initial exchange between a client and service which have never seen each other before is problematic regarding security.
+Without further information, we are not able to verify that the other side is in fact the one we want to talk to.
 Even though we can verify that a server we connect to has the identity it claims by establishing the connection in an authenticated way, we cannot assume anything about the claimed identity if we do not know anything about it through other channels.
 
 The situation can be improved by relying on said other channels to first gain information about the service we want to connect to.
 Through e.g. a physical side-channel we may be able to retrieve additional data about a service and thus increase our confidence that we are in fact talking to the service we intended.
-As described by McCune et al. \cite{mccune2005seeing}, this physical side channel can be something as simple as a QR code that is present on a certain machine which is to be scanned by a client which has the intent to connect.
-This QR code may contain data like the public signature key of the machine so that we can compare discovered server's public signatures with the one we just scanned.
-Like this, we are able to increase the trust level of the service.
+We will discuss this topic in more detail in section \ref{sec:key-exchange}.
 
-The procedure of scanning a QR code is particularly interesting in the case where we want to connect to a display service.
-Upon notifying the service in an out-of-band way (e.g. by pressing a certain button on the display) it may generate a QR code and display it on the screen.
-The client can subsequently scan the code and in such a way retrieve information like the public key and address of the display.
-As soon as we have obtained data through this side channel we are able to verify authenticity of the service we are communicating with, assuming the side channel has not been compromised.
-
-Another way to increase confidence in discovered services may be through solutions like CryptID \cite{malchow2015cryptid}.
-CryptID aims to provide a secure naming services based on published public keys and distributed hash tables (DHT).
-A user is able to search an index which is backed by the DHT for keywords to obtain information about registered identities matching the query.
-Every identity is represented by a CryptID, which is in fact a public signature key and thus verifiable.
-This CryptID can then be resolved to a network address, such that we are able to verify the mapping between the identity and its address.\\
-
-We do not try to solve the problem of key distribution in this thesis.
+In fact, we do not try to solve the problem of key distribution in this thesis.
 Instead, we assume that participants of the service network have means through which they are able to exchange public signature keys for identities in a secure way.
 What we still do have to solve is getting to know local clients, for example in public environments where people do not actually care that much who is actually providing a certain service.
 This may be the case when users want to share insensitive data with a public service which is to be viewed by others, but other scenarios will certainly exist.
+
+\begin{figure}[t]
+    \centering
+
+    \begin{subfigure}{0.9\textwidth}
+        \centering
+        \begin{sequencediagram}
+            \newinst{s1}{Service 1}
+            \newthread[3]{c}{Client}
+            \newinst[3]{s2}{Service 2}
+
+            \mess{c}{Discover}{s1}
+            \prelevel
+            \mess{c}{Discover}{s2}
+
+            \postlevel
+
+            \mess{s1}{Announce}{c}
+            \mess{s2}{Announce}{c}
+        \end{sequencediagram}
+
+        \caption{Undirected Service Discovery}
+        \label{fig:undirected-service-discovery}
+    \end{subfigure}
+
+    \vspace{0.5cm}
+
+    \begin{subfigure}{0.9\textwidth}
+        \centering
+
+        \begin{sequencediagram}
+            \newthread{c}{Client}
+            \newthread[4]{s}{Service}
+
+            \begin{messcall}{c}{InitiateConnection()}{s}
+                \postlevel
+                \postlevel
+
+                \begin{messcall}{s}{Announce}{c}{}
+                \end{messcall}
+                \prelevel
+            \end{messcall}
+        \end{sequencediagram}
+
+        \caption{Directed Service Discovery}
+        \label{fig:directed-service-discovery}
+    \end{subfigure}
+
+    \caption{Service discovery}
+\end{figure}
 
 In order to be able to solve both use cases, that is discovery of previously unknown services and discovery of services whose identity is known through other means, the actual device discovery implemented has two modes.
 \begin{description}
@@ -444,11 +477,11 @@ In order to be able to solve both use cases, that is discovery of previously unk
 \end{description}
 
 Let us now consider the undirected discovery protocol.
-For the actual message interface for Protobuf, see listing \ref{src:discovery-protos}.
 We assume both client and service own a long term signing key pair $(pk_c, sk_c)$ and $(pk_s, sk_s)$, respectively, that is used for establishing their own identity.
+The message format now described is printed in appendix \ref{apx:service-discovery}.
 
-The initial \emph{Discover} message servers the purpose of notifying all servers listening on the local network that a client wants to discover what services are available.
-It contains the following fields (see listing \ref{src:discovery-protos}):
+The initial \emph{Discover} message serves the purpose of notifying all servers listening on the local network that a client wants to discover what services are available.
+It contains the following fields:
 
 \begin{description}
     \item[Version]\hfill\\
@@ -458,19 +491,26 @@ It contains the following fields (see listing \ref{src:discovery-protos}):
     \item[Port]\hfill\\
         The port specifies where servers should connect back to.
         While it would be possible to simply have a globally known port number where servers will always connect back to, letting the client specify a port number gives us more flexibility in constrained networks where certain ports may be occupied or blocked.
+    \item[List of known identities]\hfill\\
+        Clients can optionally add a list of identities known to them.
+        The list's purpose is to suppress a server's announcement in case it is already known to the client.
+        This decreases network strain as well as helping the problem of clients being overwhelmed by incoming packages on their listening port when many services at the same time announce their network presence.
 \end{description}
 
 The message is then serialized by the client and sent via UDP to the local broadcast address.
 We do not sign the message as the whole point of undirected service discovery is that we typically do not know about surrounding services.
 As such, the reverse argument would be that surrounding services have no knowledge about clients, as well, and thus do not really care for the messages originating from a certain client.\\
 
-On the receiving side we first unpack the message to retrieve version and port.
+On the receiving side, we first unpack the message to retrieve version and port.
 The server will now compare the client's version to versions known to the server and only proceed if he is able to correctly service that version.
 This may require switching between multiple message interface formats.
-He will then assemble a response message containing its own version, name, provided services and its public key.
+
+After verifying the message's version, the server will inspect the list of known identities, if the client has specified one.
+If the server finds his own identity inside this list, he will not send any announcement message to the client.
+If not, he will assemble a response message containing its own version, name, a list of provided services and its public key.
 
 It is possible for a single server to announce multiple services.
-Those services may be distinguished by the port they are listening at.
+Those services can be distinguished by the port they are listening at as well as by their name and category.
 Instead of announcing multiple service types at a single port, which would then require multiplexing requests to their respective service and thus introduce additional complexity, each service has its own port which will later be used to connect to that service.
 
 Each service announced has a name, category and port.
@@ -481,128 +521,45 @@ Each service announced has a name, category and port.
         Obviously, these names should not be taken as the sole identifier for services, though, as they are trivially malleable.
     \item[Category]\hfill\\
         The category is used as a distinguisher such that users are able to filter out services that do not serve their purpose.
-        Assuming a user Alice wants to have connect to a service providing input devices, she may easily filter the list of local services by restricting them to the category ``Input'', only.
+        Assuming a user Alice wants to connect to a service providing input devices, she may easily filter the list of local services by restricting them to the category ``Input'', only.
     \item[Port]\hfill\\
-        The port specifies where clients need to connect to to interact with these services.
+        The port specifies where clients need to connect to in order to interact with these services.
 \end{description}
 
 The server will now send back the serialized message to the querying client.
 The client's address is assembled by taking the originator address from the UDP package and the port specified in the Discover message.\\
 
-\begin{figure}[H]
-    \centering
-
-    \begin{sequencediagram}
-        \newinst{s1}{Service 1}
-        \newthread[4]{c}{Client}
-        \newinst[4]{s2}{Service 2}
-
-        \mess{c}{Discover}{s1}
-        \prelevel
-        \mess{c}{Discover}{s2}
-
-        \postlevel
-
-        \mess{s1}{Announce}{c}
-        \mess{s2}{Announce}{c}
-    \end{sequencediagram}
-
-    \caption{Undirected Service Discovery}
-    \label{fig:undirected-service-discovery}
-\end{figure}
-
-In contrast to the undirected service discovery the directed service discovery provides a way to obtain information about a server's services in an authenticated way.
+In contrast to the undirected service discovery, the directed service discovery provides a way to obtain information about a server's services in an authenticated way.
 As we have previously obtained the public signature key of the server we want to talk to, we are already able to establish authenticated and encrypted connections.
 
 So instead of exchanging one package for the Discover and Announce messages, we want to instead exchange multiple messages with each other to perform an authenticated hand shake as demonstrated in section \ref{sec:connection-establishment}.
-If we would use UDP for this, as well, we would have to correctly order and multiplex incoming packages based on originator and sequence.
+If we would use UDP for this as we do for undirected service discovery, we would have to correctly order and multiplex incoming packages based on originator and sequence.
 To avoid this burden, we instead use a different socket for directed service discovery which uses TCP as a protocol.
 
-Despite the initial connection establishment all subsequent steps remain unchanged, albeit data sent is encrypted with the generated ephemeral key.
+Despite the initial connection establishment, all subsequent steps remain unchanged, albeit data sent is encrypted with the generated ephemeral key.
 
-\begin{figure}[H]
-    \centering
-
-    \begin{sequencediagram}
-        \newthread{c}{Client}
-        \newthread[4]{s}{Service}
-
-        \begin{messcall}{c}{InitiateConnection()}{s}
-            \postlevel
-            \postlevel
-
-            \begin{messcall}{s}{Announce}{c}{}
-            \end{messcall}
-            \prelevel
-        \end{messcall}
-    \end{sequencediagram}
-
-    \caption{Directed Service Discovery}
-    \label{fig:directed-service-discovery}
-\end{figure}
-
-\lstinputlisting[caption=Discovery Interface,label=src:discovery-protos,float,floatplacement=h]{../../source/sd/proto/discovery.proto}
-
-\subsubsection{Query}
+\subsection{Query}
 \label{sec:query}
 
-Now that we have discovered servers at our location and know basic information about the services they provide.
-Currently we only know about the server's location, their identity and name, category and port of its services.
+After the initial service discovery, we only have access to the most basic information about each server.
+We only know the server's location and name as well as for each service hosted by that server, its name, category and ports.
 While this is key data for a user who wants to connect, it does not provide enough detail to actually know what the service provides, if it suits our needs and how to connect.
 
-To get to know these specifics we can connect to a specific service on a server and ask about what it actually provides.
-It would certainly be possible to provide such information in the service discovery which precedes this step, but the protocol has been explicitly designed to hand over as little information as is required in the device discovery.
-This serves two purposes:
+To get to know more detailed information, we can connect to a specific service on a server and ask about what it actually provides.
+It would certainly be possible to provide such information in the service discovery which precedes this step, but the protocol has been explicitly designed to hand over as little information as is required in the service discovery.
+This serves multiple purposes:
 \begin{itemize}
-    \item Device discovery is usually centered around transmitting single UDP packages.
-        That is, we explicitly do not want to handle more complex communication between client and server, which may be required to implement more sophisticated exchanges between client and server.
-        Furthermore, we want to keep UDP packages as small as possible to not overload the subnet where there are lots of servers present trying to announce their availability to one or multiple clients which want to discover servers.
-    \item Details about certain services provided on a server may contain sensitive information.
+    \item Service discovery is usually centered around transmitting single UDP packages.
+        That is, we explicitly do not want to handle more complex communication between client and server, which may be required to implement sophisticated negotiation between client and server.
+        Furthermore, we want to keep UDP packages as small as possible to not overload the network when there are lots of servers present trying to announce their availability to one or multiple clients which want to discover servers.
+    \item Details about certain services provided by a server may contain sensitive information.
         One kind of possibly sensitive information is the location, which might be confidential in certain setups.
-        In some cases even the actual service provided may be confidential.
+        In some cases, even the actual service provided may be confidential.
     \item To keep confidential data secure we may want to verify that connecting parties are in fact authorized to access the service or information about it.
-        As service discovery is not authorized by default it is obvious that we do not want to publish information in the service discovery.
+        As service discovery is not authorized by default, we want to keep published information as scarce as possible.
 \end{itemize}
 
-These reasons lead to the design of an additional step to obtain data on a service, which is the query.
-When a client discovered a service and has the intent to connect to it, he will first query the service instance.
-Querying involves first initiating a secured connection as explained before and then transmitting its intent to query the service (see figure \ref{fig:query}).
-
-Upon receiving the initial connection, the service will first verify that the client's identity is allowed to connect to the service at all.
-If not, the service will drop the connection.
-Otherwise, we will assemble a so-called service description, containing details about the service (see listing \ref{src:query-protos} for the message interface):
-\begin{description}
-    \item[Name]\hfill\\
-        This is the same field as announced in the service discovery.
-    \item[Category]\hfill\\
-        This is the same field as announced in the service discovery.
-    \item[Port]\hfill\\
-        This is the same field as announced in the service discovery.
-    \item[Type]\hfill\\
-        The actual type of the service.
-        While the category already specifies what kind of service it is, e.g. a display or input device, this reports the actual implementation of the service.
-        For example a service of type ``Display'' may be backed by VNC, RDP or xpra, which would then be the respective type of the service.
-        As such, the client may choose the concrete plugin for servicing the type if it is able to support it.
-    \item[Version]\hfill\\
-        The version specifies the service type's implementation version.
-        If for example a new version of the application backing the service plugin is released which is incompatible to previous versions, we may need to increment the plugin's version in order to guarantee the interoperability.
-        Versions are per plugin type.
-    \item[Location]\hfill\\
-        For many applications it is important for users to know about the service's location.
-        Assuming a client resides in a conference room with multiple displays and wants to present data on one of those screens.
-        The client now obviously wants to know which service corresponds to the actual screen he wants to present his data, instead of displaying it on the wrong screen in the room or even in another conference room.
-        The location field is intended to help clients find the correct service.
-    \item[Parameters]\hfill\\
-        Each service may provide a certain set of supported parameters which alter their behavior.
-        For a CPU service plugin which executes a certain application on the server, we may want to specify which executable to start, its parameters and environment variables.
-        The service would then report that it supports three parameters ``executable'', ``parameters'' and ``environment'', which may be specified by the client.
-        The service may also hint allowed values by specifying possible values in the value field for each parameter.
-\end{description}
-
-The connection will now be closed upon receiving the actual service description.
-The user will now decide if he actually wants to connect to the service based on the information given to him.
-
-\begin{figure}[H]
+\begin{figure}[t]
     \centering
 
     \begin{sequencediagram}
@@ -622,128 +579,179 @@ The user will now decide if he actually wants to connect to the service based on
     \label{fig:query}
 \end{figure}
 
-\lstinputlisting[caption=Query Interface,label=src:query-protos,firstline=10,lastline=24,float,floatplacement=h]{../../source/sd/proto/connect.proto}
+These reasons lead to the design of an additional step to obtain additional data on a service, which is called a \emph{query}.
+When a client discovered a service and has the intent to connect to it, he will first query the service instance to obtain information required to initiate a session.
+Querying involves first initiating a secured connection as explained before and then transmitting its intent to query the service (see figure \ref{fig:query}).
+The query messages are listed in appendix \ref{apx:service-query}.
 
-\subsubsection{Session Initiation}
+Upon receiving the initial connection, the service will first verify that the client's identity is allowed to connect to the service at all.
+If not, the service will drop the connection.
+Otherwise, we will assemble a so-called service description, containing details about the service:
+\begin{description}
+    \item[Name]\hfill\\
+        This is the same field as announced in the service discovery.
+    \item[Category]\hfill\\
+        This is the same field as announced in the service discovery.
+    \item[Port]\hfill\\
+        This is the same field as announced in the service discovery.
+    \item[Type]\hfill\\
+        The actual type of the service.
+        While the category already specifies what kind of service it is, e.g. a display or input device, this reports the actual implementation of the service.
+        For example a service of type ``Display'' may be backed by VNC, RDP or Xpra, which would then be the respective type of the service.
+        Based on which protocol type the service is backed with, clients can choose a concrete plug-in which is able to handle that protocol.
+        If the client has no plug-in able to handle the protocol, he cannot use the service.
+    \item[Version]\hfill\\
+        The version specifies the service type's implementation version.
+        If for example a new version of the application backing the service plugin is released which is incompatible with previous versions, we may need to increment the plugin's version in order to guarantee interoperability.
+        Versions are specific to the service's type.
+    \item[Location]\hfill\\
+        For many applications, it is important for users to know about the service's location.
+        Assume a client resides in a conference room with multiple displays and wants to present data on one of those screens.
+        The client now obviously wants to know which service corresponds to the actual screen he wants to present his data, instead of displaying it on the wrong screen in the room or even in another conference room.
+        The location field is intended to help clients find the correct service.
+    \item[Parameters]\hfill\\
+        Each service may provide a certain set of supported parameters which define their behavior when a session is started.
+        For a CPU service plugin which executes a certain application on the server, we may want to specify which executable to start, its parameters and environment variables.
+        The service would then report that it supports three parameters ``executable'', ``parameters'' and ``environment'', which have to be specified by the client.
+        The service may also hint allowed values by specifying possible values in the value field for each parameter.
+\end{description}
+
+The connection will be closed after receiving the actual service description, finishing the service query.
+The user can now decide if he actually wants to connect to the service based on the information given to him.
+
+\subsection{Session Initiation}
 \label{sec:session-initiation}
 
 When a user has decided to connect to a service based on the details given by a service query, he will request a new session with the service.
 The session request contains an identity and parameters, both set by the client wishing to establish the new session.
-On the service side, we now persist the identity and parameters and generate a new session identifier, which is passed back to the client.
-Now the specified identity is able to connect to the session with the associated session identifier.
+On the service side, the server generates an internal capability and persists it along with the parameters contained in the session request.
+The server then goes on to create a capability bound to the specified identity, which references the internal capability just created, and transfers this capability back to the client.
+Now the specified identity is able to connect to the session by presenting the created capability.
+Please refer to section \ref{sec:capabilities} for the implementation of identity-bound capabilities.
 
 Let us now consider the design decisions which are hinted at in the given overview.
-It is important to understand that we have to different steps involved in the actual session initiation:
+It is important to understand that we have to differentiate steps involved in the actual session initiation:
 Initially, the client only wants to establish a new session with the service, telling it for which identity to create the session and what the parameters are.
-The client then terminates upon receiving the session identifier.
-The second step, which does not need to happen immediately after establishing the session but can happen at a later point, actually connects to the established session and starts the service that is to be invoked.
-The service will only allow clients to connect which have the identity specified in the session request.
+The client then terminates upon receiving the capability.
+In the second step, which does not need to happen immediately after establishing the session but can happen at a later point, the client actually connects to the established session by presenting the capability and starts the service that is to be invoked.
+The service will only allow clients to connect which actually possess a capability bound to their identity which references the internal capability guarding the session that is about to be invoked.
 That is, given two clients, the first client may establish a session which only the second client will be allowed to connect to.
 
-The whole session protocol is thus based on capabilities.
-Upon receiving a request, the service creates a new capability for the given identity, persisting the given parameters and generating an identifier.
-Whenever the identity now connects, the service will check if a capability matching both the identity and identifier exists and if so, will use the persisted parameters to actually start the session.
+The whole session protocol is thus based on capabilities, with the following steps being performed:
+\begin{enumerate}
+    \item the client creates a request, specifying an identity $i$ as the session's owner, as well as a set of parameters
+    \item upon receiving the request, the server
+        \begin{enumerate}
+            \item creates a new internal capability and stores it alongside with the parameters
+            \item creates a new external capability referencing the internal capability, bound to the identity of the session owner
+            \item passes the external capability back to the client
+        \end{enumerate}
+    \item when starting the session, the session owner will present the external capability
+    \item the server verifies that the external capability references an internal capability and is in fact valid for the connected client's identity
+\end{enumerate}
 
 It is important that only the identity requesting the session is able to set the parameters.
 Imagine a scenario where user Alice wants to give user Bob the permission to access a specific file on a file service.
 Alice would request a new session with Bob's identity and parameters specifying that single file.
-If Bob was now able to modify those parameters, he could simply tell the service to provide other files present in Alice's file system, as well, thus escalating privileges.\\
+If Bob was now able to modify those parameters, he could simply tell the service to provide other files present in Alice's file system, as well, thus escalating privileges.
 
-Assume the simple case where user Alice wants to invoke a service herself (see figure \ref{fig:direct-connect}).
-She initially connects to the service and performs the handshake with it.
-Afterwards, she requests a new session, specifying her own identity as the session owner and providing service parameters.
-The service will now create and store a new capability associated with Alice and store parameters alongside this capability.
-The session identifier is now sent back to Alice.
-
-When Alice now wants to invoke the service, she will initiate an authenticated connection and then invoke the session with the session identifier, which specifies the capability.
-The server will verify that Alice is allowed to invoke the capability by comparing the public signature keys and, if the verification succeeds, start the service with the parameters stored.
-The capability is now removed so that Alice may not invoke the same capability twice.
-
-\begin{figure}[H]
+\begin{figure}[t]
     \centering
 
+    \resizebox{\textwidth}{!}
+    {
     \begin{sequencediagram}
-        \newthread{c}{Alice}
-        \newinst[6]{s}{Service}
+        \newthread{c}{Alice A}
+        \newinst[6]{s}{Service S}
 
         \begin{sdblock}{Session Request}{}
-            \postlevel
             \begin{messcall}{c}{InitiateConnection()}{s}
                 \postlevel
-                \begin{call}{c}{RequestSession(Alice, parameters)}{s}{Capability}
-                    \begin{call}{s}{CreateCapability(Alice, parameters)}{s}{Capability}
+                \begin{call}{c}{RequestSession(A, params)}{s}{Capability}
+                    \begin{call}{s}{CreateCapability(A, params)}{s}{Capability}
                     \end{call}
                 \end{call}
             \end{messcall}
+            \prelevel
         \end{sdblock}
 
-        \postlevel
-
         \begin{sdblock}{Session Initiation}{}
-            \postlevel
             \begin{messcall}{c}{InitiateConnection()}{s}
                 \postlevel
-                \begin{messcall}{c}{ConnectSession(Capability)}{s}
-                    \postlevel
-                    \begin{call}{s}{Verify(Alice, Capability)}{s}{}
+                \begin{messcall}{c}{StartSession(Capability)}{s}
+                    \begin{call}{s}{Verify(A, Capability)}{s}{}
                     \end{call}
                 \end{messcall}
+                \prelevel
             \end{messcall}
             \prelevel
         \end{sdblock}
 
         \prelevel
     \end{sequencediagram}
+    }
 
     \caption{Direct Connect}
     \label{fig:direct-connect}
 \end{figure}
 
+Assume the simple case where user Alice wants to invoke a service herself (see figure \ref{fig:direct-connect}).
+She initially connects to the service and performs the handshake with it to generate the shared secret used for encryption as well as establishing the identities of both client and service.
+Afterwards, she requests a new session, specifying her own identity as the session owner and providing service parameters.
+The service will now create and store a new internal capability and store parameters alongside this capability.
+A new external capability is then created and sent back to Alice.
+
+When Alice now wants to invoke the service, she will initiate an authenticated connection and then invoke the session with the external capability.
+The server will verify that Alice is allowed to invoke the capability and, if the verification succeeds, start the service with the parameters stored.
+The capability is now removed so that Alice may not invoke the same capability twice.
+
 Let us now consider a slightly more complicated scenario involving two clients Alice and Bob and a service (see figure \ref{fig:indirect-connect}).
 The intent of Alice is to establish a session for Bob which he may invoke.
-This corresponds e.g. to the scenario mentioned before, where Alice wants to give access to a certain set of files to Bob, where these files are stored on the service.
+This scenario corresponds to the scenario presented earlier, where Alice wants to give access to a certain set of files to Bob, where these files are stored on the server hosting the service.
 
-The initial procedure is the same as when performing a direct connect, except that Alice specifies Bob's identity for the capability.
+The initial procedure is the same as when creating a session for Alice herself, except that Alice now specifies Bob's identity as the session's owner, which will be included in the generated capability.
 The server then creates a new capability for Bob and persists the parameters provided by Alice.
-Alice now tells Bob the session identifier which he is now able to use for connecting to the session.
-Regard that we do not specify how to pass the capability to Bob, see section \label{sec:invoke-service} for more details on how to solve secure capability transfer.
+Alice now passes on the capability to Bob, granting him the right to connect to the newly created session.
+Regard that we do not specify how to pass the capability to Bob, see section \ref{sec:invoke-service} for more details on how we solve secure capability transfer.
 
 When Bob has the intention of connecting to the session created by Alice, he will initiate an authenticated connection to the service.
-He will now proceed and send the identifier received from Alice to the server to establish the session.
-After verifying the capability, the service retrieves parameters stored alongside the capability and initiate the session.
+He will now proceed and present the capability received from Alice to the server to connect to the session.
+After verifying the capability, the service retrieves the parameters stored alongside the capability and initiate the session.
 
-\begin{figure}[H]
+\begin{figure}[t]
     \centering
 
     \begin{sequencediagram}
-        \newthread{c1}{Alice}
-        \newinst[4]{s}{Service}
-        \newthread[4]{c2}{Bob}
+        \newthread{c1}{Alice A}
+        \newinst[4]{s}{Service S}
+        \newthread[3]{c2}{Bob B}
 
         \begin{sdblock}{Session Request}{}
-            \postlevel
             \begin{messcall}{c1}{InitiateConnection()}{s}
                 \postlevel
-                \begin{call}{c1}{RequestSession(Bob, parameters)}{s}{Capability}
+                \begin{call}{c1}{RequestSession(B, params)}{s}{Capability}
                     \postlevel
                 \end{call}
+                \prelevel
             \end{messcall}
         \end{sdblock}
 
-        \postlevel
         \begin{messcall}{c1}{Capability}{c2}
         \end{messcall}
 
+        \prelevel
+
         \begin{sdblock}{Session Initiation}{}
-            \postlevel
             \begin{messcall}{c2}{InitiateConnection()}{s}
                 \postlevel
-                \begin{messcall}{c2}{Connect(Capability)}{s}
+                \begin{messcall}{c2}{StartSession(Capability)}{s}
                     \postlevel
-                    \begin{call}{s}{Verify(Bob, Capability)}{s}{}
+                    \begin{call}{s}{Verify(B, Capability)}{s}{}
                     \end{call}
                 \end{messcall}
+                \prelevel
             \end{messcall}
+            \prelevel
         \end{sdblock}
 
         \prelevel
@@ -753,35 +761,43 @@ After verifying the capability, the service retrieves parameters stored alongsid
     \label{fig:indirect-connect}
 \end{figure}
 
-The actual message interfaces is rather obvious (see listing \ref{src:session-protos}).
-The initial SessionRequestMessage contains an identity and the session's parameters.
-The service responds with a SessionMessage, containing the session identifier that is to be used for invoking the actual session.
-Starting the session is done with a SessionInitiationMessage, which contains only the session identifier, as well.
+The complete session protocol involves three different messages passed between clients and services in order to request a session, retrieve the capabilities and then start the actual session.
+These three messages are defined in appendix \ref{apx:session-initiation} as \lstinline{SessionRequestMessage}, \lstinline{SessionMessage} and \lstinline{SessionInitiationMessage}.
+Initially, a service will send a session request messages, containing all parameters for configuring the session's behavior, as well as the public key of the session owner.
+If the request is granted, the service will respond with a message containing two capabilities:
+one capability for starting the session, and one capability for terminating the session, which will be explained in the following section.
+When the session owner now wishes to start using the session, he will send a session initiation message, containing the capability used for connecting to the service.
 
-\lstinputlisting[caption=Session Interface,label=src:session-protos,firstline=26,float,floatplacement=h]{../../source/sd/proto/connect.proto}
+Given this two-phase capability design, users are now able to create sessions and easily pass on the right to use these sessions in a controlled way.
+Given the actual service implementations are implemented securely, session owners are not able to escalate their rights granted by the session creator.
 
-Due to the two-phase capability based structure we are able to implement several use cases without compromising security of the user giving access to third parties, given the actual service is implemented in a secure way.
-We will detail these building blocks in the next section.
-
-\subsubsection{Termination}
+\subsection{Termination}
 
 In most cases, sessions will be invoked right after they are created by the session creator.
-Sometimes, though, sessions will be created but not directly invoked after creation.
-Assuming session creator and invoker are the same, this is no problem: the creator will simply throw away the session identifier and thus never use the capability associated with it.
-In certain scenarios, this is not desirable, though.
-First, users may wish to explicitly delete sessions they have just created as they know they are never going to invoke the session or because the creator specified parameters which, on second though, he deems to contain sensitive information he at least wants to remove from the server right now.
+In certain scenarios, though, sessions will be created but will not be used right away, thus leaving the session's parameters and internal capability idle on the server.
+Assuming session creator and invoker are the same, this is no real problem: the creator can simply choose to throw away the capability, loosing the right to execute the service and then forget about the session.
+But after all, leaving sessions idle on servers may pose a security risk sometimes.
 
-One solution to this problem would be to simply invoke the session and then immediately terminate it again.
-As sessions are immediately removed from the pool of established sessions after starting the session, it will be discarded from the service without actually using the session's service.
-But imagine a session creator has just created a new session where he himself is not the session's invoker.
-Despite being unclean in its design to simply invoke and immediately disconnect from the service, in this case it would be impossible for the session creator to invoke the capability at all, as he is not the invoker.
+Assume for example that a session has been created where the session creator unintentionally specified a wrong set of parameters, thus leaking a sensitive file to the session owner.
+Another example would be if the session owner has, by accident or intent, disclosed his private signature key to a third-party.
+In these cases, affected sessions should be terminated as soon as possible.
 
-The implementation of this use-case is realized by another end-point which has been added to the protocol through which one is able to terminate sessions and the associated capabilities.
-A client may initiate a new connection with a service, telling the service it wants to invoke the session-termination end-point, and then send a termination message to the server.
-The termination message contains the session identifier and the invoker of the session that is to be terminated.
-It is necessary to also specify an invoker as the server currently has no guarantees about session identifier being unique on a global level but only in combination with the invoker's identity.
+One naive solution to this problem would be to simply invoke the session and then immediately terminate it again.
+As session metadata is immediately deleted upon the session being invoked, this would prune data from the service.
+But in fact this is a short-sighted solution, as what happens upon the client immediately terminating after starting a session is dependent on the service's semantics.
 
-The server will now search all established sessions if there is any session matching the session creator, which has to match the termination requester's identity, as well as the session identifier and session invoker specified in the termination message.
-If such a session is found, it will immediately be removed and the capability is rendered invalid.
+To remedy this, another end-point has been added to the protocol through which entities are able to terminate sessions.
+As has been mentioned briefly, the session message sent after creating a new session does contain \emph{two} capabilities.
+One capability is bound to the session owner and can be used to either connect to the session or to terminate the session.
+The second capability is instead bound to the session creator and can only be used to terminate the session.
+
+When either session owner or session creator now wishes to terminate the session, they will send a session termination message to this end-point (see appendix \ref{apx:session-termination}).
+The session termination message only contains the capability given by the server and suffices to identify the actual session that is to be terminated.
+The server will verify that the capability is valid for the connected identity and if it actually has the right to terminate a session.
+If so, the session referenced by the capability will be searched and, if found, all associated metadata will be pruned.
+This includes pruning parameters as well as revoking the right to execute the session.
+
+Ideally, this mechanism would also be able to stop sessions that have already been invoked and are currently executed.
+The current implementation does not handle this yet but will later be extended to do so.
 
 % vim: ft=tex tw=0

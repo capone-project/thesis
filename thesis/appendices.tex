@@ -1,7 +1,7 @@
-\section{Benchmarking results}
+\chapter{Benchmarking results}
 
 \clearpage
-\subsection{Throughput}
+\section{Throughput}
 \label{sec:appendix-throughput}
 
 \begin{table}[H]
@@ -35,7 +35,7 @@
     \footnotesize
     \begin{tabular}{|c|c|c|}
         \hline
-        \bfseries Blocklen (bytes) & \bfseries Messagelen (bytes) & \bfseries Throughput (unencrypted, MB/s)
+        \bfseries Block length (bytes) & \bfseries Message length (bytes) & \bfseries Throughput (unencrypted, MB/s)
         \csvreader[head to column names]{data/bench-2ms.csv}{}
         {\\\hline \pkglen & \datalen & \tpplain }
         \\\hline
@@ -48,7 +48,7 @@
     \footnotesize
     \begin{tabular}{|c|c|c|}
         \hline
-        \bfseries Blocklen (bytes) & \bfseries Messagelen (bytes) & \bfseries Throughput (encrypted, MB/s)
+        \bfseries Block length (bytes) & \bfseries Message length (bytes) & \bfseries Throughput (encrypted, MB/s)
         \csvreader[head to column names]{data/bench-2ms.csv}{}
         {\\\hline \pkglen & \datalen & \tpenc }
         \\\hline
@@ -61,7 +61,7 @@
     \footnotesize
     \begin{tabular}{|c|c|c|c|}
         \hline
-        \bfseries Blocklen (bytes) & \bfseries Messagelen (bytes)  & \bfseries Throughput (unencrypted, MB/s)
+        \bfseries Block length (bytes) & \bfseries Message length (bytes)  & \bfseries Throughput (unencrypted, MB/s)
         \csvreader[head to column names]{data/bench.csv}{}
         {\\\hline \pkglen & \datalen & \tpplain }
         \\\hline
@@ -74,7 +74,7 @@
     \footnotesize
     \begin{tabular}{|c|c|c|}
         \hline
-        \bfseries Blocklen (bytes) & \bfseries Messagelen (bytes)  & \bfseries Throughput (encrypted, MB/s)
+        \bfseries Block length (bytes) & \bfseries Message length (bytes)  & \bfseries Throughput (encrypted, MB/s)
         \csvreader[head to column names]{data/bench.csv}{}
         {\\\hline \pkglen & \datalen & \tpenc }
         \\\hline
@@ -84,7 +84,7 @@
 
 \clearpage
 
-\subsection{Connection establishment latency}
+\section{Connection establishment latency}
 \label{sec:appendix-connection-establishment}
 
 \begin{table}[H]
@@ -92,7 +92,7 @@
     \footnotesize
     \begin{tabular}{|c|c|c|c|}
         \hline
-        \bfseries Block length (bytes) & \bfseries Latency (in ms) & \bfseries Client time (in ms) & \bfseries Server time (in ms)
+        \bfseries Block length (bytes) & \bfseries Latency (ms) & \bfseries Client time (ms) & \bfseries Server time (ms)
         \csvreader[head to column names]{data/latency.csv}{}
         {\\\hline \pkglen & \latency & \connect & \await }
         \\\hline
@@ -102,7 +102,7 @@
 
 \clearpage
 
-\subsection{Input latency}
+\section{Input latency}
 \label{sec:appendix-input-latency}
 
 \begin{table}[H]
@@ -110,12 +110,44 @@
     \footnotesize
     \begin{tabular}{|c|c|c|}
         \hline
-        \bfseries Block length (bytes) & \bfseries Latency (in ms) & \bfseries Delay (in ms)
+        \bfseries Block length (bytes) & \bfseries Latency (ms) & \bfseries Delay (ms)
         \csvreader[head to column names]{data/input.csv}{}
         {\\\hline \pkglen & \latency & \delay }
         \\\hline
     \end{tabular}
     \caption{Benchmarking results for input delay}
 \end{table}
+
+\chapter{Listings}
+
+\clearpage
+\section{Service discovery interface}
+\label{apx:service-discovery}
+
+\lstinputlisting[firstline=3]{../../source/sd/proto/discovery.proto}
+
+\clearpage
+\section{Connection establishment interface}
+\label{apx:connection-establishment}
+
+\lstinputlisting[firstline=3]{../../source/sd/proto/encryption.proto}
+
+\clearpage
+\section{Service query interface}
+\label{apx:service-query}
+
+\lstinputlisting[firstline=14,lastline=27]{../../source/sd/proto/connect.proto}
+
+\clearpage
+\section{Session initiation interface}
+\label{apx:session-initiation}
+
+\lstinputlisting[firstline=29,lastline=48]{../../source/sd/proto/connect.proto}
+
+\clearpage
+\section{Session termination interface}
+\label{apx:session-termination}
+
+\lstinputlisting[firstline=49,lastline=52]{../../source/sd/proto/connect.proto}
 
 % vim: ft=tex tw=0
