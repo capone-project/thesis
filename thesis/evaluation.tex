@@ -408,7 +408,7 @@ They are color-coded the same as the respective graphs for tunneled Synergy serv
 \begin{figure}[t]
     \centering
     \begin{tikzpicture}
-        \begin{axis}[ylabel=Input delay (in ms),xmode=log,ymax=1450,xlabel={Block length (logarithmic scale, in bytes)},xmax=7500,xtick={64,128,256,512,1024,1500,2048,4096},xticklabels={64,,,512,,1500,,4096}]
+        \begin{axis}[y label style={at={(axis description cs:0,.5)},anchor=south},ylabel=Input delay (in ms),xmode=log,ymax=1450,xlabel={Block length (logarithmic scale, in bytes)},xmax=7500,xtick={64,128,256,512,1024,1500,2048,4096},xticklabels={64,,,512,,1500,,4096}]
             \pgfplotsinvokeforeach {0, 2, 20} {
                 \addplot table [forget plot,x=pkglen,y=delay, col sep=comma,discard if not={latency}{#1}] {data/input.csv};
                 \addlegendentry {#1ms latency}
