@@ -6,7 +6,7 @@ In this chapter, we will outline major construction sites.
 One thing that is not handled well yet are error semantics when invoking functionality via the network.
 While error handling in general is done in a very careful way such that all error-conditions are checked, operations using functionality on a remote side have no error reporting at all.
 When an error occurs on either the client or server, the entity will simply close the connection to the remote without any notification on this error.
-Instead it would be suitable to return an error code or even an error message so that it is possible to pinpoint the actual problem on the remote.
+Instead, it would be suitable to return an error code or even an error message so that it is possible to pinpoint the actual problem on the remote.
 To tackle the problem, proper remote procedure call (RPC) semantics should be implemented which handle generic errors triggered on the remote side.
 A branch exists which implements a solution, but it is not currently merged into the mainline branch due to it being unfinished.
 
@@ -14,7 +14,7 @@ Another related problem is that for any network operation, the sockets are confi
 This is particularly worrisome on the server side as it will easily grind to a halt when many clients connect to it which simply do nothing.
 This does not even have to be malicious intent of an adversary wishing to run a denial of service attack on the server, but may also include clients which have lost network connectivity or which are implemented wrongly.
 
-Also falling into the networking category is the problem of rate limiting connections.
+Also falling into the networking category is the problem of rate-limiting connections.
 It should be possible to limit the overall rate of how many peers connect in a certain time frame, but also more specific limits to e.g. which identity or network host is allowed to connect how often.
 Some services may also pose their own limits on how often they may be invoked at the same time.
 
@@ -29,7 +29,7 @@ Still, the chain of identities who have passed on the capability is explicitly i
 Probably the most important thing that needs to be tackled is the design and implementation of actual services which at last make the framework provide benefit to the user.
 Only five different services exist currently, which  is not enough to make an argument for the service framework.
 It would also be interesting to have specialized services which do not simply wrap other protocols (like it is done for example for the Xpra service), but instead exchange information via their own protocol which may make more use of capabilities.
-Examples for interesting services are file services, services providing an interface to drive input devices via mobile phones or even chat services.
+Examples of interesting services are file services, services providing an interface to drive input devices via mobile phones or even chat services.
 
 Mentioning mobile clients, these should be improved in their usability.
 Given the author of this thesis is not at all skilled in user interface design, the development of a usable and maybe even enjoyable interface for orchestrating services is an unsolved problem.

@@ -1,6 +1,6 @@
 \chapter{Implementation}
 
-In this chapter we will discuss how the architecture outlined in the previous section is actually implemented.
+In this chapter, we will discuss how the architecture outlined in the previous section is actually implemented.
 The application is split into two parts, the Android app as well as the framework used to implement the complete server component as well as a command-line driven client.
 While the app is written in Java, the main programming language used to implement applications for the Android operating system, the other part is written in ISO C90 \cite{iso-c90}.
 
@@ -35,7 +35,7 @@ Obviously, each side is required to know whether it is a client or a server, but
 Further note that it is safe to have deterministic nonces as we always assume that the given symmetric key is a newly generated session key and will be used only once.
 
 When data is sent or received, either the local or remote nonce will get incremented by $2$.
-Given that nonces are 24 bytes long, the chance of collision of nonces due to a integer overflow is insignificant.
+Given that nonces are 24 bytes long, the chance of collision of nonces due to an integer overflow is insignificant.
 The nonces are incremented on the block level instead of on the message level.
 Assuming it was instead incremented after sending a message, messages containing two blocks which are equivalent to each other due to repeating patterns in the message would be encrypted with the same nonce, leaking information.
 As such, it is important to handle nonces on the block level.
@@ -64,7 +64,7 @@ When we now want to grant a new capability to access the internal capability $c0
 That is, the generated capability now has implicit knowledge about the referenced internal capability, its random secret, the user for whom the capability is created for as well as granted access rights.
 Access rights are implemented by a simple bit-field.
 Each bit represents a certain access right -- if the bit referring to a specific right is set to $1$, it is granted to the user.
-Otherwise the bit is set to $0$.
+Otherwise, the bit is set to $0$.
 
 So when a user now presents his capability, we will iterate through all available internal capabilities, checking for each capability whether the object identifier matches and if so, verify $secret1$.
 To do so, we again calculate
@@ -85,7 +85,7 @@ A service thereby is a single unit providing usually providing a single function
 In order to start using service, the user first has to establish a service session and then subsequently start using the session, as has been shown in section \ref{sec:session-initiation}.
 When establishing the service session, the user has to specify a set of parameters.
 These parameters are passed on to the service when the created session is started by the user and may influence its behavior.
-Assuming a shell service which provides the functionality to execute a program, the parameters may for example include which program to execute, what its parameters are and possibly environmental variables passed to the service.
+Assuming a shell service which provides the functionality to execute a program, the parameters may, for example, include which program to execute, what its parameters are and possibly environmental variables passed to the service.
 
 There are currently five exemplary services implemented:
 \begin{description}
@@ -107,10 +107,10 @@ There are currently five exemplary services implemented:
 
 Each service is implemented by a set of functions defined by a service-agnostic interface.
 This interface includes functions to retrieve metadata on the service and functions handling the client- respectively server-part for the service-specific parts.
-The aim of this design is to make services pluggable in the future, that is we want to have be able to distribute service plug-ins independently of the actual core protocol implementation.
+The aim of this design is to make services pluggable in the future by being able to distribute service plug-ins independently of the actual core protocol implementation.
 
 Currently, all services are statically linked into the server's and client's executable.
-But when a clean interface exists that has proven itself capable to handle all required scenarios for different types of plug-ins, we will cut out the service implementations and distribute them as plug-ins only, which can then be loaded at runtime.
+But when a clean interface exists that has proven itself capable of handling all required scenarios for different types of plug-ins, we will cut out the service implementations and distribute them as plug-ins only, which can then be loaded at runtime.
 This keeps the server lean by having it implement only core functionality while still being extendable.
 
 Being extendable and able to only link to a certain set of service plug-ins at runtime is of importance for cross-platform functionality.
@@ -126,8 +126,8 @@ The current service interface consists of the following functions:
     \item an initialization function handling the plug-in's setup process
     \item a function reporting the service's version
     \item a function reporting parameters the service may be invoked with
-    \item a handler function which handles the server side of a session
-    \item an invoke function which handles the client side of a session
+    \item a handler function which handles the server-side of a session
+    \item an invoke function which handles the client-side of a session
 \end{itemize}
 
 The heart of each plug-in is contained in the \lstinline{handler} and \lstinline{invoke} functions.
@@ -217,11 +217,11 @@ The following functions are used in the diagram:
 \end{figure}
 
 On first sight, the order of session establishment may seem a bit puzzling, as the Service session is created before the Invoker session is being created.
-But actually, this results out of the protocol's design: no entity is able to create a session in name of another entity when it does not know about the other entity's private long term signature key.
+But actually, this results out of the protocol's design: no entity is able to create a session in the name of another entity when it does not know about the other entity's private long-term signature key.
 As the Client wants to create a session which can be started by the Invoker, he will have to create a new capability which the Invoker may use.
 
 This use case is exactly why capabilities differentiate between their creators and their owners:
-the creator is the entity who creates the capability and who may destroy the capability before it has been used, but in fact he is unable to use the capability.
+the creator is the entity who creates the capability and who may destroy the capability before it has been used, but in fact, he is unable to use the capability.
 The invoker of a capability is only able to use a capability which has been granted by either himself when creating a new session or which has been passed by another entity.
 
 Returning back to the invoke service, it now becomes obvious why the Client creates the session with the Service, as only he is able to create a session in his own name.
@@ -240,12 +240,12 @@ The capability service solves the use case where an entity desires the ability t
 It is the counterpart to the Invoke service, which can be used to push a capability to an invoker, in that the capability service pulls a capability from another entity.
 
 Ideally, the capability service would not be required at all but instead, a requester would just directly ask another entity for permissions to execute a certain service.
-But the requirement to directly connect to another entity requires the requester to always know of the address of the entity he wishes to ask.
+But the requirement to directly connect to another entity requires the requester to always know the address of the entity he wishes to ask.
 As it may be very likely that the person asked for the capability uses a mobile phone with the Android application as a controller, the address might not be as stable as one would wish in this case.
 Furthermore, it might be impossible to establish a direct connection when entities are in different networks, which often use network address translation and do not allow direct connections to arbitrary ports.
 
 In order to solve this problem, the capability service was developed as a means to forward capability requests between a requesting entity and a requested entity.
-In fact the service does nothing more than allow entities to register themselves at the server and then subsequently forwards requests from other entities to registered entities, sending back capabilities created from accepted requests.
+In fact, the service does nothing more than allow entities to register themselves at the server and then subsequently forwards requests from other entities to registered entities, sending back capabilities created from accepted requests.
 So it can be thought of as some kind of proxy service.
 
 There are four participating entities which we will now define.
@@ -380,7 +380,7 @@ The user may now establish a policy where the Registrant will always accept requ
 Currently, though, this specific use-case is a bit limited by the actual implementation, as the Registrant needs to be able to connect to the requested Service.
 In many cases, as stated before, this may not work due to firewalls or inaccessibility of the Service from the Registrant's network.
 To solve this problem, one can envision that the session establishment should be tunneled through the Capability Service, as well, instead of directly trying to connect to the Service.
-The connection between Service and Registrant would obviously still be encrypted so the Capability Service is not able to listen on anything these services are talking.
+The connection between Service and Registrant would obviously still be encrypted so the Capability Service is not able to listen to anything these services are talking.
 In such a design, the Capability Service would completely proxy all traffic between Registrant, Client and Service without the Registrant talking to the Service or Client directly at all.
 
 \subsection{Execution service}
@@ -542,7 +542,7 @@ Instead, he might want to send all input through the encrypted channel to his ho
 Actually, assuming the Xpra service is being used for screen sharing, both modes are supported right now.
 Input connected directly to the display's X server is currently able to modify displayed applications.
 On the other hand, it is possible to connect input to the Xvfb in which applications are rendered directly, so that no additional redirection exists.
-Unfortunately, Xpra is implemented in a way that the mouse cursor is not display so that a user cannot see the mouse cursor.
+Unfortunately, Xpra is implemented in a way that the mouse cursor is not displayed so that a user cannot see the mouse cursor.
 
 A workaround may be to split up mouse and keyboard input so that the mouse is connected to the display service and keyboard input is directly wired into the Xvfb.
 While the mouse cursor would usually be visible anyway and thus should not provide any sensitive information to bystanders, the keyboard's input is often concealed when sensitive information is requested.
@@ -571,7 +571,7 @@ Code is logically split up into a set of executables and libraries like followin
         The services component contains the services implemented and described before in section \ref{sec:services}.
     \item[Library]\hfill\\
         Most functionality, most importantly the core protocol as well as the session handling, has been written such that it is contained in a single shared object with a documented interface.
-        Like this it is easy to re-use logic in different executables or even in other projects.
+        Like this, it is easy to re-use logic in different executables or even in other projects.
         One more great benefit is that with a library-style interface, it is easy to drive unit tests on the library's interface.
     \item[Tests]\hfill\\
         Unit tests exist that cover much of the logic of the core library.
@@ -604,7 +604,7 @@ Table \ref{tab:sloc} summarizes the source lines of code per component, where th
 A great emphasis has been put on cross-platform support.
 As such, the code is written in strict ISO C90 \cite{iso-c90} which is supported by all modern compilers.
 To guarantee that the code actually works on multiple platforms, multiple continuous integration (CI) services have been set up.
-The CI services get notified on the event that a new commit has been pushed to a monitored repository and if so, fetch the changes, build the executables and execute unit tests.
+The CI services get notified in the event that a new commit has been pushed to a monitored repository and if so, fetch the changes, build the executables and execute unit tests.
 Currently, there are two CI services which have been employed:
 \begin{itemize}
     \item Travis CI \cite{travis} provides CI services for Linux and OS X build platforms
@@ -613,7 +613,7 @@ Currently, there are two CI services which have been employed:
 
 The project uses the Git source control management system \cite{git} and GitHub as its hosting platform \cite{github}.
 In order to have a clean development process and a main branch which is always potentially releasable, meaning that the branch always compiles and unit tests pass on all platforms, a development process is specified making heavy use of branches.
-Every unit of development, e.g. a new feature, bugfixing or refactoring, is done in a separate branch which is then pushed to the main repository where it is picked up by the CI services.
+Every unit of development, e.g. a new feature, bug fixing or refactoring, is done in a separate branch which is then pushed to the main repository where it is picked up by the CI services.
 As soon as all CI services have determined that the changes do not break the build on any platform and that all unit tests pass, the branch can be merged into the mainline.
 
 As the C programming language requires manual resource management it is important to verify that the executables have no resource leaks and do not try to access resources that are not available anymore.
@@ -656,7 +656,7 @@ The total controller application is around 2691 lines of actual code which can b
 \begin{description}
     \item[User interface]\hfill\\
         The user interface provides all functionality directly presented to the user.
-        Core functionality currently provided by the application includes key management for the user's long term signature key, service discovery and favorites-management as well is the invocation of services.
+        Core functionality currently provided by the application includes key management for the user's long-term signature key, service discovery and favorites-management as well is the invocation of services.
     \item[Service plug-ins]\hfill\\
         Service plug-ins provide implementations for actual services which can be started.
         As of now, three service plug-ins have been implemented for the controller:
@@ -672,6 +672,6 @@ The total controller application is around 2691 lines of actual code which can b
 
 Table \ref{tab:sloc-controller} provides an overview of the amount of code per component.
 
-Due to timing constraints no tests are available for the Android application and no CI services have been set up.
+Due to timing constraints, no tests are available for the Android application and no CI services have been set up.
 
 % vim: ft=tex tw=0

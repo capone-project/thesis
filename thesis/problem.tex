@@ -16,7 +16,7 @@ So in fact, we do not want to rely on centrally available computing infrastructu
 To achieve the requirement, we also develop a service discovery protocol which can be used to locate services without any third party.
 Nevertheless, the service discovery part is not a focus of this thesis as a multitude of different services exist which already handle service discovery.
 
-A central point to this thesis is to implement the protocol in a secure way.
+A central point of this thesis is to implement the protocol in a secure way.
 We explicitly exclude the implemented service discovery protocol from this requirement, as its purpose is to discover previously unknown services where it is impossible to authenticate the service without any prior knowledge.
 The complete problem of a secure initial exchange of identities is not part of this thesis.
 Barring this initial step, all communication between services and their peers shall be fully authenticated and encrypted such that no adversary is able to recover messages exchanged between these parties.

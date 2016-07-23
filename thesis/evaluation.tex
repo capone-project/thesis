@@ -1,7 +1,7 @@
 \chapter{Evaluation}
 \label{sec:evaluation}
 
-In this chapter we will evaluate the fitness of the framework to handle tests in different scenarios.
+In this chapter, we will evaluate the fitness of the framework to handle tests in different scenarios.
 To do so, we have developed a number of benchmarks demonstrating how the low-level protocol and its implementation perform under different circumstances as well as a benchmark instrumenting our implementation of the Synergy service.
 There are three major measurements we will take a look at which directly influence the framework's usability.
 \begin{description}
@@ -31,7 +31,7 @@ In order to still get meaningful results, we are averaging the timings over repe
 Experimentation showed results with errors in the range of $\pm2\%$.
 This is precise enough in order to make observations as we usually operate in the range of multiple orders of magnitude where results are sufficiently distinct.
 
-To increase reproducability on multi-core systems, both threads are fixed to a CPU core.
+To increase reproducibility on multi-core systems, both threads are fixed to a CPU core.
 This tries to minimize scheduling problems and interference with other programs.
 
 \medskip
@@ -59,7 +59,7 @@ For local area networks, which we define as computers which are connected to the
 For internet-based connections, we have chosen a packet delay of 20 milliseconds.
 
 Obviously, these delays are somewhat arbitrary as different networks have different latency.
-Especially on connections via the internet, the delay can vary greatly based on location of both parties, quality of service and other factors.
+Especially on connections via the internet, the delay can vary greatly based on the location of both parties, quality of service and other factors.
 But as benchmarking results will show, these fixed delays are already able to show patterns in how the framework behaves.
 
 In order to test these different conditions the network emulation framework NetEm, which is part of the Linux kernel, has been utilized \cite{hemminger2005network}.
@@ -129,7 +129,7 @@ But we cannot simply set a huge block size and be done, as now smaller messages 
 Given our initial assumption of a small message of 40 bytes of data and a block length of 4096 bytes, we now have an overhead of $4096 - 40 - 16 - 4 = 4038$ bytes, that is $98\%$ of the block are unused and padded with zeros.
 As network connections tend to be slow, especially when uploading data via the internet, this will severely hamper performance for small messages.
 
-But even for networks where sending data is cheap the overhead would bring down throughput as we have to honor that data is encrypted.
+But even for networks where sending data is cheap, the overhead would bring down throughput as we have to honor that data is encrypted.
 The more data we need to send, the longer it takes to encrypt and decrypt the message on both sides.
 
 \medskip
@@ -247,9 +247,9 @@ See appendix \ref{sec:appendix-throughput} for bare results.
 
 The four figures display measurements for the different message sizes of 256 bytes, 1 kilobyte, 100 kilobytes and 10 megabytes.
 Each of the figures has three different graphs representing the different scenarios for transfer of data on the same host and in LAN respectively the Internet.
-The x axis represents different block lengths in bytes used to split outgoing messages.
+The x-axis represents different block lengths in bytes used to split outgoing messages.
 Please note that a logarithmic scale is used for block lengths.
-The y axis represents the throughput achieved in megabytes per second averaged over the 1GB of data sent.
+The y-axis represents the throughput achieved in megabytes per second averaged over the 1GB of data sent.
 A higher value is better.
 
 Additional constant dotted lines have been added to represent target throughput for Ethernet (blue dashed line, 120MB/s) and Internet (orange densely dotted line, 10MB/s) connections.
@@ -263,7 +263,7 @@ Let us first discuss graphs \ref{fig:block-length-benchmark-256b} and \ref{fig:b
 What stands out is that peak throughput caps out at a block length of 512 bytes for 256 byte messages and at a block length of 1500 bytes for 1024 byte messages, respectively.
 The reason for this is that these are the smallest block lengths where the whole message fits into without the requirement to split the message into multiple blocks.
 Regard that for a message of length $l$, the smallest block length that is big enough to fit in the complete message is $l + \text{maclen} + \text{sizelen} = 40 + 16 + 4 = 60$ bytes.
-With smaller block lengths we have to send multiple blocks to transmit the whole message and with bigger messages we have to encrypt additional padding.
+With smaller block lengths we have to send multiple blocks to transmit the whole message and with bigger messages, we have to encrypt additional padding.
 So the optimal block length for small messages is the smallest one where the whole message with metadata fits into.
 
 One more interesting thing to observe is that with increasing latency, throughput decreases and features of the graphs seem to diminish.
@@ -273,16 +273,16 @@ The effect of feature-flattening seems to get even more obvious the more data is
 Let us take a look at graphs \ref{fig:block-length-benchmark-100kb} and \ref{fig:block-length-benchmark-10mb} now for examples of bulk transfer.
 The effect of latency on throughput is very interesting for these graphs - while throughput constantly increases when there is no latency at all, it caps out at 200MB/s for 2ms of latency and at 50MB/s for 20ms of latency.
 
-For 2ms of latency the cap is at around a block length of 1500 bytes.
+For 2ms of latency, the cap is at around a block length of 1500 bytes.
 The value of 1500 is a typical size of the maximum transmission unit (MTU) for Ethernet connections.
-The MTU is the size of the largest amount of data that can be sent in a single Ethernet frame without requirement to split the frame into multiple frames.
+The MTU is the size of the largest amount of data that can be sent in a single Ethernet frame without the requirement to split the frame into multiple frames.
 With this information, we have a possible explanation as to why throughput caps out at around 1500 bytes and decreases afterwards for 2ms of latency, while it steadily increases for 0ms of latency.
 Sending two frames with latency will obviously have an impact on throughput, while it does not have a real impact when there is no latency at all.
 
 These benchmarks do not pay attention to maximum bandwidth available in LAN or Internet settings, which we have previously assumed to be 100 megabytes respectively 10 megabytes per second.
 We should honor this limitation when determining an optimal block length.
 For small packages we are not able to reach the target throughput for 2ms of latency and for 20ms of latency, we fail to meet the target starting at block lengths of 1024 when sending 256 byte messages.
-For bulk transfer we start to hit the target in all scenarios when using a block length of at least 512 bytes.
+For bulk transfer, we start to hit the target in all scenarios when using a block length of at least 512 bytes.
 
 \medskip
 
@@ -292,7 +292,7 @@ Let us subsume our findings from these benchmarks:
     \item increasing block lengths will penalize short messages due to encryption overhead
     \item optimizing block lengths in the scenario of high latency is not expedient as the graphs show no heavy correlation between block length and throughput in that case.
         The only noticeable effect is for small block lengths, where we have a drop in throughput as soon as we exceed a block length of 512 bytes
-    \item optimal block length should not exceed length of the MTU (e.g. 1500 bytes)
+    \item optimal block length should not exceed the length of the MTU (e.g. 1500 bytes)
 \end{itemize}
 
 To compromise between throughput for small and bulk traffic we chose a block length of 512 bytes.
@@ -301,7 +301,7 @@ It is the smallest block length able to achieve all target throughputs except fo
 \section{Connection establishment latency}
 
 The second benchmark is designed to measure connection establishment latency.
-When a client connects to servers, the first thing that is always performed is negotiation of an ephemeral key, which requires a total of three messages being exchanged between all parties.
+When a client connects to servers, the first thing that is always performed is the negotiation of an ephemeral key, which requires a total of three messages being exchanged between all parties.
 In this benchmark, we want to determine how the complete sequence of key negotiation performs under different networking settings and how this is influenced by different block lengths.
 
 To test the connection establishment process, we wrote a simple benchmarking utility.
@@ -351,10 +351,10 @@ For the other two graphs with 2 and 20 milliseconds of packet delay, the results
 There is a harsh decrease of connection establishment time by roughly half as soon as we exceed the size of messages sent.
 This improvement in efficiency is particularly salient for 20ms of latency, as we effectively cut the number of blocks required in half and each block is restrained by latency.
 
-For both graphs with latency one can easily see that we have a connection establishment latency of the number of blocks sent multiplied by the latency plus the latency induced by the initial connection to the server.
+For both graphs with latency, one can easily see that we have a connection establishment latency of the number of blocks sent multiplied by the latency plus the latency induced by the initial connection to the server.
 Exceeding the sent message's size, this can be summarized by the formula $t = 4 \times l + c$, where $t$ is the time required for the complete connection establishment protocol, $l$ is the latency and $c$ is a sub-millisecond constant for calculations regarding key derival.
 
-For slow connections with a packet delay of up to 250ms we would still be able to perform connection establishment in around one second.
+For slow connections with a packet delay of up to 250ms, we would still be able to perform connection establishment in around one second.
 Considering that for a single connection establishment we require up to three connections with querying the service, requesting a session and then connecting to the session itself, the setup would at least take three seconds for the connection establishment alone, excluding all protocol exchanges following.
 
 While we cannot alter the initial key exchange, it might be desirable to let clients connect once and perform all actions with this single connection.
@@ -435,7 +435,7 @@ While enough for simple clicks or key strokes, mouse movement will likely be imp
 This observation makes a case for small block lengths for interactive services.
 But as small block lengths have an impact on services which require high throughput instead of low latency we have a direct contradiction.
 One obvious solution is to adjust block lengths for different services.
-While it is already possible to adjust block lengths for a single communication channel, no service currently does this but instead they currently use the default configuration of 512 bytes.
+While it is already possible to adjust block lengths for a single communication channel, no service currently does this but instead, they currently use the default configuration of 512 bytes.
 
 It would be trivial to adjust block lengths when a service plug-in starts handling a session's channel when both client and server simply set block lengths based on what service type is invoked.
 More complicated solutions could have some kind of link negotiation between client and server where both parties could settle for a common block length.

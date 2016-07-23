@@ -23,7 +23,7 @@ Let us first define the terms used throughout the paper:
 
 We will now take a look at the actual process of how a single client will proceed if it wants to invoke a certain set of services (see figure \ref{fig:overview}).
 We assume the network has three different servers connected to it, namely A, B and C.
-Server A is owned by Alice, is running a graphical application and hosts a single Invoke service.
+Server A, which is owned by Alice, is running a graphical application and hosts a single Invoke service.
 Server B is owned by Bob, a friend of Alice, and provides the ability to display graphical applications through its Display service.
 Server C is a third service hosted by Charlie, hosting a CPU service as well as another Display service.
 
@@ -133,16 +133,16 @@ As the receiver of the package cannot verify the package's length in any way he 
 
 In order to solve the problem the most obvious solution would be to simply encrypt the length and attach a message authentication code.
 By doing so we would prevent the adversary of knowing the following data's length and prevent that he is able to tamper with it.
-Like this, we obviously gain a boost in security compared to sending package length's in plain text.
+Like this, we are able to improve security as compared to sending package lengths in plain text.
 
 On the other hand, the adversary is still able to observe actual package lengths.
 In the case of UDP being used as a transport layer this is trivial:
 An adversary can simply inspect package headers and thus extract the actual package length, as data is in the general case sent in a single package.
-In the case of TCP where no actual package length is encoded in the TCP header this is a little bit more involved but in many cases still feasible as client and server are likely to exchange single messages by turn.
+In the case of TCP where no actual package length is encoded in the TCP header, this is a little bit more involved but in many cases still feasible as client and server are likely to exchange single messages by turn.
 So by subtracting the prefixed package length and its message authentication code from the total bytes sent in one turn we are able to gain knowledge of the actual message length with a high probability.
 
-Due to this we are effectively giving the adversary a decryption oracle as he is able to correlate package lengths and their encrypted representations.
-Furthermore it becomes much easier for an adversary to analyze traffic by inspecting actual package lengths.
+Due to this, we are effectively giving the adversary a decryption oracle as he is able to correlate package lengths and their encrypted representations.
+Furthermore, it becomes much easier for an adversary to analyze traffic by inspecting actual package lengths.
 
 To fix the problem we send blocks of a fixed length instead of prefixing every package with an encrypted length.
 The initial fixed-length block is prefixed with the overall length of the assembled package.
@@ -181,7 +181,7 @@ Figure \ref{fig:unencrypted-package-format} visualizes the blocks' contents.
 \end{figure}
 
 The second example in figure \ref{fig:encrypted-package-format} demonstrates the package format for an encrypted connection.
-In contrast to unencrypted packages there is an additional message authentication code attached to each split package which is now assumed to be 16 bytes long.
+In contrast to unencrypted packages, there is an additional message authentication code attached to each split package which is now assumed to be 16 bytes long.
 
 \begin{figure}
     \center
@@ -223,9 +223,9 @@ Encryption is done via secret-key authenticated encryption with an encryption ke
 The key is an ephemeral key generated in an authenticated way when establishing the connection via Diffie-Hellman key exchange (see section \ref{sec:connection-establishment} for more details on the actual key exchange).
 
 As the generated key is an ephemeral key which is not to be re-used in later sessions we are able to use a simple counter mode for nonces.
-That is, on initial connection the client per definition has a nonce of value $0$ and the server has a nonce of value $1$.
+On initial connection the client per definition has a nonce of value $0$ and the server has a nonce of value $1$.
 Whenever either the client or server encrypts and sends a new block, its nonce is incremented by $2$.
-On the receiving side we increment the remote nonce by $2$ every time we receive an encrypted block.
+On the receiving side, we increment the remote nonce by $2$ every time we receive an encrypted block.
 This guarantees (given nonces of sufficient length) that nonces are never repeated as collisions between client and server nonce are impossible and nonces are monotonously increasing.
 
 The algorithm used for encryption is the Salsa20 stream cipher by Daniel J. Bernstein \cite{bernstein2008salsa}.
@@ -244,7 +244,7 @@ The key for the combination of Salsa20/Poly1305 is generated by deriving a subke
 Exchanging data between hosts poses several challenges.
 Consider we want to send a data structure over to another host.
 The naive approach would be to simply stream over the in-memory representation of the structure and let the receiver interpret the data stream as the corresponding structure.
-This naive approach is not even guaranteed to work for two hosts running on the same architecture, as for example the compiler may choose to re-arrange structure entries.
+This naive approach is not even guaranteed to work for two hosts running on the same architecture, as the compiler may for example choose to re-arrange structure entries.
 The approach finally falls flat when considering different operating systems with different application binary interfaces or even different memory layouts, e.g. different byte orders.
 
 The problem of correctly serializing data is not trivial and thus we choose to not handle the problem ourselves but let a library designed for this problem handle serialization.
@@ -257,7 +257,7 @@ In particular, we use the same interface definitions across the command line cli
 
 The whole protocol is built upon these interface descriptions with the only exception being when we forward application-specific data between two specific services.
 As we do not want to know about the specific protocols they use in order to be as generic as possible, we simply relay data from and to both service end points.
-Otherwise all message exchanges boil down to serializing data with Protocol Buffers and then de-serializing them on the receiving site.
+Otherwise, all message exchanges boil down to serializing data with Protocol Buffers and then de-serializing them on the receiving site.
 
 \section{Protocol}
 \label{sec:protocol}
@@ -330,7 +330,7 @@ Let us first define all functions used in the diagram.
 \begin{description}
     \item[GenerateSid()]\hfill\\
         Generate a new session identifier.
-        Session identifier are used to distinguish sessions from each other in case multiple connection establishment protocols are currently in use.
+        The session identifier is used to distinguish sessions from each other in case multiple connection establishment protocols are currently in use.
     \item[GenerateKeypair()]\hfill\\
         The key generation algorithm outputs a pair of keys $(enc, dec)$, where $enc$ is the public encryption key and $dec$ is the private decryption key.
         Keys are generated with a cryptographically secure random number generator.
@@ -359,7 +359,7 @@ That is we have to verify the expected public signature key of the service and c
 We also verify the service's signature to assure that we are indeed talking to the service.
 Given that the signature will also contain the session identifier as well as the public ephemeral key generated at random by us, we can verify that only an entity possessing the service's private signature key was able to generate this signature.
 
-At this point of time we have verified that we are indeed talking to the assumed service, but the service does not yet know that he is talking to the client claiming to have knowledge of the client's private signature key, as the initial message does not contain a signature.
+At this point of time, we have verified that we are indeed talking to the assumed service, but the service does not yet know that he is talking to the client claiming to have knowledge of the client's private signature key, as the initial message does not contain a signature.
 So to establish the client's identity, a third message is required that contains the same information as the second message just sent by the client, except that we do not re-transmit the client's public ephemeral key, as it has already been transferred in the initial message.
 The server will verify the client's signature and thus establish the client's identity.
 
@@ -373,7 +373,7 @@ The messaging interface used for Google Protocol Buffers is added as appendix \r
 \label{sec:discovery}
 
 Device discovery is the process of discovering previously unknown services in a certain network.
-That is given a client and a certain amount of services that all reside in the same network, we want to get to know all the services that are present without previously knowing which machines host them at which network address.
+That is given a client and a certain amount of services that all reside on the same network, we want to get to know all the services that are present without previously knowing which machines host them at which network address.
 
 Let us consider the two obvious solutions coming to mind, that is client- and service-driven approaches.
 \begin{itemize}
@@ -383,31 +383,31 @@ Let us consider the two obvious solutions coming to mind, that is client- and se
 \end{itemize}
 
 Both methods have their own merit.
-Periodic announcements of the service conceal the intent of clients to discover local services, as these clients do not need to broadcast their intent into the network and only passively consume announcement messages.
+Periodic announcements of the service conceal the intent of clients to discover local services, as these clients do not need to broadcast their intent to the network and only passively consume announcement messages.
 They have the disadvantage of additional overhead, though, as we regularly have to announce our service to the whole subnet.
-While this might not be problematic when only few services are available in a certain subnet, it may become impractical when hundreds of services are present which are constantly broadcasting announcement messages to each member of the network.
+While this might not be problematic when only a few services are available on a certain subnet, it may become impractical when hundreds of services are present which are constantly broadcasting announcement messages to each member of the network.
 
-On the other hand with a client-driven approach it is easy to avoid this particular problem.
-Given a client which wants to probe the network for available services we will simply drop a broadcast message to the subnet and wait for available services to respond.
-Like this the whole process is intent-driven, as the user has an explicit intent of discovering services, and repeating messages are avoided.
+On the other hand with a client-driven approach, it is easy to avoid this particular problem.
+Given a client which wants to probe the network for available services, we will simply drop a broadcast message to the subnet and wait for available services to respond.
+Like this, the whole process is intent-driven, as the user has an explicit intent of discovering services, and repeating messages are avoided.
 
-Just how important this distinction is gets particularly clear when we consider the process how users want to start interacting with a certain service.
-Assume Alice starts up her mobile phone and intents to discover a certain service she expects to be available in the local network.
+Just how important this distinction is becomes particularly clear when we consider the process how users want to start interacting with a certain service.
+Assume Alice starts up her mobile phone and intents to discover a certain service she expects to be available on the local network.
 Given the approach where services periodically announce their availability, Alice might have to wait the whole time span between two announcements if she just missed the previous one.
 Depending on how the announcement interval was chosen this may be a long time.
 The worst case scenario is when Alice becomes too uncomfortable waiting for the first availability announcement to arrive, instead simply dropping her intent and aborting discovery.
 
 When we actively probe the subnet for available services instead the response times will in the mean case be much less than with the other approach.
 That is the delay of services popping up is only based on latency and processing time of both service and client.
-As a consequence we have chosen to implement the client-driven approach of actively probing the subnet.\\
+As a consequence, we have chosen to implement the client-driven approach of actively probing the subnet.\\
 
 The initial exchange between a client and service which have never seen each other before is problematic regarding security.
-Without further information we are not able to verify that the other side is in fact the one we want to talk to.
+Without further information, we are not able to verify that the other side is in fact the one we want to talk to.
 Even though we can verify that a server we connect to has the identity it claims by establishing the connection in an authenticated way, we cannot assume anything about the claimed identity if we do not know anything about it through other channels.
 
 The situation can be improved by relying on said other channels to first gain information about the service we want to connect to.
 Through e.g. a physical side-channel we may be able to retrieve additional data about a service and thus increase our confidence that we are in fact talking to the service we intended.
-We will discuss this topic in more detail in section \label{sec:key-exchaneg}.
+We will discuss this topic in more detail in section \ref{sec:key-exchange}.
 
 In fact, we do not try to solve the problem of key distribution in this thesis.
 Instead, we assume that participants of the service network have means through which they are able to exchange public signature keys for identities in a secure way.
@@ -493,7 +493,7 @@ It contains the following fields:
         While it would be possible to simply have a globally known port number where servers will always connect back to, letting the client specify a port number gives us more flexibility in constrained networks where certain ports may be occupied or blocked.
     \item[List of known identities]\hfill\\
         Clients can optionally add a list of identities known to them.
-        The list's puprose is to suppress a server's announcement in case it is already known to the client.
+        The list's purpose is to suppress a server's announcement in case it is already known to the client.
         This decreases network strain as well as helping the problem of clients being overwhelmed by incoming packages on their listening port when many services at the same time announce their network presence.
 \end{description}
 
@@ -501,7 +501,7 @@ The message is then serialized by the client and sent via UDP to the local broad
 We do not sign the message as the whole point of undirected service discovery is that we typically do not know about surrounding services.
 As such, the reverse argument would be that surrounding services have no knowledge about clients, as well, and thus do not really care for the messages originating from a certain client.\\
 
-On the receiving side we first unpack the message to retrieve version and port.
+On the receiving side, we first unpack the message to retrieve version and port.
 The server will now compare the client's version to versions known to the server and only proceed if he is able to correctly service that version.
 This may require switching between multiple message interface formats.
 
@@ -521,7 +521,7 @@ Each service announced has a name, category and port.
         Obviously, these names should not be taken as the sole identifier for services, though, as they are trivially malleable.
     \item[Category]\hfill\\
         The category is used as a distinguisher such that users are able to filter out services that do not serve their purpose.
-        Assuming a user Alice wants to have connect to a service providing input devices, she may easily filter the list of local services by restricting them to the category ``Input'', only.
+        Assuming a user Alice wants to connect to a service providing input devices, she may easily filter the list of local services by restricting them to the category ``Input'', only.
     \item[Port]\hfill\\
         The port specifies where clients need to connect to in order to interact with these services.
 \end{description}
@@ -529,19 +529,19 @@ Each service announced has a name, category and port.
 The server will now send back the serialized message to the querying client.
 The client's address is assembled by taking the originator address from the UDP package and the port specified in the Discover message.\\
 
-In contrast to the undirected service discovery the directed service discovery provides a way to obtain information about a server's services in an authenticated way.
+In contrast to the undirected service discovery, the directed service discovery provides a way to obtain information about a server's services in an authenticated way.
 As we have previously obtained the public signature key of the server we want to talk to, we are already able to establish authenticated and encrypted connections.
 
 So instead of exchanging one package for the Discover and Announce messages, we want to instead exchange multiple messages with each other to perform an authenticated hand shake as demonstrated in section \ref{sec:connection-establishment}.
 If we would use UDP for this as we do for undirected service discovery, we would have to correctly order and multiplex incoming packages based on originator and sequence.
 To avoid this burden, we instead use a different socket for directed service discovery which uses TCP as a protocol.
 
-Despite the initial connection establishment all subsequent steps remain unchanged, albeit data sent is encrypted with the generated ephemeral key.
+Despite the initial connection establishment, all subsequent steps remain unchanged, albeit data sent is encrypted with the generated ephemeral key.
 
 \subsection{Query}
 \label{sec:query}
 
-After the initial service discovery, we onl yhave access to the most basic information about each server.
+After the initial service discovery, we only have access to the most basic information about each server.
 We only know the server's location and name as well as for each service hosted by that server, its name, category and ports.
 While this is key data for a user who wants to connect, it does not provide enough detail to actually know what the service provides, if it suits our needs and how to connect.
 
@@ -552,9 +552,9 @@ This serves multiple purposes:
     \item Service discovery is usually centered around transmitting single UDP packages.
         That is, we explicitly do not want to handle more complex communication between client and server, which may be required to implement sophisticated negotiation between client and server.
         Furthermore, we want to keep UDP packages as small as possible to not overload the network when there are lots of servers present trying to announce their availability to one or multiple clients which want to discover servers.
-    \item Details about certain services provided on a server may contain sensitive information.
+    \item Details about certain services provided by a server may contain sensitive information.
         One kind of possibly sensitive information is the location, which might be confidential in certain setups.
-        In some cases even the actual service provided may be confidential.
+        In some cases, even the actual service provided may be confidential.
     \item To keep confidential data secure we may want to verify that connecting parties are in fact authorized to access the service or information about it.
         As service discovery is not authorized by default, we want to keep published information as scarce as possible.
 \end{itemize}
@@ -602,10 +602,10 @@ Otherwise, we will assemble a so-called service description, containing details 
         If the client has no plug-in able to handle the protocol, he cannot use the service.
     \item[Version]\hfill\\
         The version specifies the service type's implementation version.
-        If for example a new version of the application backing the service plugin is released which is incompatible to previous versions, we may need to increment the plugin's version in order to guarantee interoperability.
+        If for example a new version of the application backing the service plugin is released which is incompatible with previous versions, we may need to increment the plugin's version in order to guarantee interoperability.
         Versions are specific to the service's type.
     \item[Location]\hfill\\
-        For many applications it is important for users to know about the service's location.
+        For many applications, it is important for users to know about the service's location.
         Assume a client resides in a conference room with multiple displays and wants to present data on one of those screens.
         The client now obviously wants to know which service corresponds to the actual screen he wants to present his data, instead of displaying it on the wrong screen in the room or even in another conference room.
         The location field is intended to help clients find the correct service.
@@ -780,7 +780,7 @@ But after all, leaving sessions idle on servers may pose a security risk sometim
 
 Assume for example that a session has been created where the session creator unintentionally specified a wrong set of parameters, thus leaking a sensitive file to the session owner.
 Another example would be if the session owner has, by accident or intent, disclosed his private signature key to a third-party.
-In these cases affected sessions should be terminated as soon as possible.
+In these cases, affected sessions should be terminated as soon as possible.
 
 One naive solution to this problem would be to simply invoke the session and then immediately terminate it again.
 As session metadata is immediately deleted upon the session being invoked, this would prune data from the service.
@@ -791,8 +791,8 @@ As has been mentioned briefly, the session message sent after creating a new ses
 One capability is bound to the session owner and can be used to either connect to the session or to terminate the session.
 The second capability is instead bound to the session creator and can only be used to terminate the session.
 
-When either session owner or session creator now wish to terminate the session, they will send a session termination message to this end-point (see appendix \ref{apx:session-termination}).
-THe session termination message only contains the capability given by the server and suffices to identify the actual session that is to be terminated.
+When either session owner or session creator now wishes to terminate the session, they will send a session termination message to this end-point (see appendix \ref{apx:session-termination}).
+The session termination message only contains the capability given by the server and suffices to identify the actual session that is to be terminated.
 The server will verify that the capability is valid for the connected identity and if it actually has the right to terminate a session.
 If so, the session referenced by the capability will be searched and, if found, all associated metadata will be pruned.
 This includes pruning parameters as well as revoking the right to execute the session.
