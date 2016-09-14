@@ -381,41 +381,61 @@
 \section{Implementation}
 
 \begin{frame}{Current state}
-    \begin{columns}
-        \begin{column}{0.40\textwidth}
+    \begin{itemize}
+        \item builds on
             \begin{itemize}
-                \item builds on
-                    \begin{itemize}
-                        \item Windows
-                        \item Linux
-                        \item OS X
-                    \end{itemize}
-                \item CI via Travis, Appveyor
-                \item five services implemented
-                    \begin{itemize}
-                        \item Xpra
-                        \item Input
-                        \item Shell
-                        \item Capabilities
-                        \item Invoke
-                    \end{itemize}
+                \item Windows
+                \item Linux
+                \item OS X
             \end{itemize}
-        \end{column}
+        \item CI via Travis, Appveyor
+        \item five services implemented
+            \begin{itemize}
+                \item Xpra
+                \item Input
+                \item Shell
+                \item Capabilities
+                \item Invoke
+            \end{itemize}
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Current state}
+    \begin{columns}
         \begin{column}{0.48\textwidth}
             \begin{table}
                 \centering
                 \begin{tabular}{c|c|c}
-                    Component & LOC  & Test Cov\\
+                    Component & SLOC  & Test Cov\\
                     \hline
                     Core      & 2623 & $75\%$\\
                     Services  & 1132 & $7.3\%$\\
                     Exes      & 1301 & $0\%$\\
                     Tests     & 2361 & $100\%$\\
                     \hline
-                    Total     & 8165 & $58.5\%$\\
+                    Total     & 8165 & $54.5\%$\\
                     &&\\
                     App       & 3409 & $0\%$
                 \end{tabular}
+                \caption{State at hand-in}
+            \end{table}
+        \end{column}
+        \begin{column}{0.48\textwidth}
+            \begin{table}
+                \centering
+                \begin{tabular}{c|c|c}
+                    Component & SLOC  & Test Cov\\
+                    \hline
+                    Core      & 3121 & $80\%$\\
+                    Services  &  974 & $38\%$\\
+                    Exes      & 1277 & $0\%$\\
+                    Tests     & 4364 & $100\%$\\
+                    \hline
+                    Total     & 9736 & $74.2\%$\\
+                    &&\\
+                    App       & 2386 & $0\%$
+                \end{tabular}
+                \caption{Current state}
             \end{table}
         \end{column}
     \end{columns}
