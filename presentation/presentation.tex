@@ -300,7 +300,7 @@
             \lstinputlisting[caption=Request,firstline=39,lastline=41]{resources/proto/connect.proto}
         \end{column}
         \begin{column}{0.45\textwidth}
-            \lstinputlisting[caption=answer,firstline=47,lastline=49]{resources/proto/connect.proto}
+            \lstinputlisting[caption=Answer,firstline=47,lastline=49]{resources/proto/connect.proto}
         \end{column}
     \end{columns}
 \end{frame}
@@ -346,15 +346,15 @@
                 \newinst[4]{s}{Service s}
                 \newinst[4]{i}{Invoker i}
 
-                \begin{call}{c}{CreateSession(c, Parameters p)}{s}{c1}
-                    \begin{call}{s}{SaveSession(c, c, p)}{s}{Capability c1}
+                \begin{call}{c}{CreateSession(i, Parameters p)}{s}{c1}
+                    \begin{call}{s}{SaveSession(c, i, p)}{s}{Capability c1}
                     \end{call}
                 \end{call}
 
                 \postlevel
 
-                \begin{call}{c}{CreateSession(i, c1)}{i}{c2}
-                    \begin{call}{i}{SaveSession(c, i, c1)}{i}{Capability c2}
+                \begin{call}{c}{CreateSession(c, c1)}{i}{c2}
+                    \begin{call}{i}{SaveSession(c, c, c1)}{i}{Capability c2}
                     \end{call}
                 \end{call}
                 \postlevel
@@ -394,7 +394,7 @@
                 \mess{e}{Register}{c}
                 \postlevel
 
-                \begin{call}{r}{RequestCapability(e, s, params)}{c}{c1}
+                \begin{call}{r}{CapabilityRequest(e, s, params)}{c}{c1}
                     \postlevel
                     \begin{call}{c}{Ask(r, s, params)}{e}{c1}
                         \postlevel
