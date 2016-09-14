@@ -16,6 +16,13 @@
 
 \input{resources/template.tex}
 
+\AtBeginSection[]
+{
+  \begin{frame}
+    \tableofcontents[currentsection]
+  \end{frame}
+}
+
 \author{Patrick Steinhardt}
 \title{A Protocol for Connecting Networked Resources}
 \institute{Freie Universität Berlin}
@@ -26,6 +33,12 @@
     \maketitle
 \end{frame}
 
+\begin{frame}
+    \tableofcontents
+\end{frame}
+
+\section{Motivation}
+
 \begin{frame}{Motivation}
     Provide a solution for connecting services with each other  guaranteeing
     \begin{itemize}
@@ -34,6 +47,8 @@
         \item generality of possible services
     \end{itemize}
 \end{frame}
+
+\section{Architecture}
 
 \begin{frame}{Architecture - Entities}
     Three kind of entities are taking part in the protocol:
@@ -146,6 +161,10 @@
     \end{figure}
 \end{frame}
 
+\section{Protocol}
+
+\subsection{Low Level}
+
 \begin{frame}{Protocol - Low Level}
     \begin{figure}
     \centering
@@ -219,6 +238,8 @@
     \end{figure}
 \end{frame}
 
+\subsection{Discovery}
+
 \begin{frame}{Protocol - Discovery}
     \begin{columns}[t]
         \begin{column}{0.44\textwidth}
@@ -230,6 +251,8 @@
     \end{columns}
 \end{frame}
 
+\subsection{Query}
+
 \begin{frame}{Protocol - Query}
     \begin{columns}[t]
         \begin{column}{0.44\textwidth}
@@ -239,6 +262,8 @@
         \end{column}
     \end{columns}
 \end{frame}
+
+\subsection{Session Handling}
 
 \begin{frame}{Protocol - Session Estalibshment}
     \begin{columns}[t]
@@ -261,6 +286,10 @@
         \end{column}
     \end{columns}
 \end{frame}
+
+\section{Services}
+
+\subsection{Invoke}
 
 \begin{frame}{Service - Invoke}
 
@@ -299,6 +328,8 @@
     \end{figure}
 \end{frame}
 
+\subsection{Capabilities}
+
 \begin{frame}{Service - Capabilities}
     \begin{figure}
         \centering
@@ -336,6 +367,8 @@
         }
     \end{figure}
 \end{frame}
+
+\section{Implementation}
 
 \begin{frame}{Current state}
     \begin{columns}
