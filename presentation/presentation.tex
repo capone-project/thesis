@@ -390,27 +390,44 @@
 
 \section{Implementation}
 
-\begin{frame}{Current state}
-    \begin{itemize}
-        \item builds on
+\begin{frame}{Implementation - Overview}
+    \begin{columns}[t]
+        \begin{column}{0.48\textwidth}
+            \textbf{Server and command line client}
+
             \begin{itemize}
-                \item Windows
-                \item Linux
-                \item OS X
+                \item builds on
+                    \begin{itemize}
+                        \item Windows
+                        \item Linux
+                        \item OS X
+                    \end{itemize}
+                \item continuous integration via Travis \cite{travis}, AppVeyor \cite{appveyor}
+                \item static code analysis via Coverity \cite{coverity}
+                \item five services implemented
+                    \begin{itemize}
+                        \item Capabilities
+                        \item Invoke
+                        \item Shell
+                        \item Synergy
+                        \item Xpra
+                    \end{itemize}
             \end{itemize}
-        \item CI via Travis, Appveyor
-        \item five services implemented
+        \end{column}
+        \begin{column}{0.48\textwidth}
+            \textbf{Android Controller}
+
             \begin{itemize}
-                \item Xpra
-                \item Input
-                \item Shell
-                \item Capabilities
-                \item Invoke
+                \item stepchild of the project
+                \item continuous integration via Travis
+                \item but: no tests
+                \item works, but requires a lot of love
             \end{itemize}
-    \end{itemize}
+        \end{column}
+    \end{columns}
 \end{frame}
 
-\begin{frame}{Current state}
+\begin{frame}{Implementation - Source Code}
     \begin{columns}
         \begin{column}{0.48\textwidth}
             \begin{table}
@@ -449,6 +466,36 @@
             \end{table}
         \end{column}
     \end{columns}
+\end{frame}
+
+\begin{frame}{Implementation - What Changed}
+    \begin{itemize}
+        \item code quality
+            \begin{itemize}
+                \item libification of common source code
+                \item improved tests for library functions
+                \item tests for service plugins
+                \item bug fixes
+            \end{itemize}
+        \item session parameters
+            \begin{itemize}
+                \item removal of parameter descriptions in query response
+                \item parameters are transmitted as protobufs instead of key-value-pairs
+                \item clients receive session parameters on connect
+            \end{itemize}
+        \item implementation of capability chains
+        \item now hosted on \url{https://github.com/capone-project}
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Implementation - What Remains}
+    \begin{itemize}
+        \item further cleanups
+        \item more tests
+        \item more services
+        \item better Android client
+        \item better remote procedure call semantics
+    \end{itemize}
 \end{frame}
 
 \begin{frame}{Related Work}
