@@ -177,64 +177,45 @@
     \begin{figure}
         \centering
 
-        \resizebox*{!}{1.0\textheight}
-        {
-            \begin{sequencediagram}
-                \newthread{c}{Client ($vrfy_C$, $sign_C$)}
-                \newthread[4]{s}{Service ($vrfy_S$, $sign_S$)}
+    \resizebox{!}{\textheight}
+    {
+    \begin{sequencediagram}
+        \newthread{c}{Client $C$}
+        \newinst[7]{s}{Service $S$}
 
-                \begin{call}{c}{GenerateKeypair()}{c}{($enc_C$, $dec_C$)}
-                    \postlevel
-                \end{call}
+        \begin{call}{c}{GenerateSid()}{c}{$sid$}
+        \end{call}
 
-                \postlevel
+        \postlevel
 
-                \begin{messcall}{c}{$\sigma = \text{Sign}_{sign_C}(vrfy_C \| enc_C), vrfy_C, enc_C$}{s}
-                \end{messcall}
+        \begin{call}{c}{GenerateKeypair()}{c}{($enc_C$, $dec_C$)}
+        \end{call}
 
-                \begin{call}{s}{Verify$_{vrfy_C}(\sigma, vrfy_C \| enc_C)$}{s}{}
-                    \postlevel
-                \end{call}
+        \postlevel
 
-                \postlevel
+        \begin{messcall}{c}{$C$, $sid$, $enc_c$}{s}
 
-                \begin{call}{s}{GenerateKeypair()}{s}{($enc_S$, $dec_S$)}
-                    \postlevel
-                \end{call}
+        \begin{call}{s}{GenerateKeypair()}{s}{($enc_S$, $dec_S$)}
+        \end{call}
 
-                \postlevel
+        \begin{messcall}{s}{$S$, $sid$, $enc_s$, Sign$(S, S \mathbin{\|} sid \mathbin{\|} enc_s \mathbin{\|} enc_c \mathbin{\|} C)$}{c}
+        \end{messcall}
 
-                \begin{messcall}{s}{$\sigma = \text{Sign}_{sign_S}(enc_S \| enc_C), enc_S, enc_C$}{c}
-                \end{messcall}
+        \begin{messcall}{c}{$C$, $sid$, Sign$(C, C \mathbin{\$} sid \mathbin{\|} enc_c \mathbin{\|} enc_s \mathbin{\|} S)$}{s}
+        \end{messcall}
 
-                \begin{call}{c}{$\text{Verify}_{vrfy_S}(\sigma, enc_S \| enc_C)$}{c}{}
-                    \postlevel
-                \end{call}
+        \begin{call}{c}{CalculateKey($enc_S$, $dec_C$)}{c}{Key}
+        \end{call}
 
-                \postlevel
+        \prelevel
+        \prelevel
 
-                \begin{messcall}{c}{$\sigma = \text{Sign}_{sign_C}(enc_S || enc_C), enc_S, enc_C$}{s}
-                \end{messcall}
+        \begin{call}{s}{CalculateKey($enc_C$, $dec_S$)}{s}{Key}
+        \end{call}
 
-                \begin{call}{s}{$\text{Verify}_{vrfy_C}(\sigma, enc_S \| enc_C)$}{s}{}
-                    \postlevel
-                \end{call}
-
-                \postlevel
-
-                \begin{call}{c}{CalculateKey($enc_S$, $dec_C$)}{c}{Key}
-                    \postlevel
-                \end{call}
-
-                \prelevel
-                \prelevel
-                \prelevel
-
-                \begin{call}{s}{CalculateKey($enc_C$, $dec_S$)}{s}{Key}
-                    \postlevel
-                \end{call}
-            \end{sequencediagram}
-        }
+        \end{messcall}
+    \end{sequencediagram}
+    }
     \end{figure}
 \end{frame}
 
