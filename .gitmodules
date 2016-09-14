@@ -1,0 +1,3 @@
+[submodule "presentation/resources/proto"]
+	path = presentation/resources/proto
+	url = git@github.com:capone-project/capone-proto.git
