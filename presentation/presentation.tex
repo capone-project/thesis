@@ -25,7 +25,7 @@
 }
 
 \author{Patrick Steinhardt}
-\title{A Protocol for Connecting Networked Resources}
+\title{A Protocol for Connecting Distributed Resources}
 \institute{Freie Universität Berlin}
 
 \begin{document}
@@ -41,11 +41,18 @@
 \section{Motivation}
 
 \begin{frame}{Motivation}
-    Provide a solution for connecting services with each other  guaranteeing
+    \begin{quote}
+        The most profound technologies are those that disappear.
+        They weave themselves into the fabric of everyday life until they are indistinguishable from it. \cite{weiser1991computer}
+    \end{quote}
+\end{frame}
+
+\begin{frame}{Motivation}
+    Provide a solution for connecting services with each other guaranteeing
     \begin{itemize}
-        \item confidentiality of sent data
-        \item authenticity of partaking parties
-        \item generality of possible services
+        \item confidentiality of data sent
+        \item authenticated identities
+        \item controlability of services from a controlling device
     \end{itemize}
 \end{frame}
 
@@ -59,7 +66,7 @@
             \begin{itemize}
                 \item hosts different services
                 \item responsible for answering service discovery
-                \item owns a long term signature key
+                \item owns a long term signature key pair
             \end{itemize}
         \item[Service]
             \begin{itemize}
@@ -69,9 +76,34 @@
         \item[Client]
             \begin{itemize}
                 \item user of one or multiple services
-                \item owns a long term signature key
+                \item owns a long term signature key pair
             \end{itemize}
     \end{description}
+\end{frame}
+
+\begin{frame}{Architecture - Sessions}
+    \begin{itemize}
+        \item using services requires a session
+        \item sessions are created by clients
+        \item sessions are deleted after being used
+        \item sessions contain
+            \begin{itemize}
+                \item identifier
+                \item session parameters
+            \end{itemize}
+        \item sessions are guarded by capabilities
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Architecture - Capabilities}
+    \begin{itemize}
+        \item each sessions owns a root capability containing a secret
+        \item from this secret, the server can generate referencing capabilities
+        \item capabilities have access rights ``execute'' and ``terminate''
+        \item capabilities are bound to public keys
+        \item servers can cryptographically verify capabilities against the root capability
+        \item based on identity-bound capabilities by Gong et al. \cite{gong1989secure}
+    \end{itemize}
 \end{frame}
 
 \begin{frame}[fragile]{Architecture - Overview}
@@ -85,12 +117,12 @@
                 service/.style={draw, ellipse, minimum width=2cm, minimum height=0.6cm}
             ]
 
-            \node (client) {Client};
+            \node (client) {Client c};
 
             \visible<3->{
-                \node[server, left=1.5cm of client,  yshift=0.8cm] (s1) {};
-                \node[server, above=1.0cm of client, xshift=2.0cm] (s2) {};
-                \node[server, below=1.3cm of client, xshift=1.3cm] (s3) {};
+                \node[server, left=1.5cm of client,  yshift=0.8cm] (s1) {s1};
+                \node[server, above=1.0cm of client, xshift=2.0cm] (s2) {s2};
+                \node[server, below=1.3cm of client, xshift=1.3cm] (s3) {s3};
             }
 
             % Discover
@@ -133,7 +165,7 @@
 
             % CreateSession
             \visible<6>{
-                \path[invoke] (client) to node[above right] {CreateSession()} (s1);
+                \path[invoke] (client) to node[above right] {CreateSession(s3)} (s1);
             }
             \visible<7>{
                 \path[invoke] (s1) to node[above right] {Capability c1} (client);
@@ -144,7 +176,7 @@
 
             % CreateSession
             \visible<8>{
-                \path[invoke] (client) to node[right] {CreateSession(c1)} (s3);
+                \path[invoke] (client) to node[right] {CreateSession(c, c1)} (s3);
             }
             \visible<9>{
                 \path[invoke] (s3) to node[right] {Capability c2} (client);
@@ -190,17 +222,21 @@
         \node[draw, on chain=1, minimum width=12mm] {MAC};
         \node[draw, on chain=1, minimum width=8mm ] {len};
         \node[draw, on chain=1, minimum width=38mm] {44 bytes data};
-        \node[left=1cm of 1-1] {Package 1};
+        \node[left=1cm of 1-1] {Block 1};
 
         \node[draw, on chain=2, minimum width=12mm, below=1cm of 1-1.west, anchor = west] {MAC};
         \node[draw, on chain=2, minimum width=28mm] {36 bytes data};
         \node[draw, on chain=2, minimum width=18mm] {padding};
-        \node[left=1cm of 2-1] {Package 2};
+        \node[left=1cm of 2-1] {Block 2};
 
         \draw [decorate,decoration={brace,amplitude=10pt}] (1-2.north west) -- (1-3.north east) node[midway,yshift=7mm] {encrypted};
         \draw [decorate,decoration={brace,amplitude=10pt,mirror}] (2-2.south west) -- (2-3.south east) node[midway,yshift=-7mm] {encrypted};
     \end{tikzpicture}
     \end{figure}
+    \begin{itemize}
+        \item fixed-length block format
+        \item uses cryptographic primitives provided by NaCl crypto library \cite{nacl}
+    \end{itemize}
 \end{frame}
 
 \begin{frame}{Protocol - Low Level - Message Format}
@@ -211,60 +247,23 @@
     \end{itemize}
 \end{frame}
 
-\begin{frame}[fragile]{Protocol - Low Level - Key Exchange}
-    \begin{figure}
-        \centering
-
-    \resizebox{!}{\textheight}
-    {
-    \begin{sequencediagram}
-        \newthread{c}{Client $C$}
-        \newinst[7]{s}{Service $S$}
-
-        \begin{call}{c}{GenerateSid()}{c}{$sid$}
-        \end{call}
-
-        \postlevel
-
-        \begin{call}{c}{GenerateKeypair()}{c}{($enc_C$, $dec_C$)}
-        \end{call}
-
-        \postlevel
-
-        \begin{messcall}{c}{$C$, $sid$, $enc_c$}{s}
-
-        \begin{call}{s}{GenerateKeypair()}{s}{($enc_S$, $dec_S$)}
-        \end{call}
-
-        \begin{messcall}{s}{$S$, $sid$, $enc_s$, Sign$(S, S \mathbin{\|} sid \mathbin{\|} enc_s \mathbin{\|} enc_c \mathbin{\|} C)$}{c}
-        \end{messcall}
-
-        \begin{messcall}{c}{$C$, $sid$, Sign$(C, C \mathbin{\$} sid \mathbin{\|} enc_c \mathbin{\|} enc_s \mathbin{\|} S)$}{s}
-        \end{messcall}
-
-        \begin{call}{c}{CalculateKey($enc_S$, $dec_C$)}{c}{Key}
-        \end{call}
-
-        \prelevel
-        \prelevel
-
-        \begin{call}{s}{CalculateKey($enc_C$, $dec_S$)}{s}{Key}
-        \end{call}
-
-        \end{messcall}
-    \end{sequencediagram}
-    }
-    \end{figure}
+\begin{frame}[fragile]{Protocol - Low Level - Key Agreement}
+    \begin{itemize}
+        \item each connection to a service requires setup of an encrypted connection
+        \item initial connection authenticates identities and shared keys
+        \item uses the SIG-DH authenticated key agreement protocol by Canetti et al. \cite{canetti2001analysis} to generate a shared symmetric key
+        \item uses cryptographic primitives provided by NaCl crypto library \cite{nacl}
+    \end{itemize}
 \end{frame}
 
 \subsection{Discovery}
 
 \begin{frame}{Protocol - Discovery}
     \begin{columns}[t]
-        \begin{column}{0.44\textwidth}
+        \begin{column}{0.45\textwidth}
             \lstinputlisting[caption=Probe,firstline=16]{resources/proto/discovery.proto}
         \end{column}
-        \begin{column}{0.44\textwidth}
+        \begin{column}{0.45\textwidth}
             \lstinputlisting[caption=Answer,firstline=3,lastline=14]{resources/proto/discovery.proto}
         \end{column}
     \end{columns}
@@ -274,9 +273,9 @@
 
 \begin{frame}{Protocol - Query}
     \begin{columns}[t]
-        \begin{column}{0.44\textwidth}
+        \begin{column}{0.45\textwidth}
         \end{column}
-        \begin{column}{0.44\textwidth}
+        \begin{column}{0.45\textwidth}
             \lstinputlisting[caption=Answer,firstline=14,lastline=21]{resources/proto/connect.proto}
         \end{column}
     \end{columns}
@@ -286,10 +285,10 @@
 
 \begin{frame}{Protocol - Session Establishment}
     \begin{columns}[t]
-        \begin{column}{0.48\textwidth}
+        \begin{column}{0.45\textwidth}
             \lstinputlisting[caption=Request,firstline=29,lastline=32]{resources/proto/connect.proto}
         \end{column}
-        \begin{column}{0.40\textwidth}
+        \begin{column}{0.45\textwidth}
             \lstinputlisting[caption=Answer,firstline=34,lastline=38]{resources/proto/connect.proto}
         \end{column}
     \end{columns}
@@ -297,10 +296,10 @@
 
 \begin{frame}{Protocol - Session Invocation}
     \begin{columns}[t]
-        \begin{column}{0.44\textwidth}
+        \begin{column}{0.45\textwidth}
             \lstinputlisting[caption=Request,firstline=39,lastline=41]{resources/proto/connect.proto}
         \end{column}
-        \begin{column}{0.44\textwidth}
+        \begin{column}{0.45\textwidth}
             \lstinputlisting[caption=answer,firstline=47,lastline=49]{resources/proto/connect.proto}
         \end{column}
     \end{columns}
@@ -308,19 +307,34 @@
 
 \begin{frame}{Protocol - Session Termination}
     \begin{columns}[t]
-        \begin{column}{0.44\textwidth}
+        \begin{column}{0.45\textwidth}
             \lstinputlisting[caption=Request,firstline=43,lastline=45]{resources/proto/connect.proto}
         \end{column}
-        \begin{column}{0.44\textwidth}
+        \begin{column}{0.45\textwidth}
         \end{column}
     \end{columns}
 \end{frame}
 
 \section{Services}
 
+\begin{frame}{Services}
+    \begin{itemize}
+        \item services are backed by plugins
+        \item plugins can be registered dynamically
+        \item five service plugins implemented
+            \begin{description}
+                \item[Capabilities] Request capabilities from an entity.
+                \item[Invoke] Have a server execute another service.
+                \item[Shell] Execute programs.
+                \item[Synergy] Forward mouse- and keyboard-input.
+                \item[Xpra] Forward graphical output to another computer.
+            \end{description}
+    \end{itemize}
+\end{frame}
+
 \subsection{Invoke}
 
-\begin{frame}{Service - Invoke}
+\begin{frame}{Services - Invoke}
 
     \begin{figure}
         \centering
@@ -328,25 +342,25 @@
         \resizebox{0.8\textwidth}{!}
         {
             \begin{sequencediagram}
-                \newthread{c}{Client}
-                \newinst[4]{s}{Service}
-                \newinst[4]{i}{Invoker}
+                \newthread{c}{Client c}
+                \newinst[4]{s}{Service s}
+                \newinst[4]{i}{Invoker i}
 
-                \begin{call}{c}{Initiate(Parameters)}{s}{Service Session}
-                    \begin{call}{s}{CreateSession()}{s}{Capability}
+                \begin{call}{c}{CreateSession(c, Parameters p)}{s}{c1}
+                    \begin{call}{s}{SaveSession(c, c, p)}{s}{Capability c1}
                     \end{call}
                 \end{call}
 
                 \postlevel
 
-                \begin{call}{c}{Initiate(ServiceSession)}{i}{Invoker Session}
-                    \begin{call}{i}{CreateSession()}{i}{Capability}
+                \begin{call}{c}{CreateSession(i, c1)}{i}{c2}
+                    \begin{call}{i}{SaveSession(c, i, c1)}{i}{Capability c2}
                     \end{call}
                 \end{call}
                 \postlevel
 
-                \begin{messcall}{c}{Start}{i}
-                    \begin{messcall}{i}{Start}{s}
+                \begin{messcall}{c}{StartSession(c2)}{i}
+                    \begin{messcall}{i}{StartSession(c1)}{s}
                         \postlevel
                     \end{messcall}
                     \prelevel
@@ -355,11 +369,17 @@
             \end{sequencediagram}
         }
     \end{figure}
+    \begin{description}
+        \item[CreateSession(i, p)]\hfill\\
+            Create session with invoker i and parameters p.
+        \item[SaveSession(c, i, p)]\hfill\\
+            Save session with creator c, invoker i and parameters p.
+    \end{description}
 \end{frame}
 
 \subsection{Capabilities}
 
-\begin{frame}{Service - Capabilities}
+\begin{frame}{Services - Capabilities}
     \begin{figure}
         \centering
 
@@ -368,17 +388,17 @@
             \begin{sequencediagram}
                 \newthread{r}{Requester r}
                 \newinst[2]{e}{Entity e}
-                \newinst[2]{s}{Service s}
+                \newinst[3]{s}{Service s}
                 \newinst[2]{c}{Capability Service}
 
                 \mess{e}{Register}{c}
                 \postlevel
 
-                \begin{call}{r}{Request(e, s, params)}{c}{Capability}
+                \begin{call}{r}{RequestCapability(e, s, params)}{c}{c1}
                     \postlevel
-                    \begin{call}{c}{Ask(r, s, params)}{e}{Capability}
+                    \begin{call}{c}{Ask(r, s, params)}{e}{c1}
                         \postlevel
-                        \begin{call}{e}{Initiate(params)}{s}{Capability}
+                        \begin{call}{e}{CreateSession(r, params)}{s}{Capability c1}
                         \end{call}
                         \postlevel
                     \end{call}
@@ -387,7 +407,7 @@
 
                 \postlevel
 
-                \begin{messcall}{r}{Start}{s}
+                \begin{messcall}{r}{StartSession(c1)}{s}
                     \postlevel
                 \end{messcall}
 
@@ -413,14 +433,6 @@
                     \end{itemize}
                 \item continuous integration via Travis \cite{travis}, AppVeyor \cite{appveyor}
                 \item static code analysis via Coverity \cite{coverity}
-                \item five services implemented
-                    \begin{itemize}
-                        \item Capabilities
-                        \item Invoke
-                        \item Shell
-                        \item Synergy
-                        \item Xpra
-                    \end{itemize}
             \end{itemize}
         \end{column}
         \begin{column}{0.48\textwidth}
@@ -488,8 +500,8 @@
             \end{itemize}
         \item session parameters
             \begin{itemize}
-                \item removal of parameter descriptions in query response
                 \item parameters are transmitted as protobufs instead of key-value-pairs
+                \item parameters are verified on session establishment
                 \item clients receive session parameters on connect
             \end{itemize}
         \item implementation of capability chains
@@ -501,7 +513,7 @@
     \begin{itemize}
         \item further cleanups
         \item more tests
-        \item more services
+        \item more service plugins
         \item better Android client
         \item better remote procedure call semantics
     \end{itemize}
@@ -510,11 +522,14 @@
 \section{References}
 
 \begin{frame}[allowframebreaks]{References}
-    \nocite{canetti2001analysis}
-    \nocite{gong1989secure}
-
     \bibliographystyle{plain}
     {\tiny \bibliography{../thesis/resources/bibliography}}
+\end{frame}
+
+\begin{frame}[plain]
+    \begin{center}
+        Thank you for your attention.
+    \end{center}
 \end{frame}
 
 \end{document}
