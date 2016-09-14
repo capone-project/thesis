@@ -175,7 +175,7 @@
 
 \subsection{Low Level}
 
-\begin{frame}{Protocol - Low Level}
+\begin{frame}{Protocol - Low Level - Wire Format}
     \begin{figure}
     \centering
 
@@ -202,7 +202,15 @@
     \end{figure}
 \end{frame}
 
-\begin{frame}[fragile]{Protocol - Connection Establishment}
+\begin{frame}{Protocol - Low Level - Message Format}
+    \begin{itemize}
+        \item based on Google Protocol Buffers \cite{varda2008protocol}
+        \item message format specified via language-independent syntax
+        \item compilers translate message formats to source code
+    \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]{Protocol - Low Level - Key Exchange}
     \begin{figure}
         \centering
 
