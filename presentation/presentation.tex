@@ -81,12 +81,12 @@
                 bidi/.style={draw, triangle 45-triangle 45},
                 invoke/.style={draw, -triangle 45},
                 server/.style={draw, rectangle, minimum height=1.2cm, minimum width=0.6cm},
-                service/.style={draw, ellipse}
+                service/.style={draw, ellipse, minimum width=2cm, minimum height=0.6cm}
             ]
 
             \node (client) {Client};
 
-            \visible<2->{
+            \visible<3->{
                 \node[server, left=1.5cm of client,  yshift=0.8cm] (s1) {};
                 \node[server, above=1.0cm of client, xshift=2.0cm] (s2) {};
                 \node[server, below=1.3cm of client, xshift=1.3cm] (s3) {};
@@ -108,53 +108,63 @@
 
             % Services
             \visible<3->{
-                \node[service, left=of s1] (display) {Display};
+                \node[service, left=of s1] (display) {{\uncover<5->{Display}}};
                 \path[draw] (display) -- (s1);
 
-                \node[service, above=of s2, xshift=-1.5cm] (cpu2) {CPU};
-                \node[service, above=of s2, xshift=+1.5cm] (display2) {Display};
+                \node[service, above=of s2, xshift=-1.5cm] (cpu2) {};
+                \node[service, above=of s2, xshift=+1.5cm] (display2) {};
                 \path[draw] (cpu2) -- (s2);
                 \path[draw] (display2) -- (s2);
 
-                \node[service, right=of s3] (invoke) {Invoke};
+                \node[service, right=of s3] (invoke) {{\uncover<5->{Invoke}}};
                 \path[draw] (invoke) -- (s3);
             }
 
-            % CreateSession
             \visible<4>{
-                \path[invoke] (client) to node[above right] {CreateSession()} (s1);
+                \path[invoke] (client) to node[above right] {Query} (s1);
+                \path[invoke] (client) to node[below left] {Query} (s3);
             }
+
             \visible<5>{
-                \path[invoke] (s1) to node[above right] {Capability c1} (client);
-            }
-            \visible<5-10>{
-                \node[above=1mm of display] {c1};
+                \path[invoke] (s1) to node[above right] {Description} (client);
+                \path[invoke] (s3) to node[below left] {Description} (client);
             }
 
             % CreateSession
             \visible<6>{
-                \path[invoke] (client) to node[right] {CreateSession(c1)} (s3);
+                \path[invoke] (client) to node[above right] {CreateSession()} (s1);
             }
             \visible<7>{
+                \path[invoke] (s1) to node[above right] {Capability c1} (client);
+            }
+            \visible<7-12>{
+                \node[above=1mm of display] {c1};
+            }
+
+            % CreateSession
+            \visible<8>{
+                \path[invoke] (client) to node[right] {CreateSession(c1)} (s3);
+            }
+            \visible<9>{
                 \path[invoke] (s3) to node[right] {Capability c2} (client);
             }
-            \visible<7-8>{
+            \visible<9-10>{
                 \node[below=1mm of invoke] {c2};
             }
 
             % StartSession
-            \visible<8>{
-                \path[invoke] (client) to node[right] {\only<8>{StartSession(c2)}} (s3);
+            \visible<10>{
+                \path[invoke] (client) to node[right] {StartSession(c2)} (s3);
             }
-            \visible<9->{
+            \visible<11->{
                 \path[bidi] (client) to node[right] {} (s3);
             }
 
             % StartSession
-            \visible<10>{
+            \visible<12>{
                 \path[invoke] (s3) to node[below left] {StartSession(c1)} (s1);
             }
-            \visible<11->{
+            \visible<13->{
                 \path[bidi] (s3) to node[below left] {} (s1);
             }
         \end{tikzpicture}
